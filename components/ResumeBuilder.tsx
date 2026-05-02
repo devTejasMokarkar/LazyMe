@@ -8,12 +8,11 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useToast } from "./ToastProvider";
 import Loader from "./Loader";
 import DownloadDropdown from "./DownloadDropdown";
-import LaTeXPreview from "./LaTeXPreview";
 import { ATSScoreCard } from "./ATSScoreCard";
 import { resumeToLatex } from "@/utils/latexFormatter";
 import {
   RefreshCw, FileText, Briefcase, GraduationCap, Wrench, User, Sparkles, Mail,
-  Menu, Eye, Code
+  Menu, Eye
 } from "lucide-react";
 
 interface ResumeBuilderProps {
@@ -55,7 +54,7 @@ export function ResumeBuilder({
   const [changes, setChanges] = useState<string[]>([]);
   const [previousScore, setPreviousScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"edit" | "latex" | "cover" | "ats">("edit");
+  const [activeTab, setActiveTab] = useState<"edit" | "cover" | "ats">("edit");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { showToast } = useToast();
 
@@ -226,7 +225,7 @@ export function ResumeBuilder({
         {/* Editor Panel */}
         <div className="flex flex-col border-r border-slate-800 overflow-hidden bg-[#0f172a]">
           <div className="h-10 bg-[#1e293b] flex items-center px-4 border-b border-slate-800 gap-6 shrink-0">
-            {["edit", "latex", "cover", "ats"].map((tab) => (
+            {["edit", "cover", "ats"].map((tab) => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -234,8 +233,8 @@ export function ResumeBuilder({
                   activeTab === tab ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-300"
                 }`}
               >
-                {tab === "edit" ? <FileText className="w-3 h-3" /> : tab === "latex" ? <Code className="w-3 h-3" /> : tab === "cover" ? <Mail className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" />}
-                {tab === "edit" ? "Editor" : tab === "latex" ? "Source" : tab === "cover" ? "Cover Letter" : "ATS Score"}
+                {tab === "edit" ? <FileText className="w-3 h-3" /> : tab === "cover" ? <Mail className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" />}
+                {tab === "edit" ? "Editor" : tab === "cover" ? "Cover Letter" : "ATS Score"}
               </button>
             ))}
           </div>
@@ -337,7 +336,6 @@ export function ResumeBuilder({
                 </div>
               </div>
             )}
-            {activeTab === "latex" && <div className="h-full"><LaTeXPreview resumeData={resume} /></div>}
             {activeTab === "cover" && (
               <div className="max-w-2xl mx-auto space-y-6 pb-24">
                 <h3 className="text-white font-bold text-lg flex items-center gap-3">

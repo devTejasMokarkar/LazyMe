@@ -1,22 +1,32 @@
 # LazyMe AI
 
-An intelligent resume and cover letter generation platform powered by AI. Build professional resumes and generate personalized cover letters instantly.
+**Apply to jobs in 2 minutes using AI.**
 
-## Features
+LazyMe AI is an AI Job Application Engine that automatically discovers relevant jobs, optimizes your resume for ATS, and applies to multiple positions with a single click. Stop writing resumes. Start getting interviews.
 
-- **AI-Powered Resume Generation**: Create professional resumes using Google's Gemini AI
-- **Cover Letter Generation**: Generate personalized cover letters tailored to specific job descriptions
-- **Live Preview**: See real-time updates as you build your resume
-- **Multiple Export Formats**: Download resumes in various formats including LaTeX
-- **Dark/Light Theme**: Toggle between themes for comfortable usage
+## Core Features
+
+- **AI Job Discovery**: Automatically finds and ranks jobs based on your resume skills and experience
+- **Auto Resume Generation**: Upload your resume and let AI optimize it for each job
+- **ATS Optimization**: Automatic keyword matching and resume improvement for higher ATS scores
+- **Auto-Improvement Loop**: If ATS score < 70%, resume is automatically improved before applying
+- **Batch Apply**: Apply to multiple jobs with one click
+- **Email Apply**: Automatically send personalized emails with resume and cover letter
+- **Cover Letter Generation**: AI-generated cover letters tailored to each job description
+- **Single Pipeline**: One orchestrator handles Resume → ATS → Improve → Cover Letter → Apply
+
+## User Flow
+
+Upload Resume → Discover Jobs → Select Jobs → Click Apply → Done
 
 ## Tech Stack
 
 - **Frontend**: Next.js 14, React 18, TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui components
-- **AI Integration**: Google Generative AI (Gemini)
+- **Styling**: Tailwind CSS
+- **AI Integration**: Google Generative AI (Gemini 2.0 Flash)
 - **Icons**: Lucide React
 - **PDF Processing**: pdf-parse
+- **Email**: Nodemailer
 
 ## Getting Started
 
@@ -43,9 +53,13 @@ npm install
 cp .env.local.example .env.local
 ```
 
-4. Add your Google AI API key to `.env.local`:
+4. Add your API keys to `.env.local`:
 ```
-GOOGLE_AI_API_KEY=your_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+SMTP_HOST=your_smtp_host
+SMTP_PORT=587
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_password
 ```
 
 ### Running the Application
@@ -68,35 +82,56 @@ The application will be available at `http://localhost:3000`
 ```
 lazyme-ai/
 ├── app/                    # Next.js app router pages
+│   ├── api/               # API routes
+│   │   ├── discover-jobs/ # Job discovery and matching
+│   │   ├── auto-apply/    # Auto-apply orchestrator
+│   │   ├── send-email/    # Email sending functionality
+│   │   ├── generate-all/  # Resume + Cover + ATS generation
+│   │   ├── parse-resume/  # Resume parsing from PDF/DOCX
+│   │   └── improve-resume/ # ATS-based resume improvement
+│   └── page.tsx           # Main application entry point
 ├── components/            # React components
-│   ├── ResumeBuilder.tsx  # Main resume builder component
-│   ├── LivePreview.tsx    # Live preview component
-│   └── EmailButton.tsx    # Email functionality
+│   ├── JobDashboard.tsx   # Job discovery and batch apply UI
+│   ├── ResumeBuilder.tsx  # Resume editing and preview
+│   ├── OnboardingFlow.tsx # User onboarding
+│   └── ...
 ├── utils/                 # Utility functions
-│   ├── promptBuilder.ts   # AI prompt building logic
 │   ├── gemini.ts          # Google AI integration
-│   └── latexFormatter.ts  # LaTeX formatting utilities
-├── api/                   # API routes
-│   ├── generate-resume/   # Resume generation endpoint
-│   └── generate-cover/    # Cover letter generation endpoint
+│   ├── ats.ts             # ATS scoring logic
+│   └── promptBuilder.ts   # AI prompt building
 └── graphify-out/          # Code analysis and documentation
 ```
 
 ## Usage
 
-1. **Build Your Resume**: Fill in your personal information, work experience, education, and skills
-2. **Add Job Description**: Paste the job description you're applying for
-3. **Generate AI Content**: Use AI to generate professional summaries and bullet points
-4. **Generate Cover Letter**: Create a personalized cover letter
-5. **Export**: Download your resume in your preferred format
+1. **Upload Resume**: Upload your existing resume (PDF, DOCX, TXT)
+2. **Discover Jobs**: Paste job listings or let AI find matching jobs
+3. **View Matches**: See jobs ranked by match percentage with your skills
+4. **Select Jobs**: Choose which jobs to apply to
+5. **Click Apply**: System automatically:
+   - Optimizes your resume for each job (if ATS < 70%)
+   - Generates personalized cover letters
+   - Applies via email or tracks for easy apply
 
 ## API Endpoints
 
-### POST /api/generate-resume
-Generates AI-enhanced resume content based on user input.
+### POST /api/discover-jobs
+Matches resume skills against job requirements and ranks by relevance.
 
-### POST /api/generate-cover
-Generates a personalized cover letter based on resume and job description.
+### POST /api/auto-apply
+Single orchestrator that processes jobs through: Resume → ATS → Improve → Cover Letter → Apply.
+
+### POST /api/send-email
+Sends application emails with resume and cover letter attachments.
+
+### POST /api/parse-resume
+Extracts structured resume data from PDF, DOCX, or TXT files using AI.
+
+### POST /api/generate-all
+Generates resume, cover letter, and ATS score in a single request.
+
+### POST /api/improve-resume
+Improves resume based on job description for better ATS matching.
 
 ## Contributing
 
@@ -114,6 +149,20 @@ This project is licensed under the MIT License.
 
 For support and questions, please open an issue in the repository.
 
+## Product Philosophy
+
+LazyMe AI is not a resume builder. It's an outcome-driven system focused on getting you interviews, not creating documents.
+
+**We optimize for:**
+- Getting you applied to jobs FAST
+- Minimizing effort (lazy user mindset)
+- Maximizing interview chances
+
+**We don't optimize for:**
+- Editing resumes
+- Writing documents
+- LaTeX flexibility
+
 ---
 
-**Built with ❤️ using Next.js and Google AI**
+**Stop writing resumes. Start getting interviews.**

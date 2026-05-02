@@ -34,23 +34,33 @@ export function EmailButton({ resumeData, coverLetter, jobTitle, companyEmail }:
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showOptions]);
 
+  // Strip markdown formatting from text
+  const stripMarkdown = (text: string): string => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+      .replace(/\*(.*?)\*/g, '$1')     // Remove italic markdown
+      .replace(/__(.*?)__/g, '$1')     // Remove bold underscore markdown
+      .replace(/_(.*?)_/g, '$1')       // Remove italic underscore markdown
+      .replace(/`(.*?)`/g, '$1')       // Remove inline code markdown
+      .replace(/~~(.*?)~~/g, '$1');    // Remove strikethrough markdown
+  };
+
+  const cleanCoverLetter = stripMarkdown(coverLetter);
+
   const emailContent = `
 Hi,
 
-${coverLetter}
+${cleanCoverLetter}
 
 ---
 
-**Professional Summary:**
+Professional Summary:
 ${resumeData.summary}
 
-**Contact Information:**
+Contact Information:
 ${resumeData.name}
 ${resumeData.title}
 ${resumeData.email}
-
----
-Generated via LazyMe AI
   `.trim();
 
   const subject = `Application for ${jobTitle}`;
