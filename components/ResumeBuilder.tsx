@@ -48,6 +48,12 @@ export function ResumeBuilder({
   const [resume, setResume] = useState<ResumeData>({ ...emptyResume, ...initialData });
   const [coverLetter, setCoverLetter] = useState("");
   const [ats, setAts] = useState<any>(null);
+  const [currentJobDesc, setCurrentJobDesc] = useState(jobDescription || "");
+  const [currentCompanyName, setCurrentCompanyName] = useState(companyName || "");
+  const [currentGenerateCover, setCurrentGenerateCover] = useState(generateCover);
+  const [improving, setImproving] = useState(false);
+  const [changes, setChanges] = useState<string[]>([]);
+  const [previousScore, setPreviousScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "latex" | "cover" | "ats">("edit");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -56,16 +62,16 @@ export function ResumeBuilder({
   const generateResume = async () => {
     setLoading(true);
     try {
-      const includeATS = !!jobDescription;
+      const includeATS = true;
       
       const res = await fetch("/api/generate-all", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           data: resume, 
-          jobDescription, 
-          companyName,
-          includeCoverLetter: generateCover,
+          jobDescription: currentJobDesc, 
+          companyName: currentCompanyName,
+          includeCoverLetter: currentGenerateCover,
           includeATS
         }),
       });
@@ -81,6 +87,31 @@ export function ResumeBuilder({
       showToast(e.message || "Failed to generate resume", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const improveResume = async () => {
+    if (!currentJobDesc) return;
+    setImproving(true);
+    try {
+      const res = await fetch("/api/improve-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume, jobDescription: currentJobDesc }),
+      });
+      if (!res.ok) throw new Error("Improvement failed");
+      const data = await res.json();
+      
+      setPreviousScore(ats?.score || null);
+      setResume(data.improvedResume);
+      setAts(data.newATS);
+      setChanges(data.changes || []);
+      
+      showToast("Resume improved successfully! ⚡", "success");
+    } catch (e: any) {
+      showToast(e.message || "Failed to improve resume", "error");
+    } finally {
+      setImproving(false);
     }
   };
 
@@ -177,7 +208,7 @@ export function ResumeBuilder({
               { id: "edit", label: "Professional Experience", icon: <Briefcase className="w-3.5 h-3.5" /> },
               { id: "edit", label: "Education", icon: <GraduationCap className="w-3.5 h-3.5" /> },
               { id: "cover", label: "Cover Letter", icon: <Mail className="w-3.5 h-3.5" /> },
-              ...(ats ? [{ id: "ats", label: "ATS Score", icon: <RefreshCw className="w-3.5 h-3.5" /> }] : []),
+              { id: "ats", label: "ATS Score", icon: <RefreshCw className="w-3.5 h-3.5" /> },
             ].map((item, i) => (
               <button
                 key={i}
@@ -195,7 +226,7 @@ export function ResumeBuilder({
         {/* Editor Panel */}
         <div className="flex flex-col border-r border-slate-800 overflow-hidden bg-[#0f172a]">
           <div className="h-10 bg-[#1e293b] flex items-center px-4 border-b border-slate-800 gap-6 shrink-0">
-            {["edit", "latex", "cover", ...(ats ? ["ats"] : [])].map((tab) => (
+            {["edit", "latex", "cover", "ats"].map((tab) => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -211,6 +242,31 @@ export function ResumeBuilder({
           <div className="flex-1 overflow-y-auto p-8 scrollbar-hide">
             {activeTab === "edit" && (
               <div className="max-w-2xl mx-auto space-y-12 pb-24">
+                <div className="space-y-6">
+                  <h3 className="text-white font-bold text-lg flex items-center gap-3">
+                    <div className="w-1 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" /> Target Job
+                  </h3>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Company Name</label>
+                      <input type="text" className="w-full bg-[#1e293b] border border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" value={currentCompanyName} onChange={e => setCurrentCompanyName(e.target.value)} placeholder="e.g. Google" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Job Description</label>
+                    <textarea className="w-full bg-[#1e293b] border border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none min-h-[100px] resize-none" value={currentJobDesc} onChange={e => setCurrentJobDesc(e.target.value)} placeholder="Paste job description here for ATS scoring and cover letter..." />
+                  </div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={currentGenerateCover}
+                      onChange={e => setCurrentGenerateCover(e.target.checked)}
+                      className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-primary focus:ring-primary"
+                    />
+                    <span className="text-slate-300 text-sm">Generate cover letter too</span>
+                  </label>
+                </div>
+
                 <div className="space-y-6">
                   <h3 className="text-white font-bold text-lg flex items-center gap-3">
                     <div className="w-1 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" /> Personal Information
@@ -295,9 +351,23 @@ export function ResumeBuilder({
                 />
               </div>
             )}
-            {activeTab === "ats" && ats && (
+            {activeTab === "ats" && (
               <div className="max-w-2xl mx-auto space-y-6 pb-24">
-                <ATSScoreCard data={ats} />
+                {ats ? (
+                  <ATSScoreCard 
+                    data={ats} 
+                    onImprove={improveResume} 
+                    improving={improving} 
+                    changes={changes} 
+                    previousScore={previousScore} 
+                  />
+                ) : (
+                  <div className="text-center bg-[#1e293b]/50 border border-slate-800 rounded-xl p-12">
+                    <RefreshCw className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                    <h4 className="text-lg font-bold text-white mb-2">No ATS Score Yet</h4>
+                    <p className="text-slate-400 text-sm">Paste a job description in the Editor tab and click Recompile to generate your ATS score.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

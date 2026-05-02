@@ -1,8 +1,8 @@
 import { ResumeData } from "./promptBuilder";
 
 export function resumeToLatex(data: ResumeData): string {
-  const escapeLatex = (str: string = "") =>
-    str
+  const escapeLatex = (str: string | null | undefined = "") =>
+    (str || "")
       .replace(/\\/g, "\\\\")
       .replace(/&/g, "\\&")
       .replace(/%/g, "\\%")
