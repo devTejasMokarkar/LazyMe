@@ -346,7 +346,10 @@ export function ResumeBuilder({
           <div className="text-sm font-medium text-slate-300">{resume.name || "Untitled Resume"}</div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <p className="text-xs font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent hidden md:block">
+            Found a job? Just LazyMe it.
+          </p>
           <button onClick={generateResume} disabled={loading} className="flex items-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Recompile

@@ -61,6 +61,9 @@ Contact Information:
 ${resumeData.name}
 ${resumeData.title}
 ${resumeData.email}
+
+---
+Found a job? Just LazyMe it.
   `.trim();
 
   const subject = `Application for ${jobTitle}`;
@@ -98,6 +101,11 @@ ${resumeData.email}
         <Send className="w-4 h-4" />
         Apply Now
       </button>
+      {showOptions && (
+        <p className="absolute top-full left-0 mt-2 text-xs font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent whitespace-nowrap">
+          Found a job? Just LazyMe it.
+        </p>
+      )}
 
       {showOptions && (
         <>
@@ -178,6 +186,9 @@ ${resumeData.email}
               
               <div className="p-4 bg-slate-900/50 text-center">
                 <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Powered by LazyMe AI</p>
+                <p className="text-[10px] font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mt-1">
+                  Found a job? Just LazyMe it.
+                </p>
               </div>
             </div>
           </div>

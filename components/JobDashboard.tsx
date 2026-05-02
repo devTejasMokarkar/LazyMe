@@ -203,6 +203,9 @@ export function JobDashboard({
         </div>
 
         <div className="flex items-center gap-3">
+          <p className="text-xs font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent hidden lg:block">
+            Found a job? Just LazyMe it.
+          </p>
           <button
             onClick={selectAll}
             className="text-xs font-medium text-slate-400 hover:text-white px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
@@ -218,10 +221,15 @@ export function JobDashboard({
           <button
             onClick={handleBatchApply}
             disabled={selectedJobs.size === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex flex-col items-center gap-1 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Zap className="w-4 h-4" />
-            Apply to {selectedJobs.size} Job{selectedJobs.size !== 1 ? "s" : ""}
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              Apply to {selectedJobs.size} Job{selectedJobs.size !== 1 ? "s" : ""}
+            </div>
+            <span className="text-[10px] font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+              Found a job? Just LazyMe it.
+            </span>
           </button>
         </div>
       </header>

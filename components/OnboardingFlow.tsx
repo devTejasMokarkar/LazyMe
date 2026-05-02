@@ -170,7 +170,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {step === 0 && (
         <div className="animate-slide-up">
           <h1 className="text-3xl font-bold mb-2 gradient-text">LazyMe AI</h1>
-          <p className="text-slate-400 mb-8">Apply to jobs in under 2 minutes</p>
+          <p className="text-slate-400 mb-2">Apply to jobs in under 2 minutes</p>
+          <p className="text-sm font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mb-8">
+            Found a job? Just LazyMe it.
+          </p>
 
           <div className="space-y-3">
             {modes.map(m => (
@@ -223,6 +226,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <button onClick={handleFinish} className="btn-primary w-full text-lg py-4">
               Generate & Apply <Zap className="w-5 h-5 inline ml-2" />
             </button>
+            <p className="text-center text-xs font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mt-3">
+              Found a job? Just LazyMe it.
+            </p>
           </div>
         </div>
       )}
@@ -267,6 +273,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <button onClick={handleFinish} className="btn-primary w-full text-lg py-4">
               Generate & Apply <Zap className="w-5 h-5 inline ml-2" />
             </button>
+            <p className="text-center text-xs font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mt-3">
+              Found a job? Just LazyMe it.
+            </p>
           </div>
         </div>
       )}
