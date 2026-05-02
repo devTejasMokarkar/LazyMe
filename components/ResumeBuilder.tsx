@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { ResumeData } from "@/utils/promptBuilder";
 import { LivePreview } from "./LivePreview";
 import { EmailButton } from "./EmailButton";
@@ -36,6 +36,129 @@ const emptyResume: ResumeData = {
   projects: [],
 };
 
+function cleanExtractedCompanyName(value: string) {
+  return value
+    .replace(/^[^\w]+/, "")
+    .replace(/\*\*/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/[.,;:\s]+$/, "")
+    .trim();
+}
+
+function extractCompanyNameFromJobDescription(description?: string) {
+  if (!description) return "";
+
+  const patterns = [
+    /(?:^|\n)\s*(?:company|company name|organization|employer|hiring company|client)\s*[:\-]\s*([^\n|•]+)/i,
+    /(?:^|\n)\s*(?:about the company|about us)\s*[:\-]\s*([^\n|•.]+)/i,
+    /\b(?:join|at)\s+([A-Z][A-Za-z0-9&.'’(), -]{2,70}?)(?:\s+(?:as|for|to|is|,|\.|\n))/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = description.match(pattern);
+    const candidate = cleanExtractedCompanyName(match?.[1] || "");
+
+    if (
+      candidate &&
+      candidate.length <= 80 &&
+      !/^(job title|location|experience|role|position|salary|requirements?)$/i.test(candidate)
+    ) {
+      return candidate;
+    }
+  }
+
+  return "";
+}
+
+function extractEmailFromJobDescription(description?: string) {
+  if (!description) return "";
+
+  const emails = description.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi);
+  return emails?.[0] || "";
+}
+
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const educationYears = Array.from({ length: 80 }, (_, index) => String(new Date().getFullYear() + 10 - index));
+
+function parseMonthValue(value: string) {
+  if (!value) return "";
+
+  const monthPattern = new RegExp(`(${monthNames.join("|")})\\s+(\\d{4})`, "i");
+  const monthMatch = value.match(monthPattern);
+
+  if (monthMatch) {
+    const monthIndex = monthNames.findIndex(
+      month => month.toLowerCase() === monthMatch[1].toLowerCase()
+    );
+    return `${monthMatch[2]}-${String(monthIndex + 1).padStart(2, "0")}`;
+  }
+
+  const inputMonthMatch = value.match(/\b(\d{4})-(\d{2})\b/);
+  if (inputMonthMatch) return `${inputMonthMatch[1]}-${inputMonthMatch[2]}`;
+
+  const yearMatch = value.match(/\b(19|20)\d{2}\b/);
+  return yearMatch ? `${yearMatch[0]}-01` : "";
+}
+
+function formatMonthValue(value: string) {
+  if (!value) return "";
+
+  const [year, month] = value.split("-");
+  const monthName = monthNames[Number(month) - 1];
+
+  return monthName && year ? `${monthName} ${year}` : "";
+}
+
+function parseDurationRange(duration: string) {
+  const current = /present|current/i.test(duration);
+  const [start = "", end = ""] = duration.split(/\s+(?:-|–|to)\s+/i);
+
+  return {
+    start: parseMonthValue(start),
+    end: current ? "" : parseMonthValue(end),
+    current,
+  };
+}
+
+function formatDurationRange(start: string, end: string, current: boolean) {
+  const formattedStart = formatMonthValue(start);
+  const formattedEnd = current ? "Present" : formatMonthValue(end);
+
+  if (formattedStart && formattedEnd) return `${formattedStart} - ${formattedEnd}`;
+  if (formattedStart) return formattedStart;
+  if (formattedEnd) return formattedEnd;
+
+  return "";
+}
+
+function parseYearRange(value: string) {
+  const years = value.match(/\b(?:19|20)\d{2}\b/g) || [];
+
+  return {
+    start: years[0] || "",
+    end: years[1] || "",
+  };
+}
+
+function formatYearRange(start: string, end: string) {
+  if (start && end) return `${start}-${end}`;
+  return start || end || "";
+}
+
 export function ResumeBuilder({
   initialData,
   jobDescription,
@@ -48,17 +171,29 @@ export function ResumeBuilder({
   const [coverLetter, setCoverLetter] = useState("");
   const [ats, setAts] = useState<any>(null);
   const [currentJobDesc, setCurrentJobDesc] = useState(jobDescription || "");
-  const [currentCompanyName, setCurrentCompanyName] = useState(companyName || "");
-  const [currentGenerateCover, setCurrentGenerateCover] = useState(generateCover);
+  const [currentCompanyName, setCurrentCompanyName] = useState(
+    companyName || extractCompanyNameFromJobDescription(jobDescription)
+  );
+  const [currentCompanyEmail, setCurrentCompanyEmail] = useState(
+    companyEmail || extractEmailFromJobDescription(jobDescription)
+  );
+  const [companyNameEdited, setCompanyNameEdited] = useState(Boolean(companyName));
+  const [companyEmailEdited, setCompanyEmailEdited] = useState(Boolean(companyEmail));
+  const currentGenerateCover = generateCover;
   const [improving, setImproving] = useState(false);
   const [changes, setChanges] = useState<string[]>([]);
   const [previousScore, setPreviousScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "cover" | "ats">("edit");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const autoGenerateStarted = useRef(false);
+  const generationInFlight = useRef(false);
   const { showToast } = useToast();
 
   const generateResume = async () => {
+    if (generationInFlight.current) return;
+
+    generationInFlight.current = true;
     setLoading(true);
     try {
       const includeATS = true;
@@ -85,6 +220,7 @@ export function ResumeBuilder({
     } catch (e: any) {
       showToast(e.message || "Failed to generate resume", "error");
     } finally {
+      generationInFlight.current = false;
       setLoading(false);
     }
   };
@@ -115,12 +251,30 @@ export function ResumeBuilder({
   };
 
   useEffect(() => {
-    if (initialData && Object.keys(initialData).length > 0) generateResume();
+    const hasInitialData = initialData && Object.keys(initialData).length > 0;
+    const hasJobDescription = Boolean(jobDescription?.trim());
+
+    if ((hasInitialData || hasJobDescription) && !autoGenerateStarted.current) {
+      autoGenerateStarted.current = true;
+      generateResume();
+    }
   }, []);
 
   const updateField = useCallback((field: keyof ResumeData, value: any) => {
     setResume(prev => ({ ...prev, [field]: value }));
   }, []);
+
+  const updateJobDescription = (value: string) => {
+    setCurrentJobDesc(value);
+
+    if (!companyNameEdited) {
+      setCurrentCompanyName(extractCompanyNameFromJobDescription(value));
+    }
+
+    if (!companyEmailEdited) {
+      setCurrentCompanyEmail(extractEmailFromJobDescription(value));
+    }
+  };
 
   const addExperience = () => {
     setResume(prev => ({
@@ -134,6 +288,10 @@ export function ResumeBuilder({
       ...prev,
       experience: prev.experience.map((e, i) => i === idx ? { ...e, [field]: value } : e),
     }));
+  };
+
+  const updateExperienceDuration = (idx: number, start: string, end: string, current: boolean) => {
+    updateExperience(idx, "duration", formatDurationRange(start, end, current));
   };
 
   const removeExperience = (idx: number) => {
@@ -155,6 +313,10 @@ export function ResumeBuilder({
       ...prev,
       education: prev.education.map((e, i) => i === idx ? { ...e, [field]: value } : e),
     }));
+  };
+
+  const updateEducationYearRange = (idx: number, start: string, end: string) => {
+    updateEducation(idx, "year", formatYearRange(start, end));
   };
 
   const removeEducation = (idx: number) => {
@@ -188,7 +350,7 @@ export function ResumeBuilder({
             Recompile
           </button>
           <DownloadDropdown resumeData={resume} latex={resumeToLatex(resume)} resumePreviewId="resume-preview" />
-          <EmailButton resumeData={resume} coverLetter={coverLetter} jobTitle={jobTitle} companyEmail={companyEmail} />
+          <EmailButton resumeData={resume} coverLetter={coverLetter} jobTitle={jobTitle} companyEmail={currentCompanyEmail} />
           <ThemeToggle />
         </div>
       </header>
@@ -248,22 +410,31 @@ export function ResumeBuilder({
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Company Name</label>
-                      <input type="text" className="w-full bg-[#1e293b] border border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" value={currentCompanyName} onChange={e => setCurrentCompanyName(e.target.value)} placeholder="e.g. Google" />
+                      <input
+                        type="text"
+                        className="w-full bg-[#1e293b] border border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+                        value={currentCompanyName}
+                        onChange={e => {
+                          setCompanyNameEdited(true);
+                          setCurrentCompanyName(e.target.value);
+                        }}
+                        placeholder="e.g. Google"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">To Email</label>
+                      <input
+                        type="email"
+                        className="w-full bg-[#1e293b] border border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+                        value={currentCompanyEmail}
+                        onChange={e => {
+                          setCompanyEmailEdited(true);
+                          setCurrentCompanyEmail(e.target.value);
+                        }}
+                        placeholder="hiring@company.com"
+                      />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Job Description</label>
-                    <textarea className="w-full bg-[#1e293b] border border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none min-h-[100px] resize-none" value={currentJobDesc} onChange={e => setCurrentJobDesc(e.target.value)} placeholder="Paste job description here for ATS scoring and cover letter..." />
-                  </div>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={currentGenerateCover}
-                      onChange={e => setCurrentGenerateCover(e.target.checked)}
-                      className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-primary focus:ring-primary"
-                    />
-                    <span className="text-slate-300 text-sm">Generate cover letter too</span>
-                  </label>
                 </div>
 
                 <div className="space-y-6">
@@ -297,18 +468,51 @@ export function ResumeBuilder({
                     <button onClick={addExperience} className="text-xs font-bold text-primary uppercase tracking-wider">+ Add Entry</button>
                   </div>
                   <div className="space-y-6">
-                    {resume.experience.map((exp, idx) => (
-                      <div key={idx} className="bg-[#1e293b]/50 border border-slate-800 rounded-xl p-6 space-y-4 relative group">
-                        <div className="grid grid-cols-2 gap-4">
-                          <input type="text" placeholder="Company" className="bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary" value={exp.company} onChange={e => updateExperience(idx, "company", e.target.value)} />
-                          <input type="text" placeholder="Duration" className="bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary" value={exp.duration} onChange={e => updateExperience(idx, "duration", e.target.value)} />
+                    {resume.experience.map((exp, idx) => {
+                      const duration = parseDurationRange(exp.duration);
+
+                      return (
+                        <div key={idx} className="bg-[#1e293b]/50 border border-slate-800 rounded-xl p-6 space-y-4 relative group">
+                          <div className="grid grid-cols-2 gap-4">
+                            <input type="text" placeholder="Company" className="bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary" value={exp.company} onChange={e => updateExperience(idx, "company", e.target.value)} />
+                            <input type="text" placeholder="Role" className="bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary" value={exp.role} onChange={e => updateExperience(idx, "role", e.target.value)} />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">From</label>
+                              <input
+                                type="month"
+                                className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary"
+                                value={duration.start}
+                                onChange={e => updateExperienceDuration(idx, e.target.value, duration.end, duration.current)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">To</label>
+                              <input
+                                type="month"
+                                className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                                value={duration.end}
+                                disabled={duration.current}
+                                onChange={e => updateExperienceDuration(idx, duration.start, e.target.value, duration.current)}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={duration.current}
+                                onChange={e => updateExperienceDuration(idx, duration.start, "", e.target.checked)}
+                                className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-primary focus:ring-primary"
+                              />
+                              <span className="text-slate-300 text-sm">Currently working here</span>
+                            </label>
+                            <button onClick={() => removeExperience(idx)} className="text-red-500 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-colors text-xs font-bold uppercase">Remove</button>
+                          </div>
                         </div>
-                        <div className="flex gap-3">
-                          <input type="text" placeholder="Role" className="flex-1 bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary" value={exp.role} onChange={e => updateExperience(idx, "role", e.target.value)} />
-                          <button onClick={() => removeExperience(idx)} className="text-red-500 hover:bg-red-500/10 px-3 rounded-lg transition-colors text-xs font-bold uppercase">Remove</button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -320,18 +524,47 @@ export function ResumeBuilder({
                     <button onClick={addEducation} className="text-xs font-bold text-primary uppercase tracking-wider">+ Add Entry</button>
                   </div>
                   <div className="space-y-6">
-                    {resume.education.map((edu, idx) => (
-                      <div key={idx} className="bg-[#1e293b]/50 border border-slate-800 rounded-xl p-6 space-y-4 relative group">
-                        <div className="grid grid-cols-2 gap-4">
-                          <input type="text" placeholder="School" className="bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary" value={edu.school} onChange={e => updateEducation(idx, "school", e.target.value)} />
-                          <input type="text" placeholder="Year" className="bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary" value={edu.year} onChange={e => updateEducation(idx, "year", e.target.value)} />
+                    {resume.education.map((edu, idx) => {
+                      const yearRange = parseYearRange(edu.year);
+
+                      return (
+                        <div key={idx} className="bg-[#1e293b]/50 border border-slate-800 rounded-xl p-6 space-y-4 relative group">
+                          <input type="text" placeholder="School / Institute" className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary" value={edu.school} onChange={e => updateEducation(idx, "school", e.target.value)} />
+                          <input type="text" placeholder="Degree" className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary" value={edu.degree} onChange={e => updateEducation(idx, "degree", e.target.value)} />
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">From</label>
+                              <select
+                                className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary"
+                                value={yearRange.start}
+                                onChange={e => updateEducationYearRange(idx, e.target.value, yearRange.end)}
+                              >
+                                <option value="">Select year</option>
+                                {educationYears.map(year => (
+                                  <option key={`edu-start-${year}`} value={year}>{year}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">To</label>
+                              <select
+                                className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary"
+                                value={yearRange.end}
+                                onChange={e => updateEducationYearRange(idx, yearRange.start, e.target.value)}
+                              >
+                                <option value="">Select year</option>
+                                {educationYears.map(year => (
+                                  <option key={`edu-end-${year}`} value={year}>{year}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="flex justify-end">
+                            <button onClick={() => removeEducation(idx)} className="text-red-500 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-colors text-xs font-bold uppercase">Remove</button>
+                          </div>
                         </div>
-                        <div className="flex gap-3">
-                          <input type="text" placeholder="Degree" className="flex-1 bg-[#0f172a] border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary" value={edu.degree} onChange={e => updateEducation(idx, "degree", e.target.value)} />
-                          <button onClick={() => removeEducation(idx)} className="text-red-500 hover:bg-red-500/10 px-3 rounded-lg transition-colors text-xs font-bold uppercase">Remove</button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
