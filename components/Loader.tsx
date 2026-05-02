@@ -9,7 +9,6 @@ export default function Loader() {
   const messages = [
     { text: "Analyzing your profile...", icon: <Search className="w-5 h-5" /> },
     { text: "Crafting professional experience...", icon: <Brain className="w-5 h-5" /> },
-    { text: "Optimizing for ATS algorithms...", icon: <Sparkles className="w-5 h-5" /> },
     { text: "Finalizing LaTeX layout...", icon: <CheckCircle2 className="w-5 h-5" /> },
     { text: "Almost ready...", icon: <Sparkles className="w-5 h-5" /> }
   ];

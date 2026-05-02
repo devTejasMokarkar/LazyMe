@@ -7,7 +7,7 @@ interface CacheItem<T> {
 class SimpleCache<T = any> {
   private cache = new Map<string, CacheItem<T>>();
 
-  set<T>(key: string, data: T, ttl: number = 300000): void { // Default 5 minutes
+  set(key: string, data: T, ttl: number = 300000): void { // Default 5 minutes
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -15,7 +15,7 @@ class SimpleCache<T = any> {
     });
   }
 
-  get<T>(key: string): T | null {
+  get(key: string): T | null {
     const item = this.cache.get(key);
     if (!item) return null;
 
@@ -49,12 +49,10 @@ class SimpleCache<T = any> {
 import { ResumeData } from "./promptBuilder";
 
 export const resumeCache = new SimpleCache<ResumeData>();
-export const atsCache = new SimpleCache<{ score: number; matched: string[]; missing: string[] }>();
 export const coverLetterCache = new SimpleCache<string>();
 
 // Cleanup expired cache items every 10 minutes
 setInterval(() => {
   resumeCache.cleanup();
-  atsCache.cleanup();
   coverLetterCache.cleanup();
 }, 600000);

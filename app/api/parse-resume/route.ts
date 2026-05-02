@@ -54,7 +54,7 @@ Return JSON with this exact shape:
 Rules:
 - Infer missing fields from context
 - Keep bullets concise (1 sentence each)
-- Skills should be technical/professional keywords
+- Skills should be technical/professional items
 - If a field cannot be found, use empty string or empty array`;
 
 async function processTextWithAI(text: string) {

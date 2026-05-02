@@ -24,7 +24,7 @@ export interface ResumeData {
 }
 
 export function buildResumePrompt(data: Partial<ResumeData>, jobDescription?: string): string {
-  const basePrompt = `Generate a professional ATS-optimized resume in JSON format. No explanation, only valid JSON.
+  const basePrompt = `Generate a professional resume in JSON format. No explanation, only valid JSON.
 
 Candidate Info:
 ${JSON.stringify(data, null, 2)}
@@ -45,7 +45,7 @@ Rules:
   "projects": [{"name":"","description":"","tech":[""]}]
 }
 - Summary must be 2-3 sentences, impactful.
-- Skills must be 8-12 relevant keywords.
+- Skills must be 8-12 relevant items.
 - Experience bullets must use action verbs and metrics where possible.
 - Tailor to the job description if provided.
 - Fill in any missing fields with realistic, professional content.`;

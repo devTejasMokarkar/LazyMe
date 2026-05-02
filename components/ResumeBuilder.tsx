@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { ResumeData } from "@/utils/promptBuilder";
 import { LivePreview } from "./LivePreview";
-import { ATSScoreCard } from "./ATSScoreCard";
 import { EmailButton } from "./EmailButton";
 import { ThemeToggle } from "./ThemeToggle";
 import { useToast } from "./ToastProvider";
@@ -12,7 +11,7 @@ import DownloadDropdown from "./DownloadDropdown";
 import LaTeXPreview from "./LaTeXPreview";
 import { resumeToLatex } from "@/utils/latexFormatter";
 import {
-  RefreshCw, FileText, Briefcase, GraduationCap, Wrench, User, Sparkles, Mail, Target,
+  RefreshCw, FileText, Briefcase, GraduationCap, Wrench, User, Sparkles, Mail,
   Menu, Eye, Code
 } from "lucide-react";
 
@@ -47,9 +46,8 @@ export function ResumeBuilder({
 }: ResumeBuilderProps) {
   const [resume, setResume] = useState<ResumeData>({ ...emptyResume, ...initialData });
   const [coverLetter, setCoverLetter] = useState("");
-  const [atsScore, setAtsScore] = useState<{ score: number; matched: string[]; missing: string[] } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"edit" | "latex" | "cover" | "ats">("edit");
+  const [activeTab, setActiveTab] = useState<"edit" | "latex" | "cover">("edit");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { showToast } = useToast();
 
@@ -64,15 +62,6 @@ export function ResumeBuilder({
       if (!res.ok) throw new Error("Generation failed");
       const data = await res.json();
       setResume(data.resume);
-
-      if (jobDescription) {
-        const atsRes = await fetch("/api/ats-score", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeText: JSON.stringify(resume), jobDescription }),
-        });
-        if (atsRes.ok) setAtsScore(await atsRes.json());
-      }
 
       if (generateCover && jobDescription) {
         const coverRes = await fetch("/api/generate-cover", {
@@ -182,7 +171,6 @@ export function ResumeBuilder({
               { id: "edit", label: "Core Competencies", icon: <Wrench className="w-3.5 h-3.5" /> },
               { id: "edit", label: "Professional Experience", icon: <Briefcase className="w-3.5 h-3.5" /> },
               { id: "edit", label: "Education", icon: <GraduationCap className="w-3.5 h-3.5" /> },
-              { id: "ats", label: "ATS Optimization", icon: <Target className="w-3.5 h-3.5" /> },
               { id: "cover", label: "Cover Letter", icon: <Mail className="w-3.5 h-3.5" /> },
             ].map((item, i) => (
               <button
@@ -201,7 +189,7 @@ export function ResumeBuilder({
         {/* Editor Panel */}
         <div className="flex flex-col border-r border-slate-800 overflow-hidden bg-[#0f172a]">
           <div className="h-10 bg-[#1e293b] flex items-center px-4 border-b border-slate-800 gap-6 shrink-0">
-            {["edit", "latex", "ats"].map((tab) => (
+            {["edit", "latex"].map((tab) => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -209,8 +197,8 @@ export function ResumeBuilder({
                   activeTab === tab ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-300"
                 }`}
               >
-                {tab === "edit" ? <FileText className="w-3 h-3" /> : tab === "latex" ? <Code className="w-3 h-3" /> : <Target className="w-3 h-3" />}
-                {tab === "edit" ? "Editor" : tab === "latex" ? "Source" : "ATS Report"}
+                {tab === "edit" ? <FileText className="w-3 h-3" /> : <Code className="w-3 h-3" />}
+                {tab === "edit" ? "Editor" : "Source"}
               </button>
             ))}
           </div>
@@ -288,7 +276,6 @@ export function ResumeBuilder({
               </div>
             )}
             {activeTab === "latex" && <div className="h-full"><LaTeXPreview resumeData={resume} /></div>}
-            {activeTab === "ats" && (atsScore ? <div className="max-w-2xl mx-auto"><ATSScoreCard {...atsScore} /></div> : <div className="text-center py-20 text-slate-500">Generate a resume first.</div>)}
           </div>
         </div>
 

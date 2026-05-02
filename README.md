@@ -1,11 +1,10 @@
 # LazyMe AI
 
-An intelligent resume and cover letter generation platform powered by AI. Build professional resumes, optimize for ATS scoring, and generate personalized cover letters instantly.
+An intelligent resume and cover letter generation platform powered by AI. Build professional resumes and generate personalized cover letters instantly.
 
 ## Features
 
 - **AI-Powered Resume Generation**: Create professional resumes using Google's Gemini AI
-- **ATS Score Optimization**: Analyze and improve your resume's compatibility with Applicant Tracking Systems
 - **Cover Letter Generation**: Generate personalized cover letters tailored to specific job descriptions
 - **Live Preview**: See real-time updates as you build your resume
 - **Multiple Export Formats**: Download resumes in various formats including LaTeX
@@ -72,17 +71,14 @@ lazyme-ai/
 ├── components/            # React components
 │   ├── ResumeBuilder.tsx  # Main resume builder component
 │   ├── LivePreview.tsx    # Live preview component
-│   ├── ATSScoreCard.tsx   # ATS scoring display
 │   └── EmailButton.tsx    # Email functionality
 ├── utils/                 # Utility functions
 │   ├── promptBuilder.ts   # AI prompt building logic
 │   ├── gemini.ts          # Google AI integration
-│   ├── keywordExtractor.ts # ATS keyword extraction
 │   └── latexFormatter.ts  # LaTeX formatting utilities
 ├── api/                   # API routes
 │   ├── generate-resume/   # Resume generation endpoint
-│   ├── generate-cover/    # Cover letter generation endpoint
-│   └── ats-score/         # ATS scoring endpoint
+│   └── generate-cover/    # Cover letter generation endpoint
 └── graphify-out/          # Code analysis and documentation
 ```
 
@@ -91,9 +87,8 @@ lazyme-ai/
 1. **Build Your Resume**: Fill in your personal information, work experience, education, and skills
 2. **Add Job Description**: Paste the job description you're applying for
 3. **Generate AI Content**: Use AI to generate professional summaries and bullet points
-4. **Check ATS Score**: See how well your resume matches the job requirements
-5. **Generate Cover Letter**: Create a personalized cover letter
-6. **Export**: Download your resume in your preferred format
+4. **Generate Cover Letter**: Create a personalized cover letter
+5. **Export**: Download your resume in your preferred format
 
 ## API Endpoints
 
@@ -102,9 +97,6 @@ Generates AI-enhanced resume content based on user input.
 
 ### POST /api/generate-cover
 Generates a personalized cover letter based on resume and job description.
-
-### POST /api/ats-score
-Calculates ATS compatibility score between resume and job description.
 
 ## Contributing
 

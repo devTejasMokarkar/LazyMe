@@ -235,7 +235,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               onChange={e => setCompanyEmail(e.target.value)}
             />
             <textarea
-              placeholder="Job Description (optional but recommended for ATS optimization)"
+              placeholder="Job Description (optional)"
               className="input-field min-h-[120px] resize-none"
               value={jobDescription}
               onChange={e => setJobDescription(e.target.value)}
