@@ -1,0 +1,45 @@
+{
+  "name": "lazyme-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "npx tsx tests/api.test.ts",
+    "test:upload": "npx tsx tests/resume-upload.test.ts",
+    "test:pdf": "npx tsx tests/pdf-upload.test.ts",
+    "test:all": "npm run test && npm run test:upload && npm run test:pdf",
+    "test:watch": "echo 'Watching not implemented yet. Use npm test to run tests.'"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "html2pdf.js": "^0.14.0",
+    "katex": "^0.16.9",
+    "lucide-react": "^0.460.0",
+    "mammoth": "^1.12.0",
+    "next": "^14.2.0",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.4",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-katex": "^3.0.1",
+    "tailwind-merge": "^2.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/pdf-parse": "^1.1.4",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/react-katex": "^3.0.4",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.2.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.4.0"
+  }
+}
