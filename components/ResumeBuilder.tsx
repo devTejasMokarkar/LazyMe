@@ -9,6 +9,7 @@ import { useToast } from "./ToastProvider";
 import Loader from "./Loader";
 import DownloadDropdown from "./DownloadDropdown";
 import LaTeXPreview from "./LaTeXPreview";
+import { ATSScoreCard } from "./ATSScoreCard";
 import { resumeToLatex } from "@/utils/latexFormatter";
 import {
   RefreshCw, FileText, Briefcase, GraduationCap, Wrench, User, Sparkles, Mail,
@@ -46,31 +47,35 @@ export function ResumeBuilder({
 }: ResumeBuilderProps) {
   const [resume, setResume] = useState<ResumeData>({ ...emptyResume, ...initialData });
   const [coverLetter, setCoverLetter] = useState("");
+  const [ats, setAts] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"edit" | "latex" | "cover">("edit");
+  const [activeTab, setActiveTab] = useState<"edit" | "latex" | "cover" | "ats">("edit");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { showToast } = useToast();
 
   const generateResume = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/generate-resume", {
+      const includeATS = !!jobDescription;
+      
+      const res = await fetch("/api/generate-all", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: resume, jobDescription }),
+        body: JSON.stringify({ 
+          data: resume, 
+          jobDescription, 
+          companyName,
+          includeCoverLetter: generateCover,
+          includeATS
+        }),
       });
       if (!res.ok) throw new Error("Generation failed");
       const data = await res.json();
+      
       setResume(data.resume);
-
-      if (generateCover && jobDescription) {
-        const coverRes = await fetch("/api/generate-cover", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resumeData: resume, jobDescription, companyName }),
-        });
-        if (coverRes.ok) setCoverLetter((await coverRes.json()).coverLetter);
-      }
+      if (data.coverLetter) setCoverLetter(data.coverLetter);
+      if (data.ats) setAts(data.ats);
+      
       showToast("Everything ready! 🚀", "success");
     } catch (e: any) {
       showToast(e.message || "Failed to generate resume", "error");
@@ -172,6 +177,7 @@ export function ResumeBuilder({
               { id: "edit", label: "Professional Experience", icon: <Briefcase className="w-3.5 h-3.5" /> },
               { id: "edit", label: "Education", icon: <GraduationCap className="w-3.5 h-3.5" /> },
               { id: "cover", label: "Cover Letter", icon: <Mail className="w-3.5 h-3.5" /> },
+              ...(ats ? [{ id: "ats", label: "ATS Score", icon: <RefreshCw className="w-3.5 h-3.5" /> }] : []),
             ].map((item, i) => (
               <button
                 key={i}
@@ -189,7 +195,7 @@ export function ResumeBuilder({
         {/* Editor Panel */}
         <div className="flex flex-col border-r border-slate-800 overflow-hidden bg-[#0f172a]">
           <div className="h-10 bg-[#1e293b] flex items-center px-4 border-b border-slate-800 gap-6 shrink-0">
-            {["edit", "latex", "cover"].map((tab) => (
+            {["edit", "latex", "cover", ...(ats ? ["ats"] : [])].map((tab) => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -197,8 +203,8 @@ export function ResumeBuilder({
                   activeTab === tab ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-300"
                 }`}
               >
-                {tab === "edit" ? <FileText className="w-3 h-3" /> : tab === "latex" ? <Code className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
-                {tab === "edit" ? "Editor" : tab === "latex" ? "Source" : "Cover Letter"}
+                {tab === "edit" ? <FileText className="w-3 h-3" /> : tab === "latex" ? <Code className="w-3 h-3" /> : tab === "cover" ? <Mail className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" />}
+                {tab === "edit" ? "Editor" : tab === "latex" ? "Source" : tab === "cover" ? "Cover Letter" : "ATS Score"}
               </button>
             ))}
           </div>
@@ -287,6 +293,11 @@ export function ResumeBuilder({
                   onChange={e => setCoverLetter(e.target.value)} 
                   placeholder="Your generated cover letter will appear here..."
                 />
+              </div>
+            )}
+            {activeTab === "ats" && ats && (
+              <div className="max-w-2xl mx-auto space-y-6 pb-24">
+                <ATSScoreCard data={ats} />
               </div>
             )}
           </div>
