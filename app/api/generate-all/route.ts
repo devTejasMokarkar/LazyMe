@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "@/utils/gemini";
 import { buildResumePrompt, buildCoverLetterPrompt } from "@/utils/promptBuilder";
-import { calculateATS } from "@/utils/ats";
+import { calculateWeightedATS } from "@/utils/ats";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,9 +25,9 @@ export async function POST(req: NextRequest) {
       coverLetter = await generateText(coverPrompt);
     }
 
-    // 3. Calculate ATS if requested
+    // 3. Calculate ATS if requested (using weighted scoring)
     if (includeATS && jobDescription) {
-      ats = calculateATS(resume, jobDescription);
+      ats = calculateWeightedATS(resume, jobDescription);
     }
 
     return NextResponse.json({

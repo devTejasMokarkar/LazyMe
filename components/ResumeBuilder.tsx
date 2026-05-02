@@ -183,6 +183,7 @@ export function ResumeBuilder({
   const [improving, setImproving] = useState(false);
   const [changes, setChanges] = useState<string[]>([]);
   const [previousScore, setPreviousScore] = useState<number | null>(null);
+  const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "cover" | "ats">("edit");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -240,7 +241,8 @@ export function ResumeBuilder({
       setPreviousScore(ats?.score || null);
       setResume(data.improvedResume);
       setAts(data.newATS);
-      setChanges(data.changes || []);
+      setChanges(data.analysis?.actionableImprovements || []);
+      setAnalysis(data.analysis);
       
       showToast("Resume improved successfully! ⚡", "success");
     } catch (e: any) {
@@ -591,6 +593,7 @@ export function ResumeBuilder({
                     improving={improving} 
                     changes={changes} 
                     previousScore={previousScore} 
+                    analysis={analysis}
                   />
                 ) : (
                   <div className="text-center bg-[#1e293b]/50 border border-slate-800 rounded-xl p-12">

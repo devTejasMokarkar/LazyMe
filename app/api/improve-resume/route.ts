@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "@/utils/gemini";
-import { calculateATS } from "@/utils/ats";
+import { calculateATS, calculateWeightedATS } from "@/utils/ats";
+import { buildATSOptimizationPrompt, ATSAnalysisResult } from "@/utils/promptBuilder";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,31 +11,48 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing resume or job description" }, { status: 400 });
     }
 
-    const prompt = `Improve this resume based on job description.
-
-Return JSON only with this exact shape:
-{
-  "improvedResume": { ... },
-  "changes": ["string"]
-}
-
-Keep concise. Add missing skills if relevant but do not hallucinate fake experience. Make sure to return the exact same resume structure.
-Resume: ${JSON.stringify(resume)}
-JD: ${jobDescription}
-`;
-
+    // Use the new MASTER PROMPT for ATS optimization
+    const prompt = buildATSOptimizationPrompt(resume, jobDescription);
     const response = await generateText(prompt);
     
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? jsonMatch[0] : response;
     
-    const { improvedResume, changes } = JSON.parse(jsonStr);
+    const analysis: ATSAnalysisResult = JSON.parse(jsonStr);
 
-    const newATS = calculateATS(improvedResume, jobDescription);
+    // Apply auto-improvements to the resume
+    let improvedResume = { ...resume };
+    analysis.autoImprovements.forEach(improvement => {
+      if (improvement.section === "experience" && improvedResume.experience) {
+        // Find and replace the matching experience bullet
+        improvedResume.experience = improvedResume.experience.map((exp: any) => {
+          if (exp.bullets && exp.bullets.includes(improvement.before)) {
+            return {
+              ...exp,
+              bullets: exp.bullets.map((bullet: string) => 
+                bullet === improvement.before ? improvement.after : bullet
+              )
+            };
+          }
+          return exp;
+        });
+      } else if (improvement.section === "summary" && improvement.before === resume.summary) {
+        improvedResume.summary = improvement.after;
+      } else if (improvement.section === "skills" && improvedResume.skills) {
+        // Add missing skills
+        const newSkills = improvement.after.split(", ").map(s => s.trim());
+        improvedResume.skills = Array.from(new Set([...improvedResume.skills, ...newSkills]));
+      }
+    });
+
+    // Calculate both old and new ATS scores using weighted logic
+    const oldATS = calculateWeightedATS(resume, jobDescription);
+    const newATS = calculateWeightedATS(improvedResume, jobDescription);
 
     return NextResponse.json({
       improvedResume,
-      changes,
+      analysis,
+      oldATS,
       newATS
     });
   } catch (error: any) {
