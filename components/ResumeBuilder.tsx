@@ -189,7 +189,7 @@ export function ResumeBuilder({
         {/* Editor Panel */}
         <div className="flex flex-col border-r border-slate-800 overflow-hidden bg-[#0f172a]">
           <div className="h-10 bg-[#1e293b] flex items-center px-4 border-b border-slate-800 gap-6 shrink-0">
-            {["edit", "latex"].map((tab) => (
+            {["edit", "latex", "cover"].map((tab) => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -197,8 +197,8 @@ export function ResumeBuilder({
                   activeTab === tab ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-300"
                 }`}
               >
-                {tab === "edit" ? <FileText className="w-3 h-3" /> : <Code className="w-3 h-3" />}
-                {tab === "edit" ? "Editor" : "Source"}
+                {tab === "edit" ? <FileText className="w-3 h-3" /> : tab === "latex" ? <Code className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+                {tab === "edit" ? "Editor" : tab === "latex" ? "Source" : "Cover Letter"}
               </button>
             ))}
           </div>
@@ -276,6 +276,19 @@ export function ResumeBuilder({
               </div>
             )}
             {activeTab === "latex" && <div className="h-full"><LaTeXPreview resumeData={resume} /></div>}
+            {activeTab === "cover" && (
+              <div className="max-w-2xl mx-auto space-y-6 pb-24">
+                <h3 className="text-white font-bold text-lg flex items-center gap-3">
+                  <div className="w-1 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" /> Cover Letter
+                </h3>
+                <textarea 
+                  className="w-full bg-[#1e293b] border border-slate-700 rounded-xl px-4 py-4 text-sm focus:ring-2 focus:ring-primary outline-none min-h-[400px] resize-none leading-relaxed" 
+                  value={coverLetter} 
+                  onChange={e => setCoverLetter(e.target.value)} 
+                  placeholder="Your generated cover letter will appear here..."
+                />
+              </div>
+            )}
           </div>
         </div>
 
