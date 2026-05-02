@@ -21,7 +21,7 @@ export default function LaTeXPreview({ resumeData, className = "" }: LaTeXPrevie
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error("Failed to copy to clipboard:", error);
+      // Clipboard copy failed
     }
   };
 

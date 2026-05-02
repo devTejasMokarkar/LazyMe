@@ -115,7 +115,6 @@ ${resumeData.education.map((e: any) => `${e.degree} from ${e.school} (${e.year})
           break;
       }
     } catch (error) {
-      console.error(`Error downloading ${type}:`, error);
       showToast(`Failed to download ${type.toUpperCase()}`, "error");
     } finally {
       setDownloading(null);

@@ -123,13 +123,10 @@ export async function POST(req: NextRequest) {
         try {
           const { text: extractedText, isScanned } = await parsePDF(buffer);
           if (isScanned) {
-            // Fallback to multimodal processing for scanned PDFs
-            console.log("Detected scanned PDF, falling back to multimodal AI processing...");
             return await processDocumentWithAI(buffer, file.type);
           }
           text = extractedText;
         } catch (pdfError: any) {
-          console.warn("pdf-parse failed, falling back to multimodal AI processing...", pdfError.message);
           return await processDocumentWithAI(buffer, file.type);
         }
       } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
@@ -144,7 +141,6 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
     } catch (parseError: any) {
-      console.error("Parsing error:", parseError);
       return NextResponse.json({ 
         error: "We couldn't read your resume.\n\n✔ Please upload:\n• PDF, DOCX, TXT, or TEX files\n• OR paste your resume manually",
         details: parseError.message
@@ -161,8 +157,6 @@ export async function POST(req: NextRequest) {
     return await processTextWithAI(text);
     
   } catch (error: any) {
-    console.error("Parse resume error:", error);
-    
     // Handle specific Gemini service errors (Quota, etc.)
     if (error.name === "GeminiServiceError") {
       return NextResponse.json(

@@ -32,8 +32,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ resume });
   } catch (e: any) {
-    console.error("Generate resume error:", e);
-    
     if (e.name === "GeminiServiceError") {
       return NextResponse.json(
         { error: e.message, quota: e.quota },

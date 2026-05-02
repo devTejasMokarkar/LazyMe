@@ -30,7 +30,6 @@ export async function POST(req: NextRequest) {
       atsScore: analysis.atsScore
     });
   } catch (error: any) {
-    console.error("ATS analysis error:", error);
     return NextResponse.json({ error: "Failed to analyze ATS" }, { status: 500 });
   }
 }

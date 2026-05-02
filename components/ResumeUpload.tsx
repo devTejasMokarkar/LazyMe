@@ -73,7 +73,6 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
       onParsed(data);
       showToast("Resume parsed successfully!", "success");
     } catch (error: any) {
-      console.error("Resume upload error:", error);
       const errorMessage = error.message || "Failed to parse resume. Try manual entry.";
       showToast(errorMessage, "error");
     } finally {

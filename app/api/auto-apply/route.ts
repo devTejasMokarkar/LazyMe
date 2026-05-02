@@ -171,7 +171,6 @@ export async function POST(req: NextRequest) {
       userName,
     });
   } catch (error: any) {
-    console.error("Auto apply orchestrator error:", error);
     return NextResponse.json(
       { error: "Failed to process auto-apply" },
       { status: 500 }

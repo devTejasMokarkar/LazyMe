@@ -96,7 +96,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Job discovery error:", error);
     return NextResponse.json(
       { error: "Failed to discover jobs" },
       { status: 500 }

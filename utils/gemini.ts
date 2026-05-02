@@ -30,7 +30,6 @@ export class GeminiServiceError extends Error {
 }
 
 function handleGeminiError(error: any): never {
-  console.error("Original Gemini Error:", JSON.stringify(error, null, 2));
 
   if (error.status === 429) {
     let quotaInfo: AIQuotaError = {
@@ -69,7 +68,6 @@ function handleGeminiError(error: any): never {
 async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string): Promise<string> {
   if (!openRouterKey) throw new Error("OpenRouter API key not configured");
 
-  console.log("Calling OpenRouter fallback...");
 
   const contents: any[] = [{ role: "user", content: [{ type: "text", text: prompt }] }];
 
@@ -100,7 +98,6 @@ async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string
 
   if (!response.ok) {
     const error = await response.json();
-    console.error("OpenRouter Error:", error);
     throw new Error("Fallback AI service also failed: " + (error.error?.message || response.statusText));
   }
 
@@ -119,7 +116,6 @@ export async function generateText(prompt: string): Promise<string> {
       try {
         return await callOpenRouter(prompt);
       } catch (fallbackError) {
-        console.error("OpenRouter Fallback Failed:", fallbackError);
         return handleGeminiError(error);
       }
     }
@@ -150,7 +146,6 @@ export async function generateTextFromMultiModal(
       try {
         return await callOpenRouter(prompt, buffer, mimeType);
       } catch (fallbackError) {
-        console.error("OpenRouter Fallback Failed:", fallbackError);
         return handleGeminiError(error);
       }
     }

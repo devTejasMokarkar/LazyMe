@@ -2,7 +2,6 @@
 export const downloadPDF = async (elementId: string, filename: string = "resume.pdf") => {
   // Dynamic import to avoid SSR issues
   if (typeof window === 'undefined') {
-    console.warn('PDF download is only available on client side');
     return;
   }
 
@@ -10,7 +9,6 @@ export const downloadPDF = async (elementId: string, filename: string = "resume.
   const element = document.getElementById(elementId);
   
   if (!element) {
-    console.error(`Element with id "${elementId}" not found`);
     return;
   }
 
@@ -25,7 +23,6 @@ export const downloadPDF = async (elementId: string, filename: string = "resume.
 
     await html2pdf().set(opt).from(element).save();
   } catch (error) {
-    console.error("Error generating PDF:", error);
     throw error;
   }
 };
@@ -33,7 +30,6 @@ export const downloadPDF = async (elementId: string, filename: string = "resume.
 export const downloadPDFFromContent = async (content: string, filename: string = "resume.pdf") => {
   // Dynamic import to avoid SSR issues
   if (typeof window === 'undefined') {
-    console.warn('PDF download is only available on client side');
     return;
   }
 
@@ -50,7 +46,6 @@ export const downloadPDFFromContent = async (content: string, filename: string =
 
     await html2pdf().set(opt).from(content).save();
   } catch (error) {
-    console.error("Error generating PDF from content:", error);
     throw error;
   }
 };

@@ -56,7 +56,6 @@ export async function POST(req: NextRequest) {
       newATS
     });
   } catch (error: any) {
-    console.error("Improve resume error:", error);
     return NextResponse.json({ error: "Failed to improve resume" }, { status: 500 });
   }
 }

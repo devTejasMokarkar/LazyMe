@@ -34,8 +34,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ coverLetter });
   } catch (e: any) {
-    console.error("Generate cover error:", e);
-    
     if (e.name === "GeminiServiceError") {
       return NextResponse.json(
         { error: e.message, quota: e.quota },
