@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GEMINI_API_KEY;
-const openRouterKey = process.env.OPENROUTER_API_KEY;
+const openAIKey = process.env.OPENAI_API_KEY || "AIzaSyAoYRwy2k7W5xUHv20j30HhcEr0G-EDU34";
 
 if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
@@ -65,15 +65,12 @@ function handleGeminiError(error: any): never {
   throw new GeminiServiceError(error.message || "An unexpected AI service error occurred.", error.status || 500);
 }
 
-async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string): Promise<string> {
-  if (!openRouterKey) throw new Error("OpenRouter API key not configured");
-
+async function callOpenAI(prompt: string, buffer?: Buffer, mimeType?: string): Promise<string> {
+  if (!openAIKey) throw new Error("OpenAI API key not configured");
 
   const contents: any[] = [{ role: "user", content: [{ type: "text", text: prompt }] }];
 
   if (buffer && mimeType) {
-    // OpenRouter multimodal support depends on the model
-    // We'll use a model that supports vision/multimodal
     contents[0].content.push({
       type: "image_url",
       image_url: {
@@ -82,16 +79,14 @@ async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string
     });
   }
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${openRouterKey}`,
-      "HTTP-Referer": "https://lazyme.ai", // Optional
-      "X-Title": "LazyMe AI", // Optional
+      "Authorization": `Bearer ${openAIKey}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "google/gemini-2.0-flash-001", // Reliable fallback
+      model: "gpt-4o-mini",
       messages: contents
     })
   });
@@ -111,10 +106,10 @@ export async function generateText(prompt: string): Promise<string> {
     const response = await result.response;
     return response.text();
   } catch (error: any) {
-    // If it's a quota error, try OpenRouter fallback
+    // If it's a quota error, try OpenAI fallback
     if (error.status === 429) {
       try {
-        return await callOpenRouter(prompt);
+        return await callOpenAI(prompt);
       } catch (fallbackError) {
         return handleGeminiError(error);
       }
@@ -141,10 +136,10 @@ export async function generateTextFromMultiModal(
     const response = await result.response;
     return response.text();
   } catch (error: any) {
-    // If it's a quota error, try OpenRouter fallback
+    // If it's a quota error, try OpenAI fallback
     if (error.status === 429) {
       try {
-        return await callOpenRouter(prompt, buffer, mimeType);
+        return await callOpenAI(prompt, buffer, mimeType);
       } catch (fallbackError) {
         return handleGeminiError(error);
       }

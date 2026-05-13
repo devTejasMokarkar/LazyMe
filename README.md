@@ -56,7 +56,6 @@ cp .env.example .env.local
 4. Add your API keys to `.env.local`:
 ```
 GEMINI_API_KEY=your_gemini_api_key_here
-OPENROUTER_API_KEY=your_openrouter_api_key_here
 SMTP_HOST=your_smtp_host
 SMTP_PORT=587
 SMTP_USER=your_smtp_user

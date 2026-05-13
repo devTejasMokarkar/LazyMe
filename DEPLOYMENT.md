@@ -20,7 +20,6 @@ Edit `.env` with your actual values:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
-OPENROUTER_API_KEY=your_openrouter_api_key_here
 SMTP_HOST=your_smtp_host
 SMTP_PORT=587
 SMTP_USER=your_smtp_user
@@ -58,7 +57,6 @@ docker run -d \
   --name lazyme-ai \
   -p 3000:3000 \
   -e GEMINI_API_KEY=your_key \
-  -e OPENROUTER_API_KEY=your_key \
   -e SMTP_HOST=your_smtp_host \
   -e SMTP_PORT=587 \
   -e SMTP_USER=your_smtp_user \
@@ -100,7 +98,6 @@ services:
     environment:
       - NODE_ENV=production
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_USER=${SMTP_USER}
@@ -377,7 +374,6 @@ Set in Vercel Dashboard:
 
 ```
 GEMINI_API_KEY=
-OPENROUTER_API_KEY=
 NEXT_PUBLIC_APP_URL=https://lazyme-ai-app.vercel.app
 ```
 
