@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GEMINI_API_KEY;
-const openAIKey = process.env.OPENAI_API_KEY || "AIzaSyAoYRwy2k7W5xUHv20j30HhcEr0G-EDU34";
+const openAIKey = process.env.OPENROUTER_API_KEY;
 
 if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
@@ -65,29 +65,30 @@ function handleGeminiError(error: any): never {
   throw new GeminiServiceError(error.message || "An unexpected AI service error occurred.", error.status || 500);
 }
 
-async function callOpenAI(prompt: string, buffer?: Buffer, mimeType?: string): Promise<string> {
-  if (!openAIKey) throw new Error("OpenAI API key not configured");
+async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string): Promise<string> {
+  if (!openAIKey) throw new Error("OPENROUTER_API_KEY not configured");
 
-  const contents: any[] = [{ role: "user", content: [{ type: "text", text: prompt }] }];
+  const messages: any[] = [{ role: "user", content: prompt }];
 
+  // OpenRouter supports multimodal but with different format
   if (buffer && mimeType) {
-    contents[0].content.push({
-      type: "image_url",
-      image_url: {
-        url: `data:${mimeType};base64,${buffer.toString("base64")}`
-      }
-    });
+    messages[0].content = [
+      { type: "text", text: prompt },
+      { type: "image_url", image_url: { url: `data:${mimeType};base64,${buffer.toString("base64")}` } }
+    ];
   }
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${openAIKey}`,
+      "HTTP-Referer": "https://github.com/devTejasMokarkar/LazyMe",
+      "X-Title": "LazyMe",
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: contents
+      model: "openai/gpt-4o-mini",
+      messages: messages
     })
   });
 

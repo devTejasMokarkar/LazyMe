@@ -36,8 +36,9 @@ export async function POST(req: NextRequest) {
       ats
     });
   } catch (error: any) {
+    console.error("Generate-all error:", error);
     return NextResponse.json(
-      { error: "Generation failed" },
+      { error: error.message || "Generation failed" },
       { status: 500 }
     );
   }
