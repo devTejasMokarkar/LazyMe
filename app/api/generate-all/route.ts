@@ -37,8 +37,14 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("Generate-all error:", error);
+    if (error.name === "GeminiServiceError") {
+      return NextResponse.json(
+        { error: error.message, quota: error.quota },
+        { status: error.status || 429 }
+      );
+    }
     return NextResponse.json(
-      { error: error.message || "Generation failed" },
+      { error: "Generation failed. Please try again or check your settings." },
       { status: 500 }
     );
   }

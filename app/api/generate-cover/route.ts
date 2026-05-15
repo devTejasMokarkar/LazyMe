@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     if (e.name === "GeminiServiceError") {
       return NextResponse.json(
         { error: e.message, quota: e.quota },
-        { status: e.status || 500 }
+        { status: e.status || 429 }
       );
     }
     

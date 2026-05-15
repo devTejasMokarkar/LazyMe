@@ -1,21 +1,17 @@
-"use client";
-
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Cloud, Undo2, Redo2, Mail, Phone, MapPin, Sparkles, PlusCircle, X, Download, ZoomIn, ZoomOut, Upload, FileType, CheckCircle2, History, RotateCcw, Save, Trash2, Eye, Info, AlertCircle, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'motion/react';
+import { Cloud, Undo2, Redo2, Mail, Phone, MapPin, Sparkles, PlusCircle, X, Download, ZoomIn, ZoomOut, Upload, FileType, CheckCircle2, History, RotateCcw, Save, Trash2, Eye, Info, AlertCircle } from 'lucide-react';
+import { cn } from '@/src/lib/utils';
 
 interface ResumeVersion {
   id: string;
   timestamp: string;
   name: string;
   content: {
-    name: string;
-    title: string;
+    userName: string;
+    userRole: string;
     experience: any[];
     skills: string[];
-    email?: string;
-    phone?: string;
   };
 }
 
@@ -28,7 +24,6 @@ interface ParsedSection {
 }
 
 export default function ResumeBuilder() {
-  const [loading, setLoading] = useState(true);
   const [isParsing, setIsParsing] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -36,13 +31,20 @@ export default function ResumeBuilder() {
   const [resumeTheme, setResumeTheme] = useState<'light' | 'dark'>('light');
   
   // Resume State
-  const [resumeId, setResumeId] = useState<string | null>(null);
   const [userName, setUserName] = useState('Arjun Mehta');
-  const [userRole, setUserRole] = useState('Senior Product Designer');
-  const [experience, setExperience] = useState<any[]>([]);
-  const [skills, setSkills] = useState<string[]>([]);
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [userRole, setUserRole] = useState('Senior Product Designer at Razorpay');
+  const [experience, setExperience] = useState([
+    { company: 'Razorpay', role: 'Senior Product Designer', period: '2021 — Present', bullets: [
+      'Led the redesign of the Razorpay Checkout flow, improving conversion by 14% for over 200k merchants.',
+      'Architected the \'Payment Links\' design system module to ensure consistency across web and mobile platforms.',
+      'Collaborated with engineering to implement a tokenized theming engine for custom-branded checkout experiences.'
+    ]},
+    { company: 'Zomato', role: 'Product Designer', period: '2019 — 2021', bullets: [
+      'Defined the user journey for \'Zomato Gold\' relaunch, contributing to a 40% uptick in subscription renewals.',
+      'Executed end-to-end design for the contactless dining feature during the global pandemic.'
+    ]}
+  ]);
+  const [skills, setSkills] = useState(['Product Design', 'Design Systems', 'Figma', 'Prototyping', 'User Research']);
 
   // History State
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
@@ -52,150 +54,73 @@ export default function ResumeBuilder() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    async function fetchResumes() {
-      try {
-        const res = await fetch('/api/resumes');
-        const data = await res.json();
-        
-        if (data && data.length > 0) {
-          const primary = data.find((r: any) => r.isDefault) || data[0];
-          loadResume(primary);
-          
-          // Load versions
-          setVersions(data.map((r: any) => ({
-            id: r.id,
-            name: r.name,
-            timestamp: new Date(r.updatedAt).toLocaleString(),
-            content: r.content
-          })));
-        }
-      } catch (error) {
-        console.error("Failed to fetch resumes:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchResumes();
-  }, []);
-
-  const loadResume = (resume: any) => {
-    setResumeId(resume.id);
-    const c = resume.content;
-    setUserName(c.name || 'Your Name');
-    setUserRole(c.title || 'Your Role');
-    setExperience(c.experience || []);
-    setSkills(c.skills || []);
-    setEmail(c.email || '');
-    setPhone(c.phone || '');
-  };
-
-  const saveCurrentVersion = async (name: string = `Backup ${new Date().toLocaleTimeString()}`) => {
-    const content = { name: userName, title: userRole, experience, skills, email, phone };
-    
-    try {
-      const res = await fetch('/api/resumes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          content,
-          isDefault: false
-        })
-      });
-      
-      const newResume = await res.json();
-      setVersions(prev => [{
-        id: newResume.id,
-        timestamp: new Date().toLocaleString(),
-        name,
-        content
-      }, ...prev]);
-    } catch (error) {
-      console.error("Save failed:", error);
-    }
+  const saveCurrentVersion = (name: string = `Backup ${new Date().toLocaleTimeString()}`) => {
+    const newVersion: ResumeVersion = {
+      id: Math.random().toString(36).substr(2, 9),
+      timestamp: new Date().toLocaleString(),
+      name,
+      content: { userName, userRole, experience, skills }
+    };
+    setVersions(prev => [newVersion, ...prev]);
   };
 
   const revertToVersion = (version: ResumeVersion) => {
-    setUserName(version.content.name);
-    setUserRole(version.content.title);
+    setUserName(version.content.userName);
+    setUserRole(version.content.userRole);
     setExperience(version.content.experience);
     setSkills(version.content.skills);
-    setEmail(version.content.email || '');
-    setPhone(version.content.phone || '');
-    setResumeId(version.id);
     setShowHistory(false);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setIsParsing(true);
       setParsingFeedback([]);
       
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-        const res = await fetch('/api/parse-resume', {
-          method: 'POST',
-          body: formData
-        });
-
-        const data = await res.json();
-        
-        if (res.ok) {
-          // Update UI with parsed data
-          setUserName(data.name || '');
-          setUserRole(data.title || '');
-          setExperience(data.experience || []);
-          setSkills(data.skills || []);
-          setEmail(data.email || '');
-          setPhone(data.phone || '');
-          
-          setUploadSuccess(true);
-          setParsingFeedback([
-            { name: 'Identity', status: 'success', confidence: 98 },
-            { name: 'Experience', status: 'success', confidence: 94 },
-            { name: 'Skills', status: 'success', confidence: 91 },
-            { name: 'Education', status: 'success', confidence: 88 }
-          ]);
-          
-          // Refresh versions after auto-save
-          const versionsRes = await fetch('/api/resumes');
-          const latestVersions = await versionsRes.json();
-          setVersions(latestVersions.map((r: any) => ({
-            id: r.id,
-            name: r.name,
-            timestamp: new Date(r.updatedAt).toLocaleString(),
-            content: r.content
-          })));
-
-        } else {
-          throw new Error(data.error);
-        }
-      } catch (error) {
-        console.error("Upload failed:", error);
-      } finally {
+      // Mock parsing process with detailed feedback
+      setTimeout(() => {
         setIsParsing(false);
+        setUploadSuccess(true);
+        setParsingFeedback([
+          { name: 'Contact Info', status: 'success', confidence: 98 },
+          { name: 'Experience', status: 'success', confidence: 94 },
+          { 
+            name: 'Education', 
+            status: 'warning', 
+            confidence: 72, 
+            message: 'Graduation date unclear, please verify.',
+            suggestions: [
+              'Check if graduation year is clearly stated (e.g., "Expected 2024" or "Graduated 2021")',
+              'Ensure degree level is specified (e.g., B.Tech, MS)'
+            ]
+          },
+          { name: 'Skills', status: 'success', confidence: 91 },
+          { 
+            name: 'Projects', 
+            status: 'error', 
+            confidence: 45, 
+            message: 'Section format unrecognized.',
+            suggestions: [
+              'Try using bullet points for project descriptions',
+              'Explicitly label the section as "Projects" or "Technical Projects"',
+              'Include dates and links for better identification'
+            ]
+          }
+        ]);
+        
+        // Auto-save original before it gets modified (if user accepts)
+        // saveCurrentVersion('Pre-Parse Backup');
+        
         setTimeout(() => setUploadSuccess(false), 5000);
-      }
+      }, 4000);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center h-full">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden">
       {/* Left Editor */}
-      <section className="w-full md:w-[55%] h-full bg-background border-r border-outline-variant flex flex-col overflow-y-auto custom-scrollbar">
+      <section className="w-full md:w-[55%] h-full bg-background border-r hairline-border flex flex-col overflow-y-auto custom-scrollbar">
         <div className="max-w-[720px] mx-auto w-full p-8 flex flex-col gap-8">
           
           {/* Upload Area */}
@@ -258,7 +183,7 @@ export default function ResumeBuilder() {
                       <h3 className="text-xl font-bold">Resume Parsed Successfully</h3>
                     </div>
 
-                    <div className="w-full max-w-md bg-background/50 rounded-2xl p-4 border border-outline-variant space-y-3">
+                    <div className="w-full max-w-md bg-background/50 rounded-2xl p-4 border hairline-border space-y-3">
                       <div className="flex justify-between items-center mb-2 px-1">
                         <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Section Status</span>
                         <button 
@@ -270,7 +195,7 @@ export default function ResumeBuilder() {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         {parsingFeedback.map(section => (
-                          <div key={section.name} className="flex items-center gap-2 p-2 rounded-lg bg-surface-container-high border border-outline-variant">
+                          <div key={section.name} className="flex items-center gap-2 p-2 rounded-lg bg-surface-container-high border hairline-border">
                             {section.status === 'success' && <CheckCircle2 className="w-3.5 h-3.5 text-tertiary" />}
                             {section.status === 'warning' && <AlertCircle className="w-3.5 h-3.5 text-orange-400" />}
                             {section.status === 'error' && <AlertCircle className="w-3.5 h-3.5 text-red-400" />}
@@ -295,8 +220,8 @@ export default function ResumeBuilder() {
                       <p className="text-on-surface-variant text-sm font-medium">Drag and drop or click to upload PDF/DOCX</p>
                     </div>
                     <div className="flex gap-4 mt-2">
-                       <span className="flex items-center gap-2 text-[10px] font-bold text-outline uppercase tracking-widest bg-background px-3 py-1.5 rounded-lg border border-outline-variant"><FileType className="w-3 h-3" /> PDF</span>
-                       <span className="flex items-center gap-2 text-[10px] font-bold text-outline uppercase tracking-widest bg-background px-3 py-1.5 rounded-lg border border-outline-variant"><FileType className="w-3 h-3" /> DOCX</span>
+                       <span className="flex items-center gap-2 text-[10px] font-bold text-outline uppercase tracking-widest bg-background px-3 py-1.5 rounded-lg border hairline-border"><FileType className="w-3 h-3" /> PDF</span>
+                       <span className="flex items-center gap-2 text-[10px] font-bold text-outline uppercase tracking-widest bg-background px-3 py-1.5 rounded-lg border hairline-border"><FileType className="w-3 h-3" /> DOCX</span>
                     </div>
                   </motion.div>
                 )}
@@ -310,7 +235,7 @@ export default function ResumeBuilder() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-on-surface-variant">
                 <Cloud className="w-4 h-4" />
-                <span className="text-[11px] font-bold uppercase tracking-widest">Synced with Cloud</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest">Auto-saved 2m ago</span>
               </div>
               <button 
                 onClick={() => setShowHistory(true)}
@@ -361,19 +286,19 @@ export default function ResumeBuilder() {
             </p>
             <div className="flex flex-wrap gap-6 mt-4">
               <div className="flex items-center gap-2 text-on-surface-variant/70 italic text-sm">
-                <Mail className="w-3.5 h-3.5" /> {email || 'no-email@set.com'}
+                <Mail className="w-3.5 h-3.5" /> arjun.m@razorpay.com
               </div>
               <div className="flex items-center gap-2 text-on-surface-variant/70 italic text-sm">
-                <Phone className="w-3.5 h-3.5" /> {phone || '+91 00000 00000'}
+                <Phone className="w-3.5 h-3.5" /> +91 98765 43210
               </div>
               <div className="flex items-center gap-2 text-on-surface-variant/70 italic text-sm">
-                <MapPin className="w-3.5 h-3.5" /> India
+                <MapPin className="w-3.5 h-3.5" /> Bengaluru, India
               </div>
             </div>
 
             {/* AI Floating Helper */}
             <div className="absolute -right-4 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button className="w-10 h-10 flex items-center justify-center bg-surface-container-highest border border-outline-variant text-primary rounded-full shadow-2xl hover:scale-110 transition-transform">
+              <button className="w-10 h-10 flex items-center justify-center bg-surface-container-highest hairline-border text-primary rounded-full shadow-2xl hover:scale-110 transition-transform">
                 <Sparkles className="w-5 h-5 fill-primary/20" />
               </button>
             </div>
@@ -418,10 +343,10 @@ export default function ResumeBuilder() {
                       {exp.role}
                     </p>
                   </div>
-                  <span className="font-mono text-xs text-on-surface-variant/60 font-bold">{exp.duration || exp.period}</span>
+                  <span className="font-mono text-xs text-on-surface-variant/60 font-bold">{exp.period}</span>
                 </div>
                 <ul className="list-disc ml-4 space-y-3 text-on-surface-variant font-medium text-sm">
-                  {(exp.bullets || []).map((bullet: string, j: number) => (
+                  {exp.bullets.map((bullet, j) => (
                     <li 
                       key={j} 
                       className="outline-none focus:text-on-surface leading-loose" 
@@ -438,7 +363,7 @@ export default function ResumeBuilder() {
                   ))}
                 </ul>
                 <div className="absolute -right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="w-8 h-8 flex items-center justify-center bg-surface-container-highest border border-outline-variant text-primary rounded-full shadow-lg">
+                  <button className="w-8 h-8 flex items-center justify-center bg-surface-container-highest hairline-border text-primary rounded-full shadow-lg">
                     <Sparkles className="w-4 h-4 fill-primary/20" />
                   </button>
                 </div>
@@ -452,7 +377,7 @@ export default function ResumeBuilder() {
             <h3 className="text-[11px] font-bold text-primary tracking-[0.2em] uppercase">Skills & Tools</h3>
             <div className="flex flex-wrap gap-2">
               {skills.map(skill => (
-                <div key={skill} className="bg-surface-container-high border border-outline-variant rounded-full px-4 py-2 flex items-center gap-3 group/chip transition-all hover:bg-surface-container-highest">
+                <div key={skill} className="bg-surface-container-high hairline-border rounded-full px-4 py-2 flex items-center gap-3 group/chip transition-all hover:bg-surface-container-highest">
                   <span className="text-xs font-bold uppercase tracking-widest text-on-surface">{skill}</span>
                   <button 
                     onClick={() => setSkills(skills.filter(s => s !== skill))}
@@ -476,7 +401,7 @@ export default function ResumeBuilder() {
       {/* Right Preview */}
       <section className="hidden md:flex flex-1 h-full bg-surface-container-low flex-col relative overflow-hidden">
         {/* Toolbar */}
-        <div className="h-16 px-8 border-b border-outline-variant flex justify-between items-center bg-surface-container-low/80 backdrop-blur-md">
+        <div className="h-16 px-8 border-b hairline-border flex justify-between items-center bg-surface-container-low/80 backdrop-blur-md">
           <div className="flex bg-background rounded-xl p-1 shadow-inner">
             <button 
               onClick={() => setResumeTheme('light')}
@@ -499,8 +424,8 @@ export default function ResumeBuilder() {
           </div>
           <div className="flex items-center gap-6">
             <span className="font-mono text-xs font-bold text-on-surface-variant">Theme: {resumeTheme.toUpperCase()}</span>
-            <div className="flex border border-outline-variant rounded-xl overflow-hidden bg-background">
-              <button className="p-2.5 hover:bg-surface-container-high transition-all text-on-surface-variant border-r border-outline-variant">
+            <div className="flex hairline-border rounded-xl overflow-hidden bg-background">
+              <button className="p-2.5 hover:bg-surface-container-high transition-all text-on-surface-variant border-r hairline-border">
                 <ZoomOut className="w-4 h-4" />
               </button>
               <button className="p-2.5 hover:bg-surface-container-high transition-all text-on-surface">
@@ -520,8 +445,8 @@ export default function ResumeBuilder() {
                resumeTheme === 'white' ? "bg-white text-slate-800" : "bg-slate-900 text-slate-100 border border-slate-700"
              )}
              style={{ 
-                backgroundColor: resumeTheme === 'light' ? '#FFFFFF' : '#1e1f26', 
-                color: resumeTheme === 'light' ? '#1e293b' : '#e2e8f0' 
+               backgroundColor: resumeTheme === 'light' ? '#FFFFFF' : '#1e1f26', 
+               color: resumeTheme === 'light' ? '#1e293b' : '#e2e8f0' 
              }}
            >
               <div className="mb-10 text-center">
@@ -543,9 +468,9 @@ export default function ResumeBuilder() {
                 "grid grid-cols-3 gap-6 mb-12 text-[10px] font-bold uppercase tracking-wider border-y py-4",
                 resumeTheme === 'light' ? "text-slate-400 border-slate-100" : "text-slate-500 border-slate-800"
               )}>
-                <span className="flex items-center gap-2"><Mail className="w-3 h-3" /> {email || 'no-email@set.com'}</span>
-                <span className="flex items-center gap-2"><Phone className="w-3 h-3" /> {phone || '+91 00000 00000'}</span>
-                <span className="flex items-center gap-2 self-end text-right"><MapPin className="w-3 h-3" /> India</span>
+                <span className="flex items-center gap-2"><Mail className="w-3 h-3" /> arjun.m@razorpay.com</span>
+                <span className="flex items-center gap-2"><Phone className="w-3 h-3" /> +91 98765 43210</span>
+                <span className="flex items-center gap-2 self-end text-right"><MapPin className="w-3 h-3" /> Bengaluru, India</span>
               </div>
 
               <div className="space-y-10">
@@ -567,7 +492,7 @@ export default function ResumeBuilder() {
                           <span className={cn(
                             "text-[10px] font-mono",
                             resumeTheme === 'light' ? "text-slate-400" : "text-slate-500"
-                          )}>{exp.duration || exp.period}</span>
+                          )}>{exp.period}</span>
                         </div>
                         <p className={cn(
                           "text-xs font-bold italic mb-3",
@@ -577,7 +502,7 @@ export default function ResumeBuilder() {
                           "list-disc ml-3 text-[11px] space-y-2 leading-relaxed",
                           resumeTheme === 'light' ? "text-slate-600" : "text-slate-300"
                         )}>
-                          {(exp.bullets || []).map((b: string, j: number) => (
+                          {exp.bullets.map((b, j) => (
                             <li key={j}>{b}</li>
                           ))}
                         </ul>
@@ -608,7 +533,7 @@ export default function ResumeBuilder() {
         </div>
 
         {/* Action Bar */}
-        <div className="p-8 bg-surface-container-low/95 backdrop-blur-md border-t border-outline-variant flex justify-center items-center shadow-2xl">
+        <div className="p-8 bg-surface-container-low/95 backdrop-blur-md border-t hairline-border flex justify-center items-center shadow-2xl">
           <button className="bg-primary text-on-primary px-12 py-5 rounded-2xl flex items-center gap-4 font-bold text-sm uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-[0_20px_50px_rgba(255,178,186,0.3)]">
             <Download className="w-5 h-5" /> Download PDF
           </button>
@@ -630,14 +555,14 @@ export default function ResumeBuilder() {
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              className="fixed right-0 top-0 bottom-0 w-full md:w-[400px] bg-surface-container-low border-l border-outline-variant z-[70] shadow-2xl flex flex-col"
+              className="fixed right-0 top-0 bottom-0 w-full md:w-[400px] bg-surface-container-low border-l hairline-border z-[70] shadow-2xl flex flex-col"
             >
-              <div className="p-8 border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50 backdrop-blur-md">
+              <div className="p-8 border-b hairline-border flex justify-between items-center bg-surface-container-low/50 backdrop-blur-md">
                 <div className="flex items-center gap-3">
                   <History className="w-6 h-6 text-primary" />
                   <h2 className="text-2xl font-bold tracking-tight">Timeline</h2>
                 </div>
-                <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-surface-container-highest rounded-full transition-colors text-on-surface-variant">
+                <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-surface-container-highest rounded-full transition-colors">
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -650,17 +575,14 @@ export default function ResumeBuilder() {
                   </div>
                 ) : (
                   versions.map((v) => (
-                    <div key={v.id} className="bg-surface-container-high border border-outline-variant rounded-2xl p-5 group hover:bg-surface-container-highest transition-all">
+                    <div key={v.id} className="bg-surface-container-high border hairline-border rounded-2xl p-5 group hover:bg-surface-container-highest transition-all">
                       <div className="flex justify-between items-start mb-4">
                         <div>
                           <h4 className="font-bold text-on-surface">{v.name}</h4>
                           <p className="text-[10px] font-mono font-bold text-on-surface-variant uppercase mt-1">{v.timestamp}</p>
                         </div>
                         <button 
-                          onClick={async () => {
-                             await fetch(`/api/resumes?id=${v.id}`, { method: 'DELETE' });
-                             setVersions(versions.filter(x => x.id !== v.id));
-                          }}
+                          onClick={() => setVersions(versions.filter(x => x.id !== v.id))}
                           className="p-1.5 text-on-surface-variant hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -691,9 +613,9 @@ export default function ResumeBuilder() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="w-full max-w-2xl bg-surface-container-low border border-outline-variant rounded-3xl overflow-hidden flex flex-col shadow-2xl"
+              className="w-full max-w-2xl bg-surface-container-low border hairline-border rounded-3xl overflow-hidden flex flex-col shadow-2xl"
             >
-              <div className="p-8 border-b border-outline-variant flex justify-between items-center">
+              <div className="p-8 border-b hairline-border flex justify-between items-center">
                 <div className="flex items-center gap-3 text-primary">
                   <Eye className="w-6 h-6" />
                   <h3 className="text-2xl font-bold tracking-tight">AI Recognition Insights</h3>
@@ -708,7 +630,7 @@ export default function ResumeBuilder() {
                   <h4 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Parsing Reliability</h4>
                   <div className="grid grid-cols-1 gap-4">
                     {parsingFeedback.map(item => (
-                      <div key={item.name} className="bg-surface-container-high border border-outline-variant rounded-2xl p-5">
+                      <div key={item.name} className="bg-surface-container-high border hairline-border rounded-2xl p-5">
                         <div className="flex justify-between items-center mb-3">
                           <span className="font-bold text-on-surface">{item.name}</span>
                           <span className={cn(
@@ -770,7 +692,7 @@ export default function ResumeBuilder() {
                 </div>
               </div>
 
-              <div className="p-8 border-t border-outline-variant bg-surface-container-low/50 backdrop-blur-md flex justify-end">
+              <div className="p-8 border-t hairline-border bg-surface-container-low/50 backdrop-blur-md flex justify-end">
                 <button 
                   onClick={() => setShowInsights(false)}
                   className="bg-primary text-on-primary px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:brightness-110 shadow-lg active:scale-95 transition-all"

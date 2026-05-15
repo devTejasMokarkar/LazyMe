@@ -9,8 +9,48 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        slate: { 850: "#1e293b", 950: "#020617" },
-        primary: { DEFAULT: "#6366f1", hover: "#4f46e5" },
+        background: "var(--background)",
+        "on-background": "var(--on-background)",
+        primary: {
+          DEFAULT: "var(--primary)",
+          container: "var(--primary-container)",
+        },
+        "on-primary": "var(--on-primary)",
+        "on-primary-container": "var(--on-primary-container)",
+        secondary: {
+          DEFAULT: "var(--secondary)",
+          container: "var(--secondary-container)",
+        },
+        tertiary: {
+          DEFAULT: "var(--tertiary)",
+          container: "var(--tertiary-container)",
+        },
+        surface: {
+          DEFAULT: "var(--surface)",
+          container: {
+            DEFAULT: "var(--surface-container)",
+            low: "var(--surface-container-low)",
+            high: "var(--surface-container-high)",
+            highest: "var(--surface-container-highest)",
+            lowest: "var(--surface-container-lowest)",
+          },
+        },
+        outline: {
+          DEFAULT: "var(--outline)",
+          variant: "var(--outline-variant)",
+        },
+        "on-surface-variant": "var(--on-surface-variant)",
+        // Keep old tokens for transition or fallback
+        crimson: "var(--crimson)",
+        sky: "var(--sky)",
+        slate: "var(--slate)",
+        "text-primary": "var(--text-primary)",
+        "text-secondary": "var(--text-secondary)",
+        "border-color": "var(--border-color)",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "Inter", "sans-serif"],
+        mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },
       animation: {
         "fade-in": "fadeIn 0.3s ease-out",

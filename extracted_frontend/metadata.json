@@ -1,0 +1,6 @@
+{
+  "name": "LazyMe AI",
+  "description": "An automated career engine that discovers jobs, optimizes resumes, and applies automatically.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["AI-powered job discovery", "Automatic resume optimization", "One-click job applications"]
+}

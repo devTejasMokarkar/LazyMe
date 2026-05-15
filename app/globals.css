@@ -2,62 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
 :root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-card: #1e293b;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --border-color: #334155;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --background: #fdfbff;
+  --on-background: #1b1b1f;
+  --primary: #9c4146;
+  --primary-container: #ffdad9;
+  --on-primary: #ffffff;
+  --on-primary-container: #41000a;
+  --secondary: #0061a4;
+  --secondary-container: #d1e4ff;
+  --tertiary: #006b50;
+  --tertiary-container: #93f8cd;
+  --surface: #fdfbff;
+  --surface-container: #f1f0f4;
+  --surface-container-low: #f7f6fa;
+  --surface-container-high: #eaeaee;
+  --surface-container-highest: #e3e2e6;
+  --surface-container-lowest: #ffffff;
+  --outline: #857373;
+  --outline-variant: #d8c2c1;
+  --on-surface-variant: #534344;
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Legacy tokens for fallback */
+  --crimson: #B23850;
+  --sky: #3B8BEB;
+  --slate: #8590AA;
+}
+
+.dark {
+  --background: #111319;
+  --on-background: #e2e2eb;
+  --primary: #ffb2ba;
+  --primary-container: #b23850;
+  --on-primary: #680016;
+  --on-primary-container: #ffd9dc;
+  --secondary: #a6c8ff;
+  --secondary-container: #006dcb;
+  --tertiary: #68dbae;
+  --tertiary-container: #007353;
+  --surface: #111319;
+  --surface-container: #1e1f26;
+  --surface-container-low: #191b22;
+  --surface-container-high: #282a30;
+  --surface-container-highest: #33343b;
+  --surface-container-lowest: #0d0e13;
+  --outline: #a58a8c;
+  --outline-variant: #574143;
+  --on-surface-variant: #debfc1;
 }
 
 html { scroll-behavior: smooth; }
 
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  @apply bg-background text-on-background font-sans antialiased;
+}
+
+@layer base {
+  * {
+    @apply border-outline-variant;
+  }
 }
 
 @layer utilities {
-  .glass {
-    background: rgba(30, 41, 59, 0.7);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-  .gradient-text {
-    background: linear-gradient(135deg, #6366f1, #a855f7);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
   .btn-primary {
-    @apply px-6 py-3 bg-primary text-white rounded-xl font-semibold transition-all duration-200 hover:bg-primary-hover hover:shadow-lg hover:shadow-primary/25 active:scale-95;
+    @apply px-5 py-2.5 bg-crimson text-white rounded-lg font-semibold transition-all duration-200 hover:opacity-90 active:scale-95 flex items-center justify-center gap-2;
   }
   .btn-secondary {
-    @apply px-6 py-3 bg-slate-800 text-slate-200 rounded-xl font-medium transition-all duration-200 hover:bg-slate-700 border border-slate-700;
-  }
-  .input-field {
-    @apply w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all;
+    @apply px-4 py-2.5 bg-transparent text-slate border border-border-color rounded-lg font-medium transition-all duration-200 hover:text-text-primary hover:border-slate;
   }
   .card {
-    @apply bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-sm;
+    @apply bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-xl;
+  }
+  .hairline-border {
+    border: 0.5px solid var(--outline-variant);
+  }
+  .bg-dot-grid {
+    background-image: radial-gradient(circle, var(--surface-container-highest) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #64748b; }
+::-webkit-scrollbar-thumb { background: var(--outline-variant); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--outline); }
 
+/* Keep existing styles for resume a4-paper and animations */
 .a4-paper {
   width: 210mm;
   min-height: 297mm;
@@ -119,6 +152,5 @@ body {
 .toast-enter { animation: toast-in 0.3s ease-out forwards; }
 .toast-exit { animation: toast-out 0.3s ease-in forwards; }
 
-/* Animation delays */
 .delay-75 { animation-delay: 75ms; }
 .delay-150 { animation-delay: 150ms; }

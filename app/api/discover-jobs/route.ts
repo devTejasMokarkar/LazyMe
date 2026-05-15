@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { calculateATS, extractKeywords } from "@/utils/ats";
+import { calculateWeightedATS, extractTechnicalSkills } from "@/utils/ats";
 
 export interface Job {
   id: string;
@@ -10,27 +10,36 @@ export interface Job {
   location?: string;
   applyType: "email" | "easy_apply" | "external";
   url?: string;
+  salary?: string;
+  logo?: string;
+  logoColor?: string;
 }
 
 export interface MatchedJob extends Job {
   matchScore: number;
-  matchedSkills: string[];
-  missingSkills: string[];
+  matchFactors: {
+    label: string;
+    score: number;
+  }[];
+  tags: string[];
 }
 
-function extractSkillsFromResume(resume: any): string[] {
-  const resumeText = JSON.stringify(resume);
-  return extractKeywords(resumeText);
-}
-
-function matchJobToResume(job: Job, resumeSkills: string[], resume: any): MatchedJob {
-  const atsResult = calculateATS(resume, job.description);
+function matchJobToResume(job: Job, resume: any): MatchedJob {
+  const atsResult = calculateWeightedATS(resume, job.description);
   
+  // Extract tags from description for UI
+  const tags = extractTechnicalSkills(job.description).slice(0, 3);
+
   return {
     ...job,
     matchScore: atsResult.score,
-    matchedSkills: atsResult.matched,
-    missingSkills: atsResult.missing,
+    matchFactors: [
+      { label: 'Skills', score: atsResult.breakdown.skillsMatch },
+      { label: 'Experience', score: atsResult.breakdown.experienceRelevance },
+      { label: 'Keyword Match', score: atsResult.breakdown.keywordCoverage },
+      { label: 'Formatting', score: atsResult.breakdown.formattingClarity }
+    ],
+    tags: tags.length > 0 ? tags : ["General"],
   };
 }
 
@@ -46,11 +55,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Extract skills from resume
-    const resumeSkills = extractSkillsFromResume(resume);
-
     // Match each job against resume
-    const matchedJobs = jobs.map((job: Job) => matchJobToResume(job, resumeSkills, resume));
+    const matchedJobs = jobs.map((job: Job) => matchJobToResume(job, resume));
 
     // Filter and sort by match score
     let filteredJobs = matchedJobs;
@@ -89,13 +95,9 @@ export async function POST(req: NextRequest) {
         mediumMatch: mediumMatch.length,
         lowMatch: lowMatch.length,
       },
-      categories: {
-        high: highMatch,
-        medium: mediumMatch,
-        low: lowMatch,
-      },
     });
   } catch (error: any) {
+    console.error("Discovery error:", error);
     return NextResponse.json(
       { error: "Failed to discover jobs" },
       { status: 500 }

@@ -171,6 +171,13 @@ export async function POST(req: NextRequest) {
       userName,
     });
   } catch (error: any) {
+    console.error("Auto-apply processing error:", error);
+    if (error.name === "GeminiServiceError") {
+      return NextResponse.json(
+        { error: error.message, quota: error.quota },
+        { status: error.status || 429 }
+      );
+    }
     return NextResponse.json(
       { error: "Failed to process auto-apply" },
       { status: 500 }
