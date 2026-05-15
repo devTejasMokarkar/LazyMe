@@ -27,7 +27,7 @@ interface ParsedSection {
   suggestions?: string[];
 }
 
-export default function ResumeBuilder() {
+export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: string }) {
   const [loading, setLoading] = useState(true);
   const [isParsing, setIsParsing] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -37,8 +37,8 @@ export default function ResumeBuilder() {
   
   // Resume State
   const [resumeId, setResumeId] = useState<string | null>(null);
-  const [userName, setUserName] = useState('Arjun Mehta');
-  const [userRole, setUserRole] = useState('Senior Product Designer');
+  const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [experience, setExperience] = useState<any[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [email, setEmail] = useState('');
@@ -49,18 +49,42 @@ export default function ResumeBuilder() {
   
   // Parsing Feedback State
   const [parsingFeedback, setParsingFeedback] = useState<ParsedSection[]>([]);
-  
+  const [needsUpload, setNeedsUpload] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // When arriving from landing page, mark that we need an upload after loading completes
+  useEffect(() => {
+    if (initialPrompt !== undefined) {
+      setNeedsUpload(true);
+    }
+  }, [initialPrompt]);
+
+  // Once loading finishes and we need an upload, trigger the file picker
+  useEffect(() => {
+    if (!loading && needsUpload && fileInputRef.current) {
+      setTimeout(() => fileInputRef.current?.click(), 300);
+    }
+  }, [loading, needsUpload]);
 
   useEffect(() => {
     async function fetchResumes() {
       try {
         const res = await fetch('/api/resumes');
+        if (!res.ok) {
+          // API returned an error — just continue with empty state
+          console.warn('Could not fetch resumes, status:', res.status);
+          return;
+        }
         const data = await res.json();
         
-        if (data && data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
           const primary = data.find((r: any) => r.isDefault) || data[0];
-          loadResume(primary);
+          
+          // Only load the default resume if we aren't starting an AI prompt flow
+          if (initialPrompt === undefined) {
+            loadResume(primary);
+          }
           
           // Load versions
           setVersions(data.map((r: any) => ({
@@ -144,17 +168,19 @@ export default function ResumeBuilder() {
         });
 
         const data = await res.json();
+        console.log('Parsed resume data:', JSON.stringify(data, null, 2));
         
         if (res.ok) {
-          // Update UI with parsed data
-          setUserName(data.name || '');
-          setUserRole(data.title || '');
+          // Update UI with parsed data from the uploaded resume
+          setUserName(data.name || 'Your Name');
+          setUserRole(data.title || 'Your Role');
           setExperience(data.experience || []);
           setSkills(data.skills || []);
           setEmail(data.email || '');
           setPhone(data.phone || '');
           
           setUploadSuccess(true);
+          setNeedsUpload(false);
           setParsingFeedback([
             { name: 'Identity', status: 'success', confidence: 98 },
             { name: 'Experience', status: 'success', confidence: 94 },
@@ -162,15 +188,23 @@ export default function ResumeBuilder() {
             { name: 'Education', status: 'success', confidence: 88 }
           ]);
           
-          // Refresh versions after auto-save
-          const versionsRes = await fetch('/api/resumes');
-          const latestVersions = await versionsRes.json();
-          setVersions(latestVersions.map((r: any) => ({
-            id: r.id,
-            name: r.name,
-            timestamp: new Date(r.updatedAt).toLocaleString(),
-            content: r.content
-          })));
+          // Refresh versions after auto-save (non-critical, don't crash on failure)
+          try {
+            const versionsRes = await fetch('/api/resumes');
+            if (versionsRes.ok) {
+              const latestVersions = await versionsRes.json();
+              if (Array.isArray(latestVersions)) {
+                setVersions(latestVersions.map((r: any) => ({
+                  id: r.id,
+                  name: r.name,
+                  timestamp: new Date(r.updatedAt).toLocaleString(),
+                  content: r.content
+                })));
+              }
+            }
+          } catch (versionError) {
+            console.warn('Could not refresh versions:', versionError);
+          }
 
         } else {
           throw new Error(data.error);

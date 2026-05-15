@@ -33,8 +33,8 @@ export default function Sidebar({ currentView, setView }: SidebarProps) {
             onClick={() => setView(item.id as View)}
             className={cn(
               "w-[calc(100%-16px)] mx-2 px-4 py-2 rounded-lg flex items-center gap-3 transition-all",
-              currentView === item.id 
-                ? "bg-primary-container text-on-primary-container font-bold shadow-lg" 
+              currentView === item.id
+                ? "bg-primary-container text-on-primary-container font-bold shadow-lg"
                 : "text-on-surface-variant hover:bg-surface-container-high"
             )}
           >

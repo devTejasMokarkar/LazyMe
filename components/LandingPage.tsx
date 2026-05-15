@@ -19,8 +19,48 @@ export default function LandingPage() {
   const [matchResult, setMatchResult] = useState<any>(null);
   const [copyStatus, setCopyStatus] = useState<number | null>(null);
   const [showPromptHelper, setShowPromptHelper] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<{ name: string, type: string } | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectedFileRef = useRef<File | null>(null);
+  const loginFormRef = useRef<HTMLFormElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      selectedFileRef.current = file;
+      setUploadedFile({
+        name: file.name,
+        type: file.type
+      });
+    }
+  };
+
+  const handleSendClick = async () => {
+    // If a file is uploaded, parse it first, store in localStorage, then login
+    if (selectedFileRef.current) {
+      setIsParsing(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFileRef.current);
+        const res = await fetch('/api/parse-resume', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem('lazyme_pending_resume', JSON.stringify(data));
+        }
+      } catch (error) {
+        console.error('Pre-parse failed:', error);
+      } finally {
+        setIsParsing(false);
+      }
+    }
+    // Now trigger the login form
+    loginFormRef.current?.requestSubmit();
+  };
 
   const stats = [
     { value: '2,847', label: 'Active Users' },
@@ -100,7 +140,13 @@ export default function LandingPage() {
 
   return (
     <div className="w-full bg-background text-on-background min-h-screen selection:bg-primary/30">
-      <input type="file" ref={fileInputRef} className="hidden" onChange={() => setShowJDModal(true)} />
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        accept=".pdf,.docx"
+        onChange={handleFileSelect} 
+      />
       
       {/* Hero Section */}
       <section className="relative flex flex-col items-center justify-center pt-20 pb-16 px-6 min-h-[90vh] bg-dot-grid overflow-hidden">
@@ -166,6 +212,38 @@ export default function LandingPage() {
         {/* Floating Prompt Bar */}
         <div className="w-full max-w-4xl px-4 mt-12 relative z-20">
           <AnimatePresence>
+            {uploadedFile && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="mb-4 flex items-start"
+              >
+                <div className="relative group">
+                  <div className="w-32 h-40 bg-white border border-outline-variant rounded-xl overflow-hidden shadow-2xl flex flex-col">
+                    <div className="flex-1 p-3 bg-surface-container-low/30 overflow-hidden">
+                      <div className="space-y-1 opacity-20">
+                        <div className="h-1 w-full bg-on-surface rounded" />
+                        <div className="h-1 w-[80%] bg-on-surface rounded" />
+                        <div className="h-1 w-[90%] bg-on-surface rounded" />
+                        <div className="h-1 w-full bg-on-surface rounded" />
+                      </div>
+                    </div>
+                    <div className="h-10 bg-surface-container-highest flex items-center px-3 gap-2 border-t border-outline-variant">
+                      <div className="w-6 h-6 bg-red-500 rounded flex items-center justify-center text-[8px] font-bold text-white">PDF</div>
+                      <span className="text-[10px] font-bold truncate max-w-[60px]">{uploadedFile.name}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setUploadedFile(null)}
+                    className="absolute -top-2 -left-2 w-6 h-6 bg-surface-container-highest border border-outline-variant rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
             {showPromptHelper && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -211,12 +289,17 @@ export default function LandingPage() {
             )}
           </AnimatePresence>
 
+          {/* Hidden login form */}
+          <form ref={loginFormRef} action={signInAction} className="hidden">
+            <input type="hidden" name="redirectTo" value="/resume" />
+          </form>
+
           <div className="bg-surface-container-high/90 backdrop-blur-2xl border border-outline-variant rounded-2xl p-3 flex items-center gap-4 shadow-[0_30px_100px_rgba(0,0,0,0.6)] group">
             <div className="flex items-center gap-2">
-              <button onClick={() => fileInputRef.current?.click()} className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface hover:bg-surface-bright transition-all shadow-lg active:scale-90">
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface hover:bg-surface-bright transition-all shadow-lg active:scale-90">
                 <Plus className="w-6 h-6" />
               </button>
-              <button onClick={() => setShowJDModal(!showJDModal)} className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface hover:bg-surface-bright transition-all shadow-lg active:scale-90">
+              <button type="button" onClick={() => setShowJDModal(!showJDModal)} className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface hover:bg-surface-bright transition-all shadow-lg active:scale-90">
                 <Code className="w-6 h-6" />
               </button>
             </div>
@@ -229,12 +312,23 @@ export default function LandingPage() {
               placeholder="Tell LazyMe what to find next..."
             />
 
-            <form action={signInAction}>
-              <button type="submit" className="h-12 px-8 bg-primary-container text-on-primary-container rounded-xl flex items-center gap-3 font-bold text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20">
-                <span>Send</span>
-                <Send className="w-4 h-4 fill-on-primary-container" />
+            <div className="flex items-center gap-3">
+              <button type="button" className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+                <Palette className="w-5 h-5" />
               </button>
-            </form>
+              <button 
+                type="button" 
+                onClick={handleSendClick}
+                disabled={isParsing}
+                className="h-12 px-8 bg-primary-container text-on-primary-container rounded-xl flex items-center gap-3 font-bold text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+              >
+                {isParsing ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Parsing...</>
+                ) : (
+                  <><span>Send</span><Send className="w-4 h-4 fill-on-primary-container" /></>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 

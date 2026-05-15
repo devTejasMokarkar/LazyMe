@@ -3,12 +3,12 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const resumes = await prisma.userResume.findMany({
       where: { userId: session.user.id },
       orderBy: { updatedAt: "desc" },
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(resumes);
   } catch (error) {
+    console.error("GET /api/resumes error:", error);
     return NextResponse.json({ error: "Failed to fetch resumes" }, { status: 500 });
   }
 }

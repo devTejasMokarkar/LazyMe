@@ -12,12 +12,12 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   const items = [
-    { id: 'dashboard', label: 'Discovery', icon: LayoutDashboard, href: '/dashboard' },
-    { id: 'board', label: 'Kanban Board', icon: Kanban, href: '/board' },
+    // { id: 'dashboard', label: 'Discovery', icon: LayoutDashboard, href: '/dashboard' },
+    // { id: 'board', label: 'Kanban Board', icon: Kanban, href: '/board' },
     { id: 'resume', label: 'Resume Builder', icon: FileText, href: '/resume' },
     { id: 'chat', label: 'AI Chat', icon: MessageSquare, href: '/chat' },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
-    { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
+    // { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
+    // { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
   ];
 
   return (
@@ -39,8 +39,8 @@ export default function Sidebar() {
             href={item.href}
             className={cn(
               "w-full px-5 py-3 rounded-2xl flex items-center gap-4 transition-all group relative overflow-hidden",
-              pathname === item.href 
-                ? "bg-primary text-on-primary font-bold shadow-xl shadow-primary/20" 
+              pathname === item.href
+                ? "bg-primary text-on-primary font-bold shadow-xl shadow-primary/20"
                 : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
             )}
           >
@@ -50,7 +50,7 @@ export default function Sidebar() {
             )} />
             <span className="text-[11px] uppercase font-bold tracking-widest">{item.label}</span>
             {pathname === item.href && (
-              <motion.div 
+              <motion.div
                 layoutId="active-pill"
                 className="absolute left-0 w-1 h-6 bg-white rounded-full"
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}

@@ -2,8 +2,9 @@
 
 import { signIn, signOut } from "@/auth";
 
-export async function signInAction() {
-  await signIn("google", { redirectTo: "/dashboard" });
+export async function signInAction(formData: FormData) {
+  const redirectTo = (formData.get("redirectTo") as string) || "/dashboard";
+  await signIn("google", { redirectTo });
 }
 
 export async function signOutAction() {
