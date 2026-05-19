@@ -71,53 +71,101 @@ async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string
 
   console.log("Attempting OpenRouter fallback...");
 
-  const messages: any[] = [{ role: "user", content: prompt }];
+  // Helper to POST to OpenRouter with a timeout
+  async function orPost(model: string, msgs: any[]): Promise<string | null> {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000); // 20s timeout per model
+      const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Authorization": `Bearer ${openAIKey}`,
+          "HTTP-Referer": "https://github.com/devTejasMokarkar/LazyMe",
+          "X-Title": "LazyMe",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ model, messages: msgs, max_tokens: 2000, temperature: 0.1 })
+      });
+      clearTimeout(timer);
+      if (!r.ok) {
+        const err = await r.json();
+        console.warn(`OpenRouter ${model} failed:`, err?.error?.message?.slice(0, 80));
+        return null;
+      }
+      const d = await r.json();
+      return d.choices[0].message.content;
+    } catch (e: any) {
+      console.warn(`OpenRouter ${model} error:`, e.message?.slice(0, 60));
+      return null;
+    }
+  }
 
-  // OpenRouter supports multimodal but only for images in gpt-4o-mini
+  // Build content based on input type
+  let content: any[];
   if (buffer && mimeType && mimeType.startsWith("image/")) {
-    messages[0].content = [
+    content = [
       { type: "text", text: prompt },
       { type: "image_url", image_url: { url: `data:${mimeType};base64,${buffer.toString("base64")}` } }
     ];
-  } else if (buffer && mimeType) {
-    console.warn(`OpenRouter fallback: Skipping multimodal for unsupported type: ${mimeType}`);
+  } else if (buffer && mimeType === "application/pdf") {
+    content = [
+      { type: "file", file: { filename: "resume.pdf", file_data: `data:application/pdf;base64,${buffer.toString("base64")}` } },
+      { type: "text", text: prompt }
+    ];
+  } else {
+    content = [{ type: "text", text: prompt }];
   }
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${openAIKey}`,
-      "HTTP-Referer": "https://github.com/devTejasMokarkar/LazyMe",
-      "X-Title": "LazyMe",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-4o-mini",
-      messages: messages,
-      max_tokens: 2048,
-      temperature: 0.1
-    })
-  });
+  const isTextOnly = !buffer || content.every((c: any) => c.type === "text");
+  const textPrompt = content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("\n");
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error("Fallback AI service also failed: " + (error.error?.message || response.statusText));
+  // 1. Try paid model (gpt-4o-mini) — works if account has credits
+  const paid = await orPost("openai/gpt-4o-mini", [{ role: "user", content }]);
+  if (paid) { console.log("OpenRouter gpt-4o-mini successful"); return paid; }
+
+  // 2. Try free vision models if we have image content
+  if (!isTextOnly) {
+    const visionModels = [
+      "google/gemma-4-26b-a4b-it:free",
+      "google/gemma-4-31b-it:free",
+      "nvidia/nemotron-nano-12b-v2-vl:free",
+    ];
+    for (const vm of visionModels) {
+      const result = await orPost(vm, [{ role: "user", content }]);
+      if (result) { console.log(`OpenRouter ${vm} successful`); return result; }
+    }
   }
 
-  const data = await response.json();
-  console.log("OpenRouter fallback successful");
-  return data.choices[0].message.content;
+  // 3. Fall back to free text-only models using just the text portion of the prompt
+  const freeTextModels = [
+    "deepseek/deepseek-v4-flash:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "qwen/qwen3-next-80b-a3b-instruct:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
+  ];
+  for (const fm of freeTextModels) {
+    const result = await orPost(fm, [{ role: "user", content: textPrompt }]);
+    if (result) { console.log(`OpenRouter ${fm} successful`); return result; }
+  }
+
+  throw new Error("All OpenRouter models failed or are rate-limited.");
 }
 
 export async function generateText(prompt: string): Promise<string> {
   try {
+    console.log("Calling Gemini with prompt length:", prompt.length);
     const result = await model.generateContent(prompt);
+    console.log("Gemini result received, checking response...");
     const response = await result.response;
+    console.log("Gemini response text length:", response.text().length);
     return response.text();
   } catch (error: any) {
+    console.error("Gemini error:", error.message, error.status, error.stack);
     // If it's a quota error, try OpenAI fallback
     if (error.status === 429) {
       try {
+        console.log("Trying OpenRouter fallback...");
         return await callOpenRouter(prompt);
       } catch (fallbackError: any) {
         console.error("OpenRouter fallback failed:", fallbackError.message);
@@ -151,18 +199,17 @@ export async function generateTextFromMultiModal(
     const response = await result.response;
     return response.text();
   } catch (error: any) {
-    // If it's a quota error, try OpenAI fallback
-    if (error.status === 429) {
+    // Try OpenRouter fallback on quota/rate-limit errors
+    if (error.status === 429 || error instanceof GeminiServiceError) {
       try {
         return await callOpenRouter(prompt, buffer, mimeType);
       } catch (fallbackError: any) {
         console.error("OpenRouter fallback failed:", fallbackError.message);
-        const finalError = new GeminiServiceError(
+        throw new GeminiServiceError(
           "All AI services are currently at capacity. Please try again in a few minutes.",
           429,
           { type: "DAILY", message: "All AI services exhausted" }
         );
-        throw finalError;
       }
     }
     return handleGeminiError(error);

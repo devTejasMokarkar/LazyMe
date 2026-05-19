@@ -1,77 +1,294 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { LayoutDashboard, BarChart3, FileText, MessageSquare, Settings, HelpCircle, LogOut, Kanban, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  FileText, 
+  MessageSquare, 
+  HelpCircle, 
+  LogOut, 
+  Sparkles,
+  ChevronLeft
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOutAction } from '@/app/actions';
 
+const SIDEBAR_WIDTH = 240;
+const COLLAPSED_WIDTH = 72;
+
 export default function Sidebar() {
   const pathname = usePathname();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const items = [
-    // { id: 'dashboard', label: 'Discovery', icon: LayoutDashboard, href: '/dashboard' },
-    // { id: 'board', label: 'Kanban Board', icon: Kanban, href: '/board' },
+  const navItems = [
     { id: 'resume', label: 'Resume Builder', icon: FileText, href: '/resume' },
     { id: 'chat', label: 'AI Chat', icon: MessageSquare, href: '/chat' },
-    // { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
-    // { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
+  ];
+
+  const bottomItems = [
+    { id: 'support', label: 'Support', icon: HelpCircle, action: () => {} },
   ];
 
   return (
-    <aside className="bg-surface-container-low border-r border-outline-variant fixed left-0 top-16 h-[calc(100vh-64px)] w-[240px] hidden md:flex flex-col py-8 gap-10 z-40 shadow-2xl">
-      <div className="px-8">
-        <div className="flex items-center gap-3 mb-2">
-          <h2 className="text-on-surface font-black text-2xl tracking-tighter">LazyMe</h2>
-          <div className="px-2 py-0.5 bg-primary/10 rounded-md">
-            <Sparkles className="w-3.5 h-3.5 text-primary fill-primary/20" />
+    <>
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar Container */}
+      <aside
+        className={cn(
+          "fixed top-16 left-0 h-[calc(100vh-64px)] z-40",
+          "hidden lg:flex flex-col",
+          "transition-all duration-300 ease-out",
+          "bg-surface-container-low/80 backdrop-blur-xl",
+          "border-r border-outline-variant/50",
+          "before:absolute before:inset-0 before:bg-gradient-to-b before:from-primary/5 before:to-transparent before:pointer-events-none"
+        )}
+        style={{
+          width: isExpanded ? SIDEBAR_WIDTH : COLLAPSED_WIDTH,
+        }}
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+      >
+        {/* Logo Section */}
+        <div className="relative h-16 flex items-center px-5 border-b border-outline-variant/30">
+          <motion.div 
+            className="flex items-center gap-3 overflow-hidden"
+            animate={{ opacity: 1 }}
+          >
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-primary" />
+            </div>
+            <AnimatePresence mode="wait">
+              {isExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center gap-2"
+                >
+                  <span className="font-bold text-on-surface text-lg tracking-tight whitespace-nowrap">LazyMe</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 py-6 px-3 space-y-1.5">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={cn(
+                  "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
+                  isActive 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                )}
+              >
+                {/* Active Indicator */}
+                {isActive && (
+                  <motion.div
+                    layoutId="sidebar-active"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-full"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                
+                <div className={cn(
+                  "shrink-0 w-5 h-5 flex items-center justify-center",
+                  isActive ? "text-primary" : "text-on-surface-variant group-hover:text-primary transition-colors"
+                )}>
+                  <item.icon className="w-5 h-5" />
+                </div>
+                
+                <AnimatePresence mode="wait">
+                  {isExpanded && (
+                    <motion.span
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-sm font-semibold whitespace-nowrap"
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+
+                {/* Tooltip for collapsed state */}
+                <AnimatePresence>
+                  {!isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: -10, scale: 0.95 }}
+                      className="absolute left-full ml-3 px-3 py-1.5 bg-surface-container-highest border border-outline-variant rounded-lg shadow-xl whitespace-nowrap pointer-events-none z-50"
+                    >
+                      <span className="text-xs font-semibold text-on-surface">{item.label}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom Section */}
+        <div className="py-4 px-3 space-y-1.5 border-t border-outline-variant/30">
+          {bottomItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={item.action}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 group"
+            >
+              <div className="shrink-0 w-5 h-5 flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+                <item.icon className="w-5 h-5" />
+              </div>
+              <AnimatePresence mode="wait">
+                {isExpanded && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-sm font-semibold whitespace-nowrap"
+                  >
+                    {item.label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+          ))}
+
+          <form action={signOutAction}>
+            <button 
+              type="submit" 
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group"
+            >
+              <div className="shrink-0 w-5 h-5 flex items-center justify-center">
+                <LogOut className="w-5 h-5" />
+              </div>
+              <AnimatePresence mode="wait">
+                {isExpanded && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-sm font-semibold whitespace-nowrap"
+                  >
+                    Logout
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+          </form>
+        </div>
+
+        {/* Collapse Indicator */}
+        <div className="absolute -right-3 top-20 opacity-0 group-hover:opacity-100 transition-opacity hidden">
+          <div className="w-6 h-6 rounded-full bg-surface-container-highest border border-outline-variant shadow-md flex items-center justify-center">
+            <ChevronLeft className={cn("w-4 h-4 text-on-surface-variant transition-transform", isExpanded && "rotate-180")} />
           </div>
         </div>
-        <p className="text-on-surface-variant text-[10px] uppercase tracking-[0.2em] font-bold opacity-60">Operations Center</p>
-      </div>
+      </aside>
 
-      <nav className="flex-1 px-4 space-y-2">
-        {items.map((item) => (
-          <Link
-            key={item.id}
-            href={item.href}
+      {/* Mobile Sidebar */}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <motion.aside
+            initial={{ x: -SIDEBAR_WIDTH }}
+            animate={{ x: 0 }}
+            exit={{ x: -SIDEBAR_WIDTH }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className={cn(
-              "w-full px-5 py-3 rounded-2xl flex items-center gap-4 transition-all group relative overflow-hidden",
-              pathname === item.href
-                ? "bg-primary text-on-primary font-bold shadow-xl shadow-primary/20"
-                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+              "fixed top-0 left-0 h-screen w-[240px] z-50",
+              "flex flex-col",
+              "bg-surface-container-low/95 backdrop-blur-xl",
+              "border-r border-outline-variant/50",
+              "lg:hidden"
             )}
           >
-            <item.icon className={cn(
-              "w-5 h-5 transition-transform group-hover:scale-110",
-              pathname === item.href ? "text-on-primary" : "text-on-surface-variant group-hover:text-primary"
-            )} />
-            <span className="text-[11px] uppercase font-bold tracking-widest">{item.label}</span>
-            {pathname === item.href && (
-              <motion.div
-                layoutId="active-pill"
-                className="absolute left-0 w-1 h-6 bg-white rounded-full"
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              />
-            )}
-          </Link>
-        ))}
-      </nav>
+            <div className="h-16 flex items-center px-5 border-b border-outline-variant/30">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </div>
+                <span className="font-bold text-on-surface text-lg tracking-tight">LazyMe</span>
+              </div>
+            </div>
 
-      <div className="mt-auto px-4 pb-8 space-y-2">
-        <button className="w-full px-5 py-3 flex items-center gap-4 text-on-surface-variant hover:bg-surface-container-high rounded-2xl transition-all group">
-          <HelpCircle className="w-5 h-5 group-hover:text-primary transition-colors" />
-          <span className="text-[11px] uppercase font-bold tracking-widest">Support</span>
-        </button>
-        <form action={signOutAction} className="w-full">
-          <button type="submit" className="w-full px-5 py-3 flex items-center gap-4 text-on-surface-variant hover:bg-red-400/10 hover:text-red-400 rounded-2xl transition-all group">
-            <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            <span className="text-[11px] uppercase font-bold tracking-widest">Logout</span>
-          </button>
-        </form>
-      </div>
-    </aside>
+            <nav className="flex-1 py-6 px-3 space-y-1.5">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    onClick={() => setIsMobileOpen(false)}
+                    className={cn(
+                      "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
+                      isActive 
+                        ? "bg-primary/10 text-primary" 
+                        : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="mobile-sidebar-active"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-full"
+                      />
+                    )}
+                    <div className={cn("shrink-0 w-5 h-5", isActive ? "text-primary" : "")}>
+                      <item.icon className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-semibold">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="py-4 px-3 space-y-1.5 border-t border-outline-variant/30">
+              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-container-high">
+                <HelpCircle className="w-5 h-5" />
+                <span className="text-sm font-semibold">Support</span>
+              </button>
+              <form action={signOutAction}>
+                <button type="submit" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-red-500/10 hover:text-red-400">
+                  <LogOut className="w-5 h-5" />
+                  <span className="text-sm font-semibold">Logout</span>
+                </button>
+              </form>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Toggle Button */}
+      <button
+        onClick={() => setIsMobileOpen(true)}
+        className="fixed bottom-6 left-6 z-30 lg:hidden w-12 h-12 rounded-full bg-primary text-on-primary shadow-lg shadow-primary/30 flex items-center justify-center"
+      >
+        <Sparkles className="w-5 h-5" />
+      </button>
+    </>
   );
 }

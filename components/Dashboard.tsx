@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Zap, ShieldCheck, Loader2, Sparkles, Filter, RefreshCw, Upload, Plus } from 'lucide-react';
+import { MapPin, Zap, ShieldCheck, Loader2, Sparkles, Filter, Upload, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
 import OnboardingModal from '@/components/OnboardingModal';
@@ -35,7 +35,6 @@ export default function Dashboard() {
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      // First, get the primary resume to use for matching
       const resumeRes = await fetch('/api/resumes');
       const resumes = await resumeRes.json();
       const primaryResume = resumes.find((r: any) => r.isDefault) || resumes[0];
@@ -49,13 +48,12 @@ export default function Dashboard() {
 
       setHasResume(true);
 
-      // Use mock data for jobs but match them against real resume
       const mockJobs = [
         {
           id: 'stripe-1',
           company: 'Stripe',
           role: 'Senior Product Engineer',
-          description: 'We are looking for a Senior Product Engineer to join our Checkout team. Experience with React, Next.js, and Distributed Systems is essential. You will build high-impact UI for millions of users.',
+          description: 'We are looking for a Senior Product Engineer to join our Checkout team.',
           location: 'San Francisco / Remote',
           salary: '$185k - $240k',
           applyType: 'easy_apply',
@@ -67,7 +65,7 @@ export default function Dashboard() {
           id: 'vercel-1',
           company: 'Vercel',
           role: 'DX Engineer (AI Platforms)',
-          description: 'Join Vercel to shape the future of the web. We need an engineer passionate about AI, TypeScript, and developer experience. You will work on v0 and Next.js integrations.',
+          description: 'Join Vercel to shape the future of the web.',
           location: 'Remote (Worldwide)',
           salary: '$160k - $210k',
           applyType: 'external',
@@ -78,7 +76,7 @@ export default function Dashboard() {
           id: 'razorpay-1',
           company: 'Razorpay',
           role: 'Staff UI Engineer',
-          description: 'Lead the UI architecture for India\'s largest payment gateway. Expert knowledge of React, Design Systems, and performance optimization required.',
+          description: 'Lead the UI architecture for India\'s largest payment gateway.',
           location: 'Bangalore / Remote',
           salary: '₹60L - ₹85L',
           applyType: 'easy_apply',
@@ -91,10 +89,7 @@ export default function Dashboard() {
       const matchRes = await fetch('/api/discover-jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resume: primaryResume.content,
-          jobs: mockJobs
-        })
+        body: JSON.stringify({ resume: primaryResume.content, jobs: mockJobs })
       });
 
       const data = await matchRes.json();
@@ -114,20 +109,14 @@ export default function Dashboard() {
     setApplyingId(job.id);
     setApplyStep(1);
     
-    // Simulate AI pre-filling steps
     setTimeout(() => setApplyStep(2), 1200);
     setTimeout(() => setApplyStep(3), 2400);
     
     try {
-      // Actually save the application in the database
       const res = await fetch('/api/applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobData: job,
-          status: 'Applied',
-          note: 'Quick Applied via Dashboard'
-        })
+        body: JSON.stringify({ jobData: job, status: 'Applied', note: 'Quick Applied via Dashboard' })
       });
 
       if (!res.ok) throw new Error("Failed to submit");
@@ -144,50 +133,50 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center h-full gap-6">
+      <div className="flex-1 flex flex-col items-center justify-center h-full gap-4">
         <div className="relative">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-          <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-primary animate-pulse" />
+          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+          <Sparkles className="absolute -top-0.5 -right-0.5 w-4 h-4 text-primary" />
         </div>
         <div className="text-center">
-          <h3 className="text-xl font-bold tracking-tight">Syncing Engineering Graph</h3>
-          <p className="text-on-surface-variant text-sm font-medium mt-1">LazyMe AI is matching your skills with live job boards...</p>
+          <h3 className="text-lg font-bold">Syncing...</h3>
+          <p className="text-sm text-on-surface-variant mt-1">Finding matching opportunities</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 p-8 pb-32 max-w-7xl mx-auto">
+    <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto">
       {showOnboarding && (
         <OnboardingModal onClose={() => { setShowOnboarding(false); fetchJobs(); }} />
       )}
 
       {/* Discovery Chat Hero */}
-      <section className="-mx-8 -mt-8 mb-12">
+      <section className="-mx-6 -mt-6 lg:-mx-8 lg:-mt-8 mb-8">
         <DiscoveryChat />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
         {/* Sidebar Filters */}
-        <div className="lg:col-span-3 space-y-8">
-          <section className="bg-surface border border-outline-variant rounded-3xl p-8 shadow-2xl">
-            <div className="flex items-center gap-3 mb-8 text-on-surface-variant">
+        <div className="lg:col-span-3 space-y-4 lg:space-y-6">
+          <section className="bg-surface-container-low border border-outline-variant/50 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-5 text-on-surface-variant">
               <Filter className="w-4 h-4" />
-              <h3 className="text-[11px] font-bold uppercase tracking-widest">Global Filters</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-wider">Filters</h3>
             </div>
-            <div className="space-y-10">
+            <div className="space-y-6">
               <div>
-                <label className="text-[10px] font-bold block mb-4 uppercase tracking-[0.2em] text-on-surface-variant/70">Work Style</label>
+                <label className="text-[9px] font-bold block mb-3 uppercase tracking-wider text-on-surface-variant/70">Work Style</label>
                 <div className="flex flex-wrap gap-2">
                   {['Remote', 'Hybrid', 'On-site'].map((style) => (
                     <button 
                       key={style}
                       className={cn(
-                        "px-4 py-2 rounded-xl text-[11px] font-bold border transition-all active:scale-95",
+                        "px-3 py-1.5 rounded-lg text-[10px] font-semibold border transition-all active:scale-95",
                         style === 'Remote' 
-                          ? "bg-primary-container text-on-primary-container border-primary/20 shadow-lg" 
-                          : "bg-background border border-outline-variant text-on-surface-variant hover:border-primary/50"
+                          ? "bg-primary/10 text-primary border-primary/20" 
+                          : "bg-background border border-outline-variant text-on-surface-variant hover:border-primary/30"
                       )}
                     >
                       {style}
@@ -197,45 +186,43 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold block mb-4 uppercase tracking-[0.2em] text-on-surface-variant/70">Salary Floor</label>
+                <label className="text-[9px] font-bold block mb-3 uppercase tracking-wider text-on-surface-variant/70">Salary Floor</label>
                 <input 
                   type="range" 
-                  className="w-full accent-primary h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer"
+                  className="w-full accent-primary h-1.5 bg-surface-container-high rounded-full appearance-none cursor-pointer"
                 />
-                <div className="flex justify-between mt-4 font-mono text-xs text-primary font-bold">
+                <div className="flex justify-between mt-2 font-mono text-xs text-primary font-semibold">
                   <span>$120k</span>
                   <span>$280k+</span>
                 </div>
               </div>
               
-              <div className="pt-8 border-t border-outline-variant/30">
-                <button className="w-full py-4 bg-surface-container-highest text-on-surface text-[11px] font-bold uppercase tracking-widest rounded-2xl hover:bg-surface-bright transition-all shadow-md active:scale-[0.98]">
-                  Reset View
-                </button>
-              </div>
+              <button className="w-full py-2.5 bg-surface-container-high text-on-surface text-[10px] font-semibold uppercase tracking-wider rounded-lg hover:bg-surface-container-highest transition-all">
+                Reset
+              </button>
             </div>
           </section>
 
-          <section className="bg-surface border border-outline-variant rounded-3xl p-8 shadow-2xl overflow-hidden relative group">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <ShieldCheck className="w-24 h-24 text-tertiary" />
+          <section className="bg-surface-container-low border border-outline-variant/50 rounded-2xl p-5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-6 opacity-5">
+              <ShieldCheck className="w-20 h-20 text-tertiary" />
             </div>
-            <div className="flex items-center gap-3 mb-6 relative z-10">
-              <ShieldCheck className="w-5 h-5 text-tertiary" />
-              <h3 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Autopilot Status</h3>
+            <div className="flex items-center gap-2 mb-4 relative z-10">
+              <ShieldCheck className="w-4 h-4 text-tertiary" />
+              <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Autopilot</h3>
             </div>
-            <div className="space-y-6 relative z-10">
-              <p className="text-sm font-medium text-on-surface leading-relaxed">AI is currently scanning <span className="text-primary font-bold">Fortune 500</span> tech stacks for matches.</p>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">Scanning Progress</span>
+            <div className="space-y-4 relative z-10">
+              <p className="text-sm text-on-surface">Scanning <span className="text-primary font-bold">Fortune 500</span> for matches.</p>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-on-surface-variant">Progress</span>
                   <span className="text-[10px] font-mono font-bold text-tertiary">84%</span>
                 </div>
-                <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: '84%' }}
-                    className="h-full bg-tertiary rounded-full shadow-[0_0_12px_rgba(104,219,174,0.4)]"
+                    className="h-full bg-tertiary rounded-full"
                   />
                 </div>
               </div>
@@ -244,25 +231,25 @@ export default function Dashboard() {
         </div>
 
         {/* Job Feed */}
-        <div className="lg:col-span-9 space-y-8">
+        <div className="lg:col-span-9 space-y-4 lg:space-y-6">
           {!hasResume ? (
-            <div className="bg-surface border border-outline-variant rounded-[2.5rem] p-20 text-center flex flex-col items-center gap-6 shadow-2xl">
-               <div className="w-20 h-20 bg-primary-container/20 rounded-3xl flex items-center justify-center border border-primary/20 shadow-xl mb-4">
-                 <Upload className="w-10 h-10 text-primary" />
+            <div className="bg-surface-container-low border border-outline-variant/50 rounded-2xl p-10 lg:p-14 text-center flex flex-col items-center gap-5">
+               <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+                 <Upload className="w-6 h-6 text-primary" />
                </div>
-               <h2 className="text-3xl font-bold tracking-tight">Profile Required</h2>
-               <p className="text-on-surface-variant font-medium text-lg max-w-md">To unlock intelligent matching, we need to ingest your professional history.</p>
+               <h2 className="text-xl lg:text-2xl font-bold">Profile Required</h2>
+               <p className="text-on-surface-variant text-sm max-w-sm">Upload your resume to unlock intelligent job matching.</p>
                <button 
                  onClick={() => setShowOnboarding(true)}
-                 className="mt-4 bg-primary text-on-primary px-10 py-4 rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 flex items-center gap-3"
+                 className="mt-2 bg-primary text-on-primary px-6 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider hover:brightness-105 active:scale-[0.98] transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                >
-                 <Sparkles className="w-4 h-4 fill-on-primary" /> Start AI Onboarding
+                 <Sparkles className="w-4 h-4" /> Start
                </button>
             </div>
           ) : jobs.length === 0 ? (
-            <div className="bg-surface border border-outline-variant rounded-[2.5rem] p-20 text-center shadow-2xl">
-               <Zap className="w-16 h-16 text-primary mx-auto mb-6 opacity-20" />
-               <p className="text-on-surface-variant font-medium text-xl italic">Scanning for roles that match your unique stack...</p>
+            <div className="bg-surface-container-low border border-outline-variant/50 rounded-2xl p-10 text-center">
+               <Zap className="w-10 h-10 text-primary mx-auto mb-4 opacity-20" />
+               <p className="text-on-surface-variant font-medium">Scanning for matching roles...</p>
             </div>
           ) : (
             jobs.map((job) => (
@@ -270,95 +257,94 @@ export default function Dashboard() {
                 key={job.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-surface border border-outline-variant rounded-[2.5rem] p-10 hover:bg-surface-container-low transition-all group cursor-pointer shadow-xl hover:shadow-2xl relative overflow-hidden"
+                className="bg-surface-container-low border border-outline-variant/50 rounded-2xl p-6 hover:bg-surface-container-low/80 transition-all cursor-pointer"
               >
-                <div className="flex flex-col md:flex-row gap-10 relative z-10">
+                <div className="flex flex-col md:flex-row gap-6">
                   <div 
-                    className="w-20 h-20 shrink-0 rounded-3xl flex items-center justify-center border-2 font-bold text-3xl shadow-xl transition-transform group-hover:scale-105"
-                    style={{ backgroundColor: `${job.logoColor || '#333'}10`, borderColor: `${job.logoColor || '#333'}30`, color: job.logoColor || '#333' }}
+                    className="w-14 h-14 shrink-0 rounded-xl flex items-center justify-center font-bold text-xl shadow-md"
+                    style={{ backgroundColor: `${job.logoColor || '#333'}15`, color: job.logoColor || '#333' }}
                   >
                     {job.logo || job.company[0]}
                   </div>
                   <div className="flex-1">
-                    <div className="flex flex-wrap items-start justify-between gap-6 mb-6">
+                    <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                       <div>
-                        <h4 className="text-3xl font-bold group-hover:text-primary transition-colors tracking-tighter mb-1">{job.role}</h4>
-                        <div className="flex items-center gap-4 text-on-surface-variant font-medium text-lg">
+                        <h4 className="text-lg font-bold hover:text-primary transition-colors">{job.role}</h4>
+                        <div className="flex items-center gap-3 text-on-surface-variant text-sm mt-1">
                           <span>{job.company}</span>
-                          <div className="w-1.5 h-1.5 rounded-full bg-outline-variant/50" />
-                          <span className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> {job.location}</span>
+                          <span className="w-1 h-1 rounded-full bg-outline-variant" />
+                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-primary" /> {job.location}</span>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <div className="text-tertiary font-mono text-3xl font-bold tracking-tight">{job.matchScore}% Match</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Sparkles className="w-3.5 h-3.5 text-primary fill-primary/20" />
-                          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]">AI Verified</span>
+                      <div className="text-right">
+                        <div className="text-tertiary font-mono text-xl font-bold">{job.matchScore}%</div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Sparkles className="w-3 h-3 text-primary" />
+                          <span className="text-[9px] font-semibold text-on-surface-variant uppercase tracking-wider">AI Match</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="h-2.5 w-full bg-surface-container-high rounded-full mt-8 mb-6 overflow-hidden shadow-inner">
+                    <div className="h-2 w-full bg-surface-container-high rounded-full mb-4 overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${job.matchScore}%` }}
-                        className="h-full bg-primary rounded-full shadow-[0_0_12px_rgba(255,178,186,0.4)]"
+                        className="h-full bg-primary rounded-full"
                       />
                     </div>
 
-                    {/* Match Factors Breakdown */}
-                    <div className="flex flex-wrap gap-x-12 gap-y-6 mb-10">
+                    <div className="flex flex-wrap gap-x-6 gap-y-3 mb-4">
                       {job.matchFactors.map(factor => (
-                        <div key={factor.label} className="flex flex-col gap-2">
-                          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]">{factor.label}</span>
-                          <div className="flex items-center gap-3">
-                            <div className="w-24 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+                        <div key={factor.label} className="flex flex-col gap-1">
+                          <span className="text-[9px] font-semibold text-on-surface-variant uppercase tracking-wider">{factor.label}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
                               <motion.div 
                                 initial={{ width: 0 }}
                                 animate={{ width: `${factor.score}%` }}
                                 className="h-full bg-tertiary rounded-full"
                               />
                             </div>
-                            <span className="text-[11px] font-mono font-bold text-on-surface">{factor.score}%</span>
+                            <span className="text-[10px] font-mono font-bold text-on-surface">{factor.score}%</span>
                           </div>
                         </div>
                       ))}
                     </div>
 
-                    <div className="flex flex-wrap gap-2.5 mb-10">
+                    <div className="flex flex-wrap gap-2 mb-5">
                       {job.tags.map(tag => (
-                        <span key={tag} className="px-4 py-1.5 bg-secondary-container/10 text-secondary border border-secondary/20 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-sm transition-all hover:bg-secondary-container/20">{tag}</span>
+                        <span key={tag} className="px-2.5 py-1 bg-secondary-container/10 text-secondary border border-secondary/20 rounded-md text-[9px] font-semibold uppercase tracking-wider">{tag}</span>
                       ))}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-between pt-8 border-t border-outline-variant/30 gap-6">
-                      <span className="text-3xl font-mono text-on-surface font-bold tracking-tight">{job.salary}</span>
-                      <div className="flex gap-4 w-full sm:w-auto">
+                    <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-outline-variant/30 gap-4">
+                      <span className="text-lg font-mono font-bold">{job.salary}</span>
+                      <div className="flex gap-3 w-full sm:w-auto">
                         {job.quickApply && (
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleQuickApply(job); }}
                             disabled={applyingId !== null}
                             className={cn(
-                              "flex-1 sm:flex-none px-8 py-4 rounded-2xl font-bold text-[11px] uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95",
+                              "flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2",
                               applyingId === job.id 
-                                ? "bg-tertiary/20 text-tertiary border border-tertiary/30" 
-                                : "bg-surface-container-highest text-primary border border-primary/20 hover:bg-primary/10"
+                                ? "bg-tertiary/10 text-tertiary border border-tertiary/20" 
+                                : "bg-surface-container-high text-primary border border-primary/20 hover:bg-primary/10"
                             )}
                           >
                             {applyingId === job.id ? (
                               <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                {applyStep === 1 ? "Pre-filling..." : applyStep === 2 ? "Optimizing..." : "Submitting..."}
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                {applyStep === 1 ? "Filling..." : applyStep === 2 ? "Optimizing..." : "Sending..."}
                               </>
                             ) : (
                               <>
-                                <Zap className="w-4 h-4 fill-primary" /> Quick Apply
+                                <Zap className="w-3.5 h-3.5" /> Quick Apply
                               </>
                             )}
                           </button>
                         )}
-                        <button className="flex-1 sm:flex-none px-8 py-4 bg-primary text-on-primary rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-3">
-                          <Sparkles className="w-4 h-4 fill-on-primary" /> Auto-Pilot
+                        <button className="flex-1 sm:flex-none px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold text-xs uppercase tracking-wider hover:brightness-105 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2">
+                          <Sparkles className="w-3.5 h-3.5" /> Auto-Pilot
                         </button>
                       </div>
                     </div>
@@ -368,26 +354,26 @@ export default function Dashboard() {
             ))
           )}
 
-          {/* Locked Premium Card */}
-          <div className="relative group bg-surface/50 border border-outline-variant rounded-[2.5rem] p-1 px-1 overflow-hidden shadow-2xl">
-             <div className="flex gap-10 p-12 filter blur-md grayscale opacity-30 select-none">
-                <div className="w-24 h-24 bg-surface-container-highest rounded-3xl shrink-0" />
-                <div className="flex-1 space-y-6">
-                  <div className="h-10 w-1/3 bg-surface-container-highest rounded-2xl" />
-                  <div className="h-6 w-1/2 bg-surface-container-highest rounded-xl" />
+          {/* Premium Card */}
+          <div className="relative group bg-surface-container-low/50 border border-outline-variant/50 rounded-2xl p-0.5 overflow-hidden">
+             <div className="flex gap-8 p-8 filter blur-md grayscale opacity-30 select-none">
+                <div className="w-16 h-16 bg-surface-container-highest rounded-2xl shrink-0" />
+                <div className="flex-1 space-y-4">
+                  <div className="h-6 w-1/3 bg-surface-container-highest rounded-xl" />
+                  <div className="h-4 w-1/2 bg-surface-container-highest rounded-lg" />
                 </div>
              </div>
-             <div className="absolute inset-0 flex items-center justify-center z-10 p-10">
-                <div className="bg-surface border border-outline-variant p-10 rounded-[2.5rem] text-center max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.6)] border-t-primary/30">
-                  <div className="w-20 h-20 bg-primary-container/20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl border border-primary/20">
-                    <Zap className="w-10 h-10 text-primary fill-primary/40" />
+             <div className="absolute inset-0 flex items-center justify-center p-6">
+                <div className="bg-surface-container-low border border-outline-variant/50 p-6 lg:p-8 rounded-2xl text-center max-w-sm shadow-2xl">
+                  <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-primary/20">
+                    <Zap className="w-7 h-7 text-primary" />
                   </div>
-                  <h5 className="text-3xl font-bold mb-4 tracking-tight">Premium Discovery</h5>
-                  <p className="text-on-surface-variant font-medium text-lg mb-10 leading-relaxed">
-                    Unlock hidden <span className="text-on-surface font-bold">"stealth mode"</span> opportunities and AI-enhanced salary negotiation tools used by industry pros.
+                  <h5 className="text-lg font-bold mb-3">Premium Discovery</h5>
+                  <p className="text-on-surface-variant text-sm mb-6">
+                    Unlock stealth opportunities and salary negotiation tools.
                   </p>
-                  <button className="w-full bg-primary text-on-primary font-bold text-[11px] uppercase tracking-[0.2em] py-5 rounded-2xl shadow-xl shadow-primary/30 hover:brightness-110 active:scale-95 transition-all">
-                    Upgrade to Operational Intensity
+                  <button className="w-full bg-primary text-on-primary font-semibold text-xs uppercase tracking-[0.1em] py-3 rounded-xl shadow-lg hover:brightness-105 active:scale-[0.98] transition-all">
+                    Upgrade
                   </button>
                 </div>
              </div>

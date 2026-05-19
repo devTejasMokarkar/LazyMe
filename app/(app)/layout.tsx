@@ -15,11 +15,11 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background text-on-background">
+    <div className="min-h-screen bg-background text-on-background overflow-x-hidden">
       <TopNav />
-      <div className="flex pt-16">
-        <Sidebar />
-        <main className="flex-1 md:ml-[240px] h-[calc(100vh-64px)] overflow-y-auto custom-scrollbar">
+      <Sidebar />
+      <div className="lg:pl-[72px] pt-16">
+        <main className="h-[calc(100vh-64px)] overflow-hidden">
           {children}
         </main>
       </div>

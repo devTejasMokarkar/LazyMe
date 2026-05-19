@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileUp, Wand2, Zap, ArrowRight, ChevronRight } from "lucide-react";
+import { FileUp, Wand2, Zap, ArrowRight, ChevronRight, Send } from "lucide-react";
 import { ResumeUpload } from "./ResumeUpload";
 import { useToast } from "./ToastProvider";
 
@@ -27,6 +27,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [jobTitle, setJobTitle] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
   const [generateCover, setGenerateCover] = useState(true);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [parsingComplete, setParsingComplete] = useState(false);
   const { showToast } = useToast();
   const steps = [0, 1];
 
@@ -56,7 +58,22 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const handleParsed = (data: any) => {
     setParsedData(data);
-    showToast("Resume uploaded. Add the job details when you're ready.", "success");
+    setUploadSuccess(true);
+    setParsingComplete(true);
+    showToast("Resume parsed successfully!", "success");
+  };
+
+  const handleSendToBuilder = () => {
+    // Preserve existing job details while sending parsed resume data to builder
+    onComplete({
+      mode,
+      parsedData,
+      jobDescription, // Preserve existing value
+      companyName,    // Preserve existing value
+      jobTitle,       // Preserve existing value
+      companyEmail,   // Preserve existing value
+      generateCover: false,
+    });
   };
 
   const handleFinish = () => {
@@ -213,22 +230,41 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <h2 className="text-2xl font-bold mb-6">Upload Resume & Job Details</h2>
           <div className="space-y-4">
             <ResumeUpload onParsed={handleParsed} />
-            {renderJobInputs()}
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={generateCover}
-                onChange={e => setGenerateCover(e.target.checked)}
-                className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-primary focus:ring-primary"
-              />
-              <span className="text-slate-300">Generate cover letter too</span>
-            </label>
-            <button onClick={handleFinish} className="btn-primary w-full text-lg py-4">
-              Generate & Apply <Zap className="w-5 h-5 inline ml-2" />
-            </button>
-            <p className="text-center text-xs font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mt-3">
-              Found a job? Just LazyMe it.
-            </p>
+            {parsingComplete ? (
+              <>
+                <div className="text-center text-success mb-4">
+                  <p className="font-medium">Resume parsed successfully!</p>
+                  <button 
+                    onClick={handleSendToBuilder}
+                    className="btn-primary w-full text-lg py-4"
+                  >
+                    Send to Builder <Send className="w-5 h-5 inline ml-2" />
+                  </button>
+                </div>
+                <p className="text-center text-xs font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mt-3">
+                  Found a job? Just LazyMe it.
+                </p>
+              </>
+            ) : (
+              <>
+                {renderJobInputs()}
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={generateCover}
+                    onChange={e => setGenerateCover(e.target.checked)}
+                    className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-primary focus:ring-primary"
+                  />
+                  <span className="text-slate-300">Generate cover letter too</span>
+                </label>
+                <button onClick={handleFinish} className="btn-primary w-full text-lg py-4">
+                  Generate & Apply <Zap className="w-5 h-5 inline ml-2" />
+                </button>
+                <p className="text-center text-xs font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mt-3">
+                  Found a job? Just LazyMe it.
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}

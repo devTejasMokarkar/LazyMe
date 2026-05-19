@@ -8,7 +8,7 @@ import {
   Palette, Code, X, Sparkles, Copy, 
   Bold, Italic, List as ListIcon, MessageSquareQuote, Check, Loader2 
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, validateParsedResume } from '@/lib/utils';
 
 export default function DiscoveryChat() {
   const router = useRouter();
@@ -18,9 +18,12 @@ export default function DiscoveryChat() {
   const [showPromptHelper, setShowPromptHelper] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [showQNA, setShowQNA] = useState(false);
+  const [interviewQNA, setInterviewQNA] = useState<{q: string; a: string}[]>([]);
   const [copyStatus, setCopyStatus] = useState<number | null>(null);
   const [isMatching, setIsMatching] = useState(false);
   const [matchResult, setMatchResult] = useState<any>(null);
+  const [uploadedResume, setUploadedResume] = useState<{ name: string; data: any } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const suggestions = [
     { text: "Tailor my resume for a Staff Product Engineer role at Stripe", category: "Optimization" },
@@ -39,28 +42,41 @@ export default function DiscoveryChat() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setIsMatching(true);
-      const formData = new FormData();
-      formData.append('file', file);
+    if (!file) return;
 
-      try {
-        const res = await fetch('/api/parse-resume', {
-          method: 'POST',
-          body: formData
-        });
+    // Reset input so the same file can be re-selected
+    e.target.value = '';
 
-        if (res.ok) {
-          router.push('/resume');
-        } else {
-          const data = await res.json();
-          alert(data.error || "Upload failed");
+    setIsMatching(true);
+    setUploadError(null);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/parse-resume', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Validate the parsed data before accepting it
+        const validationError = validateParsedResume(data);
+        if (validationError) {
+          setUploadError(validationError);
+          return; // don't set uploadedResume — block Send
         }
-      } catch (error) {
-        console.error("Upload failed:", error);
-      } finally {
-        setIsMatching(false);
+        // Store parsed resume in state — don't redirect, let the user click Send
+        setUploadedResume({ name: file.name, data });
+      } else {
+        setUploadError(data.error || "Upload failed. Please try again.");
       }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      setUploadError("Upload failed. Please try again.");
+    } finally {
+      setIsMatching(false);
     }
   };
 
@@ -329,7 +345,7 @@ export default function DiscoveryChat() {
                 onClick={() => fileInputRef.current?.click()}
                 className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface hover:bg-surface-bright transition-all shadow-lg active:scale-90"
               >
-                <Plus className="w-6 h-6 border-outline text-white" />
+                {isMatching ? <Loader2 className="w-5 h-5 animate-spin text-primary" /> : <Plus className="w-6 h-6 border-outline text-white" />}
               </button>
               <button 
                 onClick={() => setShowJDModal(!showJDModal)}
@@ -351,12 +367,43 @@ export default function DiscoveryChat() {
                   <Wand2 className="w-3.5 h-3.5" /> Helper
                 </button>
               </div>
-              <input 
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="bg-transparent border-none focus:ring-0 text-on-surface w-full font-medium text-lg placeholder:text-on-surface-variant"
-                placeholder="Tell LazyMe what to find next..."
-              />
+              <div className="flex-1 flex flex-col gap-1">
+                {uploadedResume && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-lg w-fit">
+                    <FileText className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-[11px] font-bold text-primary truncate max-w-[180px]">{uploadedResume.name}</span>
+                    <button
+                      onClick={() => setUploadedResume(null)}
+                      className="text-primary/60 hover:text-primary transition-colors ml-1"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+                {uploadError && (
+                  <span className="text-[11px] text-red-400 font-medium px-1">{uploadError}</span>
+                )}
+                <input 
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (uploadedResume) {
+                        sessionStorage.setItem('pendingResume', JSON.stringify(uploadedResume.data));
+                        window.dispatchEvent(new Event('pendingResumeReady'));
+                        router.push('/resume');
+                      } else if (prompt.toLowerCase().includes('yc') || prompt.toLowerCase().includes('startups')) {
+                        router.push('/board');
+                      } else if (prompt.trim()) {
+                        alert("LazyMe AI is processing your request...");
+                      }
+                    }
+                  }}
+                  className="bg-transparent border-none focus:ring-0 text-on-surface w-full font-medium text-lg placeholder:text-on-surface-variant"
+                  placeholder={uploadedResume ? "Add a message or click Send to view your resume..." : "Tell LazyMe what to find next..."}
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -365,9 +412,16 @@ export default function DiscoveryChat() {
               </button>
               <button 
                 onClick={() => {
-                  if (prompt.toLowerCase().includes('yc') || prompt.toLowerCase().includes('startups')) {
+                  if (uploadedResume) {
+                    // Pass parsed resume data to the resume page via sessionStorage.
+                    // Also fire a custom event in case ResumeBuilder is already mounted
+                    // (Next.js layout cache keeps it alive across navigations).
+                    sessionStorage.setItem('pendingResume', JSON.stringify(uploadedResume.data));
+                    window.dispatchEvent(new Event('pendingResumeReady'));
+                    router.push('/resume');
+                  } else if (prompt.toLowerCase().includes('yc') || prompt.toLowerCase().includes('startups')) {
                     router.push('/board');
-                  } else {
+                  } else if (prompt.trim()) {
                     alert("LazyMe AI is processing your request...");
                   }
                 }}
@@ -416,11 +470,11 @@ export default function DiscoveryChat() {
                 {interviewQNA.map((item, idx) => (
                   <div key={idx} className="space-y-4">
                     <div className="flex gap-4 items-start">
-                      <span className="text-2xl font-black text-tertiary/20 font-mono">0{idx + 1}</span>
+                      <span className="text-2xl font-black text-[rgba(0,107,80,0.2)] font-mono">0{idx + 1}</span>
                       <h4 className="text-lg font-bold text-on-surface leading-tight pt-1">{item.q}</h4>
                     </div>
                     <div className="ml-12 p-6 bg-background rounded-[1.5rem] border border-outline-variant shadow-inner relative overflow-hidden">
-                       <div className="absolute top-0 left-0 w-1 h-full bg-tertiary/30" />
+                       <div className="absolute top-0 left-0 w-1 h-full bg-tertiary" style={{ opacity: 0.3 }} />
                        <p className="text-on-surface-variant leading-relaxed text-sm">{item.a}</p>
                        <button 
                          onClick={() => { navigator.clipboard.writeText(item.a); }}

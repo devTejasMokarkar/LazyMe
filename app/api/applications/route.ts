@@ -52,8 +52,6 @@ export async function POST(req: NextRequest) {
           location: jobData.location,
           matchScore: jobData.matchScore,
           matchFactors: jobData.matchFactors,
-          tags: jobData.tags,
-          logoColor: jobData.logoColor
         },
         create: {
           id: jobData.id || `manual-${Date.now()}`,
@@ -65,8 +63,6 @@ export async function POST(req: NextRequest) {
           applyUrl: jobData.applyUrl,
           matchScore: jobData.matchScore,
           matchFactors: jobData.matchFactors,
-          tags: jobData.tags,
-          logoColor: jobData.logoColor
         },
       });
       targetJobId = job.id;
