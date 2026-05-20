@@ -2,6 +2,7 @@ export interface ResumeData {
   name: string;
   email: string;
   phone: string;
+  location?: string;
   title: string;
   summary: string;
   skills: string[];
@@ -37,6 +38,7 @@ Rules:
   "name": "",
   "email": "",
   "phone": "",
+  "location": "",
   "title": "",
   "summary": "",
   "skills": [""],

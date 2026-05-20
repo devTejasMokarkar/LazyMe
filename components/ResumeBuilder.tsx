@@ -21,6 +21,9 @@ interface ResumeVersion {
     skills: string[];
     email?: string;
     phone?: string;
+    location?: string;
+    summary?: string;
+    education?: any[];
   };
 }
 
