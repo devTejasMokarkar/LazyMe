@@ -6,8 +6,9 @@ import {
   Cloud, Undo2, Redo2, Mail, Phone, MapPin, Sparkles, PlusCircle, X,
   Download, ZoomIn, ZoomOut, Upload, FileType, CheckCircle2, History,
   RotateCcw, Save, Trash2, Eye, Loader2, PanelLeftClose, PanelRightClose,
-  Monitor, Smartphone
+  Monitor, Smartphone, Briefcase
 } from 'lucide-react';
+import Link from 'next/link';
 import { cn, validateParsedResume } from '@/lib/utils';
 
 interface ResumeVersion {
@@ -304,6 +305,10 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <button className="p-2 hover:bg-surface-container rounded-md text-on-surface-variant transition-colors"><Undo2 className="w-4 h-4" /></button>
               <button className="p-2 hover:bg-surface-container rounded-md text-on-surface-variant transition-colors"><Redo2 className="w-4 h-4" /></button>
               <div className="w-px h-5 bg-outline-variant/30 mx-1" />
+              <Link href="/apply" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors">
+                <Briefcase className="w-4 h-4" />
+                Apply Now
+              </Link>
               <button onClick={() => setShowPreview(!showPreview)} className="p-2 hover:bg-surface-container rounded-md text-on-surface-variant transition-colors">
                 {showPreview ? <PanelRightClose className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
               </button>
