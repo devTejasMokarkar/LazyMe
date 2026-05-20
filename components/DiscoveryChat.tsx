@@ -155,7 +155,7 @@ export default function DiscoveryChat() {
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-2xl w-full flex flex-col items-center text-center"
+          className="max-w-6xl w-full flex flex-col items-center text-center"
         >
           <div className="w-24 h-24 rounded-3xl bg-primary-container/20 flex items-center justify-center mb-10 border border-primary/50 shadow-[0_20px_50px_rgba(255,178,186,0.2)]">
             <input 
@@ -212,7 +212,7 @@ export default function DiscoveryChat() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-xl bg-surface-container border border-outline-variant rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden"
+              className="w-full max-w-4xl bg-surface-container border border-outline-variant rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 p-8 opacity-10">
                 <Zap className="w-32 h-32 text-primary fill-primary" />
@@ -221,7 +221,7 @@ export default function DiscoveryChat() {
                 <div className="text-5xl font-mono font-bold text-primary">{matchResult.matchScore}%</div>
                 <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.3em]">AI MATCH SCORE</div>
                 
-                <div className="grid grid-cols-2 gap-4 w-full mt-4">
+                <div className="grid grid-cols-3 gap-4 w-full mt-4">
                   {matchResult.matchFactors.map((f: any) => (
                     <div key={f.label} className="bg-background/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col gap-2">
                        <span className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest">{f.label}</span>
@@ -255,7 +255,7 @@ export default function DiscoveryChat() {
 
       {/* Floating Prompt Bar */}
       <div className="fixed bottom-12 left-[calc(240px+48px)] right-[48px] z-40">
-        <div className="max-w-4xl mx-auto space-y-4">
+        <div className="max-w-6xl mx-auto space-y-4">
           
           {/* Prompt Suggestions / Helper */}
           <AnimatePresence>

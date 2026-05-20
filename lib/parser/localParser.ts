@@ -271,56 +271,102 @@ function extractExperienceEntries(lines: string[], section?: { start: number; en
   
   const expLines = lines.slice(section.start + 1, section.end);
   let entry: ExperienceEntry | null = null;
+  let prevWasBulletMarker = false;
   
   for (const line of expLines) {
     // Skip separators and empty
-    if (line.match(/^_+$/) || !line.trim()) continue;
+    if (line.match(/^_+$/) || !line.trim()) {
+      prevWasBulletMarker = false;
+      continue;
+    }
     
-    // Skip section headers
-    if (/^(experience|education|skills|projects)/i.test(line)) continue;
+    // Skip section headers (only short lines or all caps)
+    if ((line.length < 30 || line === line.toUpperCase()) && /^(experience|education|skills|projects)/i.test(line)) {
+      prevWasBulletMarker = false;
+      continue;
+    }
     
     // Check for company with location - very flexible pattern
-    // Any line that starts with Capitalized words and has comma followed by location-like text
     const hasComma = line.includes(',');
     const hasLetters = /[A-Za-z]/.test(line);
     const hasNumbersOnly = /^\d+$/.test(line.replace(/,/g, ''));
     const looksLikeCompany = hasComma && hasLetters && !hasNumbersOnly && line.length > 5 && line.length < 80;
     
+    // Check for date pattern anywhere in the line
+    const dateMatch = line.match(/(\d{4}|\d{2}\/\d{4})\s*[-–]\s*(present|current|\d{4}|\d{2}\/\d{4})/i);
+    const hasDateOnSameLine = dateMatch !== null;
+    
     if (looksLikeCompany) {
-      const parts = line.split(',');
-      const company = parts[0].trim();
-      const location = parts.slice(1).join(',').trim();
-      
-      // Save previous
+      // Save previous entry
       if (entry && entry.bullets.length > 0) {
         experiences.push(entry);
       }
       
+      let company = "";
+      let location = "";
+      let duration = "";
+      let role = "";
+      
+      if (hasDateOnSameLine) {
+        const dateStr = dateMatch![0];
+        const beforeDate = line.replace(dateStr, '').trim();
+        const parts = beforeDate.split(',');
+        company = parts[0].trim();
+        location = parts.slice(1).join(',').trim();
+        duration = dateStr;
+      } else {
+        const parts = line.split(',');
+        company = parts[0].trim();
+        location = parts.slice(1).join(',').trim();
+      }
+      
       entry = {
-        company: company,
-        role: "",
-        location: location,
-        duration: "",
+        company,
+        role,
+        location,
+        duration,
         bullets: [],
         techStack: []
       };
+      prevWasBulletMarker = false;
     }
     // Check for date line
-    else if (entry && (line.match(/\d{4}\s*[-–]\s*(present|current|\d{4})/i) || line.match(/\d{2}\/\d{4}\s*[-–]\s*(present|current|\d{2}\/\d{4})/i))) {
+    else if (entry && !entry.duration && (line.match(/\d{4}\s*[-–]\s*(present|current|\d{4})/i) || line.match(/\d{2}\/\d{4}\s*[-–]\s*(present|current|\d{2}\/\d{4})/i))) {
       entry.duration = line;
       const dates = parseDateRange(line);
       entry.startDate = dates.start;
       entry.endDate = dates.end;
+      prevWasBulletMarker = false;
     }
     // Check for role/title
     else if (entry && !entry.role && (line.includes('Developer') || line.includes('Engineer') || line.includes('Manager') || line.includes('Programmer') || line.includes('Analyst'))) {
       entry.role = line;
+      prevWasBulletMarker = false;
     }
     // Check for bullet points
-    else if (entry && (line.startsWith('•') || line.startsWith('-') || line.startsWith('*'))) {
-      const bullet = line.replace(/^[•\-\*\s]+/, '').trim();
-      if (bullet.length > 5) {
-        entry.bullets.push(bullet);
+    else if (entry) {
+      const trimmed = line.trim();
+      const bulletChar = '\u2022'; // Unicode bullet
+      const isBulletOnly = trimmed === bulletChar || trimmed === '•' || trimmed === '\u25CF' || trimmed === '-' || trimmed === '*' || trimmed === '\u25E6' || trimmed === '\u204C';
+      const isBulletWithText = /^[•\-\*]\s+/.test(line) || line.startsWith(bulletChar + ' ');
+      
+      if (isBulletWithText) {
+        const bullet = line.replace(/^[•\-\*\s]+/, '').trim();
+        if (bullet.length > 5) {
+          entry.bullets.push(bullet);
+        }
+        prevWasBulletMarker = false;
+      } else if (isBulletOnly) {
+        // Just a bullet marker, expect content on next line
+        prevWasBulletMarker = true;
+      } else if (prevWasBulletMarker && line.length > 10) {
+        // Previous line was just a bullet marker, this is the content
+        entry.bullets.push(line);
+        prevWasBulletMarker = false;
+      } else if (entry.bullets.length > 0) {
+        // Continuation of previous bullet
+        entry.bullets[entry.bullets.length - 1] += " " + line;
+        prevWasBulletMarker = false;
       }
     }
   }

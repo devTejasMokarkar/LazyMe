@@ -4,11 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FileText, 
-  MessageSquare, 
-  HelpCircle, 
-  LogOut, 
+import {
+  FileText,
+  MessageSquare,
+  HelpCircle,
+  LogOut,
   Sparkles,
   ChevronLeft
 } from 'lucide-react';
@@ -29,7 +29,7 @@ export default function Sidebar() {
   ];
 
   const bottomItems = [
-    { id: 'support', label: 'Support', icon: HelpCircle, action: () => {} },
+    { id: 'support', label: 'Support', icon: HelpCircle, action: () => { } },
   ];
 
   return (
@@ -65,7 +65,7 @@ export default function Sidebar() {
       >
         {/* Logo Section */}
         <div className="relative h-16 flex items-center px-5 border-b border-outline-variant/30">
-          <motion.div 
+          <motion.div
             className="flex items-center gap-3 overflow-hidden"
             animate={{ opacity: 1 }}
           >
@@ -98,8 +98,8 @@ export default function Sidebar() {
                 href={item.href}
                 className={cn(
                   "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
-                  isActive 
-                    ? "bg-primary/10 text-primary" 
+                  isActive
+                    ? "bg-primary/10 text-primary"
                     : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
                 )}
               >
@@ -111,14 +111,14 @@ export default function Sidebar() {
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
-                
+
                 <div className={cn(
                   "shrink-0 w-5 h-5 flex items-center justify-center",
                   isActive ? "text-primary" : "text-on-surface-variant group-hover:text-primary transition-colors"
                 )}>
                   <item.icon className="w-5 h-5" />
                 </div>
-                
+
                 <AnimatePresence mode="wait">
                   {isExpanded && (
                     <motion.span
@@ -179,8 +179,8 @@ export default function Sidebar() {
           ))}
 
           <form action={signOutAction}>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group"
             >
               <div className="shrink-0 w-5 h-5 flex items-center justify-center">
@@ -246,8 +246,8 @@ export default function Sidebar() {
                     onClick={() => setIsMobileOpen(false)}
                     className={cn(
                       "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
-                      isActive 
-                        ? "bg-primary/10 text-primary" 
+                      isActive
+                        ? "bg-primary/10 text-primary"
                         : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
                     )}
                   >
