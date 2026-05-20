@@ -6,10 +6,13 @@ import {
   Cloud, Undo2, Redo2, Mail, Phone, MapPin, Sparkles, PlusCircle, X,
   Download, ZoomIn, ZoomOut, Upload, FileType, CheckCircle2, History,
   RotateCcw, Save, Trash2, Eye, Loader2, PanelLeftClose, PanelRightClose,
-  Monitor, Smartphone, Briefcase
+  Monitor, Smartphone, Briefcase, Palette
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn, validateParsedResume } from '@/lib/utils';
+import { useToast } from './ToastProvider';
+import DownloadDropdown from './DownloadDropdown';
+import { resumeToLatex } from '@/utils/latexFormatter';
 
 interface ResumeVersion {
   id: string;
@@ -57,8 +60,17 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const [showPreview, setShowPreview] = useState(true);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [resumeTheme, setResumeTheme] = useState<'light' | 'dark'>('light');
+  const [resumeColor, setResumeColor] = useState('#000000');
   const [zoom, setZoom] = useState(85);
+  
+  const ACCENT_COLORS = ['#000000', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1'];
 
+  const { showToast } = useToast();
+  const lastSavedContent = useRef<string>('');
+  const isUndoRedoActionRef = useRef<boolean>(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  
   const [resumeId, setResumeId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
@@ -117,6 +129,34 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           { name: 'Skills', status: 'success', confidence: 91 },
           { name: 'Education', status: 'success', confidence: 88 }
         ]);
+        
+        lastSavedContent.current = JSON.stringify({
+          name: parsed.name || 'Your Name',
+          title: parsed.title || 'Your Role',
+          experience: parsed.experience || [],
+          skills: normalizeSkills(parsed.skills),
+          email: parsed.email || '',
+          phone: parsed.phone || '',
+          location: parsed.location || '',
+          summary: parsed.summary || '',
+          education: parsed.education || []
+        });
+
+        const baseline = {
+          userName: parsed.name || 'Your Name',
+          userRole: parsed.title || 'Your Role',
+          experience: parsed.experience || [],
+          skills: normalizeSkills(parsed.skills),
+          email: parsed.email || '',
+          phone: parsed.phone || '',
+          location: parsed.location || '',
+          summary: parsed.summary || '',
+          education: parsed.education || []
+        };
+        setHistory([baseline]);
+        setHistoryIndex(0);
+        isUndoRedoActionRef.current = true;
+
         setTimeout(() => setUploadSuccess(false), 5000);
         return true;
       } catch { return false; }
@@ -160,18 +200,71 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     setLocation(c.location || '');
     setSummary(c.summary || '');
     setEducation(c.education || []);
+
+    lastSavedContent.current = JSON.stringify({
+      name: c.name || 'Your Name',
+      title: c.title || 'Your Role',
+      experience: c.experience || [],
+      skills: normalizeSkills(c.skills),
+      email: c.email || '',
+      phone: c.phone || '',
+      location: c.location || '',
+      summary: c.summary || '',
+      education: c.education || []
+    });
+
+    const baseline = {
+      userName: c.name || 'Your Name',
+      userRole: c.title || 'Your Role',
+      experience: c.experience || [],
+      skills: normalizeSkills(c.skills),
+      email: c.email || '',
+      phone: c.phone || '',
+      location: c.location || '',
+      summary: c.summary || '',
+      education: c.education || []
+    };
+    setHistory([baseline]);
+    setHistoryIndex(0);
+    isUndoRedoActionRef.current = true;
   };
 
   const saveCurrentVersion = async (name: string = `Backup ${new Date().toLocaleTimeString()}`) => {
     const content = { name: userName, title: userRole, experience, skills, email, phone, location, summary, education };
+    const currentSerialized = JSON.stringify({
+      name: userName,
+      title: userRole,
+      experience,
+      skills,
+      email,
+      phone,
+      location,
+      summary,
+      education
+    });
+
+    if (currentSerialized === lastSavedContent.current) {
+      showToast("already saved no changes detected", "info");
+      return;
+    }
+
     try {
       const res = await fetch('/api/resumes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, content, isDefault: false })
       });
-      const newResume = await res.json();
-      setVersions(prev => [{ id: newResume.id, timestamp: new Date().toLocaleString(), name, content }, ...prev]);
-    } catch (error) { console.error("Save failed:", error); }
+      if (res.ok) {
+        const newResume = await res.json();
+        setVersions(prev => [{ id: newResume.id, timestamp: new Date().toLocaleString(), name, content }, ...prev]);
+        lastSavedContent.current = currentSerialized;
+        showToast("saved successfully", "success");
+      } else {
+        showToast("Failed to save resume", "error");
+      }
+    } catch (error) {
+      console.error("Save failed:", error);
+      showToast("Failed to save resume", "error");
+    }
   };
 
   const revertToVersion = (version: ResumeVersion) => {
@@ -186,6 +279,33 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     setEducation(version.content.education || []);
     setResumeId(version.id);
     setShowHistory(false);
+
+    lastSavedContent.current = JSON.stringify({
+      name: version.content.name,
+      title: version.content.title,
+      experience: version.content.experience,
+      skills: normalizeSkills(version.content.skills),
+      email: version.content.email || '',
+      phone: version.content.phone || '',
+      location: version.content.location || '',
+      summary: version.content.summary || '',
+      education: version.content.education || []
+    });
+
+    const baseline = {
+      userName: version.content.name,
+      userRole: version.content.title,
+      experience: version.content.experience,
+      skills: normalizeSkills(version.content.skills),
+      email: version.content.email || '',
+      phone: version.content.phone || '',
+      location: version.content.location || '',
+      summary: version.content.summary || '',
+      education: version.content.education || []
+    };
+    setHistory([baseline]);
+    setHistoryIndex(0);
+    isUndoRedoActionRef.current = true;
   };
 
   const addEducation = () => {
@@ -248,6 +368,33 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           })
         });
 
+        lastSavedContent.current = JSON.stringify({
+          name: data.name,
+          title: data.title,
+          experience: data.experience || [],
+          skills: normalizeSkills(data.skills),
+          email: data.email || '',
+          phone: data.phone || '',
+          location: data.location || '',
+          summary: data.summary || '',
+          education: data.education || []
+        });
+
+        const baseline = {
+          userName: data.name,
+          userRole: data.title,
+          experience: data.experience || [],
+          skills: normalizeSkills(data.skills),
+          email: data.email || '',
+          phone: data.phone || '',
+          location: data.location || '',
+          summary: data.summary || '',
+          education: data.education || []
+        };
+        setHistory([baseline]);
+        setHistoryIndex(0);
+        isUndoRedoActionRef.current = true;
+
         // Refresh versions with fresh fetch
         const versionsRes = await fetch('/api/resumes?_t=' + Date.now());
         if (versionsRes.ok) {
@@ -270,6 +417,83 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     }
   };
 
+  useEffect(() => {
+    if (loading) return;
+
+    if (isUndoRedoActionRef.current) {
+      isUndoRedoActionRef.current = false;
+      return;
+    }
+
+    const stateToSave = {
+      userName,
+      userRole,
+      experience: JSON.parse(JSON.stringify(experience)),
+      skills: [...skills],
+      email,
+      phone,
+      location,
+      summary,
+      education: JSON.parse(JSON.stringify(education))
+    };
+
+    if (history.length === 0) {
+      setHistory([stateToSave]);
+      setHistoryIndex(0);
+      return;
+    }
+
+    const currentHistoryItem = history[historyIndex];
+    if (currentHistoryItem) {
+      const isChanged = JSON.stringify(currentHistoryItem) !== JSON.stringify(stateToSave);
+      if (isChanged) {
+        const newHistory = history.slice(0, historyIndex + 1);
+        setHistory([...newHistory, stateToSave]);
+        setHistoryIndex(newHistory.length);
+      }
+    }
+  }, [userName, userRole, experience, skills, email, phone, location, summary, education, loading]);
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      isUndoRedoActionRef.current = true;
+      const prevIndex = historyIndex - 1;
+      const prevState = history[prevIndex];
+      
+      setUserName(prevState.userName);
+      setUserRole(prevState.userRole);
+      setExperience(JSON.parse(JSON.stringify(prevState.experience)));
+      setSkills([...prevState.skills]);
+      setEmail(prevState.email);
+      setPhone(prevState.phone);
+      setLocation(prevState.location);
+      setSummary(prevState.summary);
+      setEducation(JSON.parse(JSON.stringify(prevState.education)));
+      
+      setHistoryIndex(prevIndex);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      isUndoRedoActionRef.current = true;
+      const nextIndex = historyIndex + 1;
+      const nextState = history[nextIndex];
+      
+      setUserName(nextState.userName);
+      setUserRole(nextState.userRole);
+      setExperience(JSON.parse(JSON.stringify(nextState.experience)));
+      setSkills([...nextState.skills]);
+      setEmail(nextState.email);
+      setPhone(nextState.phone);
+      setLocation(nextState.location);
+      setSummary(nextState.summary);
+      setEducation(JSON.parse(JSON.stringify(nextState.education)));
+      
+      setHistoryIndex(nextIndex);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center h-full">
@@ -277,6 +501,19 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       </div>
     );
   }
+
+  const resumeData = {
+    name: userName,
+    title: userRole,
+    experience,
+    skills,
+    email,
+    phone,
+    location,
+    summary,
+    education
+  };
+  const latex = resumeToLatex(resumeData);
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -302,10 +539,30 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <button onClick={() => saveCurrentVersion()} className="p-2 hover:bg-surface-container rounded-md text-on-surface-variant hover:text-primary transition-colors" title="Save">
                 <Save className="w-4 h-4" />
               </button>
-              <button className="p-2 hover:bg-surface-container rounded-md text-on-surface-variant transition-colors"><Undo2 className="w-4 h-4" /></button>
-              <button className="p-2 hover:bg-surface-container rounded-md text-on-surface-variant transition-colors"><Redo2 className="w-4 h-4" /></button>
+               <button 
+                onClick={handleUndo} 
+                disabled={historyIndex <= 0}
+                className={cn(
+                  "p-2 rounded-md transition-colors",
+                  historyIndex > 0 ? "hover:bg-surface-container text-on-surface-variant cursor-pointer" : "text-on-surface-variant/30 cursor-not-allowed"
+                )}
+                title="Undo"
+              >
+                <Undo2 className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={handleRedo} 
+                disabled={historyIndex >= history.length - 1}
+                className={cn(
+                  "p-2 rounded-md transition-colors",
+                  historyIndex < history.length - 1 ? "hover:bg-surface-container text-on-surface-variant cursor-pointer" : "text-on-surface-variant/30 cursor-not-allowed"
+                )}
+                title="Redo"
+              >
+                <Redo2 className="w-4 h-4" />
+              </button>
               <div className="w-px h-5 bg-outline-variant/30 mx-1" />
-              <Link href="/apply" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors">
+              <Link href="/apply" className="btn-primary py-1.5 text-sm font-medium">
                 <Briefcase className="w-4 h-4" />
                 Apply Now
               </Link>
@@ -325,7 +582,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
-                  "bg-surface-container-low border border-outline-variant/50 rounded-xl p-6 text-center cursor-pointer transition-all hover:bg-surface-container-high hover:border-primary/30",
+                  "glass rounded-xl p-6 text-center cursor-pointer transition-all hover:border-primary hover:shadow-[0_0_15px_rgba(112,145,230,0.3)]",
                   isParsing && "pointer-events-none opacity-50",
                   parseError && "border-red-500/30 bg-red-500/5"
                 )}
@@ -356,13 +613,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
             </div>
 
             {/* Name & Role Card */}
-            <div className="bg-surface-container-low border border-outline-variant/50 rounded-xl p-5 group">
+            <div className="glass rounded-xl p-5 group relative">
               <h1 className="text-2xl font-bold text-on-surface outline-none focus:text-primary transition-colors" contentEditable suppressContentEditableWarning onBlur={(e) => setUserName(e.currentTarget.innerText)}>{userName || 'Your Name'}</h1>
               <p className="text-on-surface-variant text-sm font-medium mt-1 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setUserRole(e.currentTarget.innerText)}>{userRole || 'Your Title'}</p>
               <div className="flex flex-wrap gap-4 mt-3 text-xs text-on-surface-variant/70">
-                <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{email || 'email'}</span>
-                <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{phone || 'phone'}</span>
-                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{location || 'location'}</span>
+                <span className="flex items-center gap-1"><Mail className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setEmail(e.currentTarget.innerText)}>{email || 'email'}</span></span>
+                <span className="flex items-center gap-1"><Phone className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setPhone(e.currentTarget.innerText)}>{phone || 'phone'}</span></span>
+                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setLocation(e.currentTarget.innerText)}>{location || 'location'}</span></span>
               </div>
               <button className="absolute -right-2 top-4 w-8 h-8 flex items-center justify-center bg-primary/10 border border-primary/20 text-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"><Sparkles className="w-4 h-4" /></button>
             </div>
@@ -372,7 +629,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <div className="flex justify-between items-center">
                 <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Summary</h3>
               </div>
-              <div className="bg-surface-container-low border border-outline-variant/50 rounded-xl p-4 group">
+              <div className="glass rounded-xl p-4 group">
                 <div
                   className="text-sm text-on-surface outline-none min-h-[80px]"
                   contentEditable
@@ -391,19 +648,19 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 <button onClick={addEducation} className="p-1 text-on-surface-variant hover:text-primary transition-colors"><PlusCircle className="w-5 h-5" /></button>
               </div>
               {education.length === 0 ? (
-                <div className="bg-surface-container-low border border-outline-variant/50 rounded-xl p-4 text-center text-on-surface-variant text-sm">
+                <div className="glass rounded-xl p-4 text-center text-on-surface-variant text-sm">
                   No education added yet
                 </div>
               ) : (
                 education.map((edu, i) => (
-                  <div key={i} className="bg-surface-container-low border border-outline-variant/50 rounded-xl p-4 group hover:border-outline-variant/80 transition-colors">
+                  <div key={i} className="glass rounded-xl p-4 group hover:border-primary/50 transition-colors">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h4 className="text-base font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].school = e.currentTarget.innerText; setEducation(n); }}>{edu.school}</h4>
                         <p className="text-xs font-semibold text-on-surface-variant mt-0.5 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].degree = e.currentTarget.innerText; setEducation(n); }}>{edu.degree}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-on-surface-variant/60">{edu.year}</span>
+                        <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].year = e.currentTarget.innerText; setEducation(n); }}>{edu.year}</span>
                         <button onClick={() => setEducation(education.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
@@ -419,14 +676,14 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 <button onClick={addExperience} className="p-1 text-on-surface-variant hover:text-primary transition-colors"><PlusCircle className="w-5 h-5" /></button>
               </div>
               {experience.map((exp, i) => (
-                <div key={i} className="bg-surface-container-low border border-outline-variant/50 rounded-xl p-4 group hover:border-outline-variant/80 transition-colors">
+                <div key={i} className="glass rounded-xl p-4 group hover:border-primary/50 transition-colors">
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h4 className="text-base font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].company = e.currentTarget.innerText; setExperience(n); }}>{exp.company}</h4>
                       <p className="text-xs font-semibold text-on-surface-variant uppercase mt-0.5 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].role = e.currentTarget.innerText; setExperience(n); }}>{exp.role}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-on-surface-variant/60">{exp.duration || exp.period}</span>
+                      <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].duration = e.currentTarget.innerText; setExperience(n); }}>{exp.duration || exp.period}</span>
                       <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
@@ -441,13 +698,45 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
             <div className="space-y-3">
               <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Skills & Tools</h3>
               <div className="flex flex-wrap gap-2">
-                {skills.map(skill => (
-                  <div key={skill} className="bg-surface-container-low border border-outline-variant/50 rounded-full px-3 py-1.5 flex items-center gap-2 group transition-all hover:bg-surface-container-high">
-                    <span className="text-xs font-semibold text-on-surface">{skill}</span>
-                    <button onClick={() => setSkills(skills.filter(s => s !== skill))} className="text-on-surface-variant hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>
+                {skills.map((skill, i) => (
+                  <div key={i} className="glass rounded-full px-3 py-1.5 flex items-center gap-2 group transition-all hover:bg-white/5">
+                    <span 
+                      className="text-xs font-semibold text-on-surface outline-none min-w-[40px] cursor-text"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => {
+                        const newSkills = [...skills];
+                        const val = e.currentTarget.innerText.trim();
+                        if (val) {
+                          newSkills[i] = val;
+                          setSkills(newSkills);
+                        } else {
+                          setSkills(skills.filter((_, idx) => idx !== i));
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }
+                      }}
+                    >
+                      {skill}
+                    </span>
+                    <button 
+                      onClick={() => setSkills(skills.filter((_, idx) => idx !== i))} 
+                      className="text-on-surface-variant hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
                 ))}
-                <button onClick={() => setSkills([...skills, 'New'])} className="bg-primary/10 border border-primary/30 text-primary rounded-full px-3 py-1.5 text-xs font-semibold hover:bg-primary/15 transition-all">+ Add</button>
+                <button 
+                  onClick={() => setSkills([...skills, 'New Skill'])} 
+                  className="bg-primary/10 border border-primary/30 text-primary rounded-full px-3 py-1.5 text-xs font-semibold hover:bg-primary/15 transition-all"
+                >
+                  + Add
+                </button>
               </div>
             </div>
           </div>
@@ -462,7 +751,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
             animate={{ width: 600, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="hidden lg:flex flex-col h-full bg-[#0d0e13] border-l border-white/5 overflow-hidden"
+            className="hidden lg:flex flex-col h-full bg-background border-l border-white/5 overflow-hidden"
           >
             {/* Preview Toolbar */}
             <div className="h-12 px-4 flex items-center justify-between border-b border-white/5 shrink-0">
@@ -476,13 +765,28 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                   <span className="text-[10px] font-mono text-white/40 w-10 text-center">{zoom}%</span>
                   <button onClick={() => setZoom(Math.min(120, zoom + 10))} className="p-1.5 text-white/50 hover:text-white"><ZoomIn className="w-3.5 h-3.5" /></button>
                 </div>
+                <div className="flex items-center gap-1 bg-white/5 px-1.5 py-1 rounded-lg border border-white/10">
+                  {['#000000', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444'].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setResumeColor(color)}
+                      className={cn(
+                        "w-3.5 h-3.5 rounded-full border transition-all hover:scale-110",
+                        resumeColor === color ? "border-white scale-110 shadow-sm" : "border-transparent"
+                      )}
+                      style={{ backgroundColor: color === '#000000' && resumeTheme === 'dark' ? '#ffffff' : color }}
+                      title={`Accent Color ${color}`}
+                    />
+                  ))}
+                </div>
                 <button onClick={() => setResumeTheme(resumeTheme === 'light' ? 'dark' : 'light')} className="text-[10px] font-semibold text-white/40 uppercase hover:text-white/60">{resumeTheme}</button>
               </div>
             </div>
 
             {/* Preview Canvas */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 flex justify-center bg-[#0d0e13]">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 flex justify-center bg-background">
               <motion.div
+                id="resume-preview"
                 className={cn(
                   "rounded-lg shadow-2xl p-8 flex flex-col font-sans transition-all",
                   previewMode === 'mobile' ? "w-[320px]" : "w-[800px]"
@@ -492,15 +796,15 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                   transformOrigin: 'top center',
                   minHeight: '900px',
                   backgroundColor: resumeTheme === 'light' ? '#ffffff' : '#1a1b1f',
-                  color: resumeTheme === 'light' ? '#1e293b' : '#e2e8f0'
+                  color: resumeTheme === 'light' ? '#000000' : '#e2e8f0'
                 }}
               >
                 {/* Resume Content */}
                 <div className="text-center mb-6">
-                  <h2 className={cn("text-2xl font-extrabold", resumeTheme === 'light' ? "text-slate-900" : "text-white")}>{userName || 'Your Name'}</h2>
-                  <p className={cn("text-sm", resumeTheme === 'light' ? "text-slate-500" : "text-slate-400")}>{userRole || 'Your Title'}</p>
+                  <h2 className={cn("text-2xl font-extrabold", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>{userName || 'Your Name'}</h2>
+                  <p className={cn("text-sm", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{userRole || 'Your Title'}</p>
                 </div>
-                <div className={cn("flex justify-center gap-4 text-[9px] uppercase tracking-wider mb-5 pb-3 border-b", resumeTheme === 'light' ? "text-slate-400 border-slate-100" : "text-slate-500 border-slate-800")}>
+                <div className={cn("flex justify-center gap-4 text-[9px] uppercase tracking-wider mb-5 pb-3 border-b", resumeTheme === 'light' ? "text-slate-700 border-slate-300" : "text-slate-500 border-slate-800")}>
                   {email && <span>{email}</span>}
                   {phone && <span>{phone}</span>}
                   <span>{location || 'Location'}</span>
@@ -508,26 +812,26 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 <div className="space-y-5 flex-1">
                   {summary && (
                     <div>
-                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-2", resumeTheme === 'light' ? "text-slate-300" : "text-slate-700")}>Summary</h3>
-                      <p className={cn("text-xs leading-relaxed", resumeTheme === 'light' ? "text-slate-500" : "text-slate-400")}>{summary}</p>
+                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-2", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>Summary</h3>
+                      <p className={cn("text-xs leading-relaxed", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{summary}</p>
                     </div>
                   )}
                   {skills.length > 0 && (
                     <div className={cn("pt-2", summary ? "border-t" : "")}>
-                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-2", resumeTheme === 'light' ? "text-slate-300" : "text-slate-700")}>Skills</h3>
-                      <div className={cn("text-xs flex flex-wrap gap-x-3 gap-y-1", resumeTheme === 'light' ? "text-slate-500" : "text-slate-400")}>{skills.join(', ')}</div>
+                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-2", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>Skills</h3>
+                      <div className={cn("text-xs flex flex-wrap gap-x-3 gap-y-1", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{skills.join(', ')}</div>
                     </div>
                   )}
                   {experience.length > 0 && (
-                    <div className={cn("pt-4 border-t", resumeTheme === 'light' ? "border-slate-50" : "border-slate-800")}>
-                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-3", resumeTheme === 'light' ? "text-slate-300" : "text-slate-700")}>Experience</h3>
+                    <div className={cn("pt-4 border-t", resumeTheme === 'light' ? "border-slate-300" : "border-slate-800")}>
+                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-3", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>Experience</h3>
                       <div className="space-y-4">
                         {experience.map((exp, i) => (
                           <div key={i}>
-                            <div className="flex justify-between"><span className={cn("font-bold text-xs", resumeTheme === 'light' ? "text-slate-900" : "text-white")}>{exp.company}</span><span className={cn("text-[9px]", resumeTheme === 'light' ? "text-slate-400" : "text-slate-500")}>{exp.duration || exp.period}</span></div>
-                            <p className={cn("text-xs mt-0.5", resumeTheme === 'light' ? "text-slate-500" : "text-slate-400")}>{exp.role}</p>
+                            <div className="flex justify-between"><span className={cn("font-bold text-xs", resumeTheme === 'light' ? "text-black" : "text-white")}>{exp.company}</span><span className={cn("text-[9px]", resumeTheme === 'light' ? "text-slate-600" : "text-slate-500")}>{exp.duration || exp.period}</span></div>
+                            <p className={cn("text-xs mt-0.5", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{exp.role}</p>
                             {(exp.bullets && exp.bullets.length > 0) && (
-                              <ul className={cn("text-[10px] mt-1 space-y-0.5", resumeTheme === 'light' ? "text-slate-400" : "text-slate-500")}>
+                              <ul className={cn("text-[10px] mt-1 space-y-0.5", resumeTheme === 'light' ? "text-slate-700" : "text-slate-500")}>
                                 {exp.bullets.slice(0, 3).map((b: string, j: number) => (
                                   <li key={j} className="flex gap-1"><span className="shrink-0">•</span><span>{b}</span></li>
                                 ))}
@@ -539,13 +843,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                     </div>
                   )}
                   {education.length > 0 && (
-                    <div className={cn("pt-4 border-t", resumeTheme === 'light' ? "border-slate-50" : "border-slate-800")}>
-                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-3", resumeTheme === 'light' ? "text-slate-300" : "text-slate-700")}>Education</h3>
+                    <div className={cn("pt-4 border-t", resumeTheme === 'light' ? "border-slate-300" : "border-slate-800")}>
+                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-3", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>Education</h3>
                       <div className="space-y-2">
                         {education.map((edu, i) => (
                           <div key={i}>
-                            <div className="flex justify-between"><span className={cn("font-bold text-xs", resumeTheme === 'light' ? "text-slate-900" : "text-white")}>{edu.school}</span><span className={cn("text-[9px]", resumeTheme === 'light' ? "text-slate-400" : "text-slate-500")}>{edu.year}</span></div>
-                            <p className={cn("text-xs mt-0.5", resumeTheme === 'light' ? "text-slate-500" : "text-slate-400")}>{edu.degree}</p>
+                            <div className="flex justify-between"><span className={cn("font-bold text-xs", resumeTheme === 'light' ? "text-black" : "text-white")}>{edu.school}</span><span className={cn("text-[9px]", resumeTheme === 'light' ? "text-slate-600" : "text-slate-500")}>{edu.year}</span></div>
+                            <p className={cn("text-xs mt-0.5", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{edu.degree}</p>
                           </div>
                         ))}
                       </div>
@@ -556,10 +860,8 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
             </div>
 
             {/* Download Action */}
-            <div className="p-4 border-t border-white/5 bg-white/[0.02]">
-              <button className="w-full bg-primary text-on-primary py-3 rounded-xl font-semibold text-sm hover:brightness-105 active:scale-[0.98] transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
-                <Download className="w-4 h-4" /> Download PDF
-              </button>
+            <div className="p-4 border-t border-white/5 glass-dark flex justify-center">
+              <DownloadDropdown resumeData={resumeData} latex={latex} resumePreviewId="resume-preview" />
             </div>
           </motion.aside>
         )}
@@ -578,14 +880,14 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         {showHistory && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowHistory(false)} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" />
-            <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 bottom-0 w-80 bg-surface-container-low border-l border-outline-variant/50 z-50 shadow-2xl flex flex-col">
+            <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 bottom-0 w-80 glass-dark z-50 shadow-2xl flex flex-col">
               <div className="p-4 border-b border-outline-variant/30 flex justify-between items-center">
                 <div className="flex items-center gap-2"><History className="w-5 h-5 text-primary" /><h2 className="text-base font-bold">Timeline</h2></div>
                 <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-surface-container-highest rounded-lg"><X className="w-5 h-5" /></button>
               </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
                 {versions.length === 0 ? <div className="text-center text-on-surface-variant text-sm py-10 opacity-50">No versions</div> : versions.map(v => (
-                  <div key={v.id} className="bg-surface-container-high border border-outline-variant/50 rounded-lg p-3 group">
+                  <div key={v.id} className="glass rounded-lg p-3 group">
                     <div className="flex justify-between"><div><h4 className="text-sm font-semibold">{v.name}</h4><p className="text-[9px] text-on-surface-variant mt-0.5">{v.timestamp}</p></div><button onClick={async () => { await fetch(`/api/resumes?id=${v.id}`, { method: 'DELETE' }); setVersions(versions.filter(x => x.id !== v.id)); }} className="p-1 opacity-0 group-hover:opacity-100 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button></div>
                     <button onClick={() => revertToVersion(v)} className="w-full mt-2 bg-primary/10 text-primary text-[10px] font-semibold py-1.5 rounded hover:bg-primary/20 transition-all">Revert</button>
                   </div>

@@ -79,6 +79,11 @@ export default function ApplyPage() {
       const result = await response.json();
 
       if (!response.ok) {
+        if (result.code === 'UPGRADE_REQUIRED') {
+          setStatus('Please upgrade your Apify plan to continue searching. Click the button below to upgrade.');
+          setIsError(true);
+          return;
+        }
         throw new Error(result.error || 'Search failed');
       }
 
@@ -153,6 +158,11 @@ export default function ApplyPage() {
       const result = await response.json();
 
       if (!response.ok) {
+        if (result.code === 'UPGRADE_REQUIRED') {
+          setStatus('Please upgrade your Apify plan to continue searching. Click the button below to upgrade.');
+          setIsError(true);
+          return;
+        }
         throw new Error(result.error || 'Search failed');
       }
 
@@ -167,9 +177,13 @@ export default function ApplyPage() {
     }
   };
 
+  const openUpgrade = () => {
+    window.open('https://console.apify.com/billing/subscription', '_blank');
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="p-6 pb-0">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      <div className="p-6 pb-0 shrink-0">
         <div className="max-w-4xl mx-auto">
           <div className="mb-4">
             <h1 className="text-2xl font-semibold text-on-background">Job Search</h1>
@@ -319,8 +333,18 @@ export default function ApplyPage() {
 
           {/* Status */}
           {status && (
-            <div className={`mb-4 text-sm ${isError ? 'text-red-500' : 'text-on-surface-variant'}`}>
-              {status}
+            <div className="mb-4">
+              <p className={`text-sm ${isError ? 'text-red-500' : 'text-on-surface-variant'}`}>
+                {status}
+              </p>
+              {isError && status.includes('upgrade') && (
+                <button
+                  onClick={openUpgrade}
+                  className="mt-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Upgrade Apify Plan
+                </button>
+              )}
             </div>
           )}
         </div>

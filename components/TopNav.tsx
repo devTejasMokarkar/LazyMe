@@ -19,13 +19,13 @@ export default function TopNav() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 z-40 flex justify-between items-center px-4 lg:pl-[72px] bg-background/80 backdrop-blur-xl border-b border-outline-variant/30">
+    <header className="fixed top-0 left-0 right-0 h-16 z-40 flex justify-between items-center px-4 lg:pl-[72px] glass-dark border-b">
       <div className="flex items-center gap-4">
         <Link 
           href="/"
           className="font-bold text-lg text-on-surface flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
         >
-          <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_10px_rgba(255,178,186,0.5)]"></div>
+          <img src="/logo.png" alt="LazyMe Logo" className="w-8 h-8 object-contain" />
           <span className="hidden sm:inline">LazyMe</span>
         </Link>
       </div>
@@ -34,7 +34,7 @@ export default function TopNav() {
         {/* Theme Toggle - Cleaner Design */}
         <button 
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="relative w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all"
+          className="relative w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-white/5 rounded-lg transition-all"
           title="Toggle Theme"
         >
           <AnimatePresence mode="wait">
@@ -59,13 +59,13 @@ export default function TopNav() {
         {(status === "authenticated" && session) ? (
           <>
             {/* Notifications */}
-            <button className="relative w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all">
+            <button className="relative w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-white/5 rounded-lg transition-all">
               <Bell className="w-4.5 h-4.5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-background"></span>
             </button>
 
             {/* User Avatar */}
-            <div className="h-8 w-8 rounded-lg bg-surface-container-high border border-outline-variant overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all">
+            <div className="h-8 w-8 rounded-lg glass border border-outline-variant overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
               {session?.user?.image ? (
                 <img 
                   src={session.user.image} 
@@ -88,7 +88,7 @@ export default function TopNav() {
               </button>
             </form>
             <form action={signInAction}>
-              <button type="submit" className="bg-primary text-on-primary px-4 py-2 rounded-lg font-semibold text-xs hover:brightness-105 active:scale-95 transition-all shadow-lg shadow-primary/20">
+              <button type="submit" className="btn-primary">
                 Get Started
               </button>
             </form>
@@ -98,7 +98,7 @@ export default function TopNav() {
         {/* Mobile Menu Toggle */}
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all"
+          className="lg:hidden w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-white/5 rounded-lg transition-all"
         >
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -111,7 +111,7 @@ export default function TopNav() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full left-0 right-0 lg:hidden bg-surface-container-low border-b border-outline-variant p-4 shadow-xl"
+            className="absolute top-full left-0 right-0 lg:hidden glass-dark border-b p-4 shadow-xl"
           >
             <div className="flex flex-col gap-2">
               <Link href="/dashboard" className="px-4 py-3 rounded-lg text-on-surface hover:bg-surface-container-high font-medium">

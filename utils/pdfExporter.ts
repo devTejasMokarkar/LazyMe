@@ -12,18 +12,26 @@ export const downloadPDF = async (elementId: string, filename: string = "resume.
     return;
   }
 
+  const originalTransform = element.style.transform;
+  const originalTransformOrigin = element.style.transformOrigin;
+  element.style.transform = 'none';
+  element.style.transformOrigin = 'unset';
+
   try {
     const opt = {
       margin: 0.5,
       filename: filename,
       image: { type: "jpeg" as const, quality: 0.98 },
-      html2canvas: { scale: 2 },
+      html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: "in" as const, format: "letter" as const, orientation: "portrait" as const }
     };
 
     await html2pdf().set(opt).from(element).save();
   } catch (error) {
     throw error;
+  } finally {
+    element.style.transform = originalTransform;
+    element.style.transformOrigin = originalTransformOrigin;
   }
 };
 

@@ -123,23 +123,23 @@ ${resumeData.education.map((e: any) => `${e.degree} from ${e.school} (${e.year})
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative w-full" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
         disabled={downloading !== null}
-        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold rounded-xl border border-slate-700 transition-all active:scale-95 shadow-sm min-w-[110px] justify-center"
+        className="flex items-center gap-2 w-full py-3 bg-primary hover:bg-primary/95 text-on-primary text-sm font-semibold rounded-xl transition-all active:scale-98 shadow-md justify-center"
       >
         {downloading ? (
-          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></div>
         ) : (
-          <Download className="w-4 h-4 text-primary" />
+          <Download className="w-4 h-4" />
         )}
-        <span>Export</span>
-        <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span>Download Resume</span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-3 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute right-0 bottom-full mb-2 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] z-[100] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800 bg-slate-900/50">
             Select Export Format
           </div>

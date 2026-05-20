@@ -1,7 +1,4 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 interface JobSearchRequest {
   resumeData?: {
@@ -25,7 +22,7 @@ export async function POST(request: Request) {
     const apiToken = process.env.APIFY_NAUKRI_TOKEN;
     if (!apiToken) {
       return NextResponse.json(
-        { error: 'APIFY_NAUKRI_TOKEN not configured' },
+        { error: 'APIFY_NAUKRI_TOKEN not configured', code: 'NO_TOKEN' },
         { status: 500 }
       );
     }
@@ -33,54 +30,18 @@ export async function POST(request: Request) {
     let searchKeyword = keyword;
     let searchLocation = location;
 
+    // Use resume data directly - no AI calls to avoid quota issues
     if (resumeData && !keyword) {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-      
-      const skillsList = resumeData.skills?.slice(0, 8).join(', ') || '';
       const jobTitle = resumeData.title || resumeData.experience?.[0]?.role || 'Software Developer';
       const userLocation = resumeData.location || '';
-      const yearsExp = resumeData.experience?.length ? `${resumeData.experience.length}+ years` : '';
-
-      const prompt = `Based on this resume data, suggest the best job search keywords to find relevant job opportunities on Naukri (Indian job site).
-
-Resume:
-- Title/Role: ${jobTitle}
-- Skills: ${skillsList}
-- Location: ${userLocation}
-- Experience: ${yearsExp}
-
-Return ONLY a JSON object with this exact format (no other text):
-{
-  "keyword": "best job title keywords for naukri",
-  "location": "best city to search in india"
-}
-
-Rules:
-- Keyword should be job title only (e.g., "React Developer", "Full Stack Engineer", "Python Developer")
-- Don't include skills in keyword
-- Location should be a major Indian city
-- If no specific skills, use general role-based keywords`;
-
-      try {
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
-        
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          searchKeyword = parsed.keyword || jobTitle;
-          searchLocation = parsed.location || userLocation;
-        }
-      } catch (aiError) {
-        console.error('AI parsing error:', aiError);
-        searchKeyword = jobTitle;
-        searchLocation = userLocation;
-      }
+      
+      searchKeyword = jobTitle;
+      searchLocation = userLocation;
     }
 
     if (!searchKeyword) {
       return NextResponse.json(
-        { error: 'No search keyword provided' },
+        { error: 'No search keyword provided', code: 'NO_KEYWORD' },
         { status: 400 }
       );
     }
@@ -97,10 +58,32 @@ Rules:
       body: JSON.stringify(input)
     });
 
+    // Handle payment/upgrade required error
+    if (runRes.status === 402) {
+      return NextResponse.json(
+        { 
+          error: 'You have exceeded your Apify usage limit. Please upgrade your plan to continue searching for jobs.',
+          code: 'UPGRADE_REQUIRED',
+          upgradeUrl: 'https://console.apify.com/billing/subscription'
+        },
+        { status: 402 }
+      );
+    }
+
     if (!runRes.ok) {
       const err = await runRes.json().catch(() => ({}));
+      const errorMsg = err.error?.message || `Apify API error ${runRes.status}`;
+      
+      // Check for other common errors
+      if (runRes.status === 401) {
+        return NextResponse.json(
+          { error: 'Invalid API token. Please check your Apify token configuration.', code: 'INVALID_TOKEN' },
+          { status: 401 }
+        );
+      }
+      
       return NextResponse.json(
-        { error: err.error?.message || `Apify API error ${runRes.status}` },
+        { error: errorMsg, code: 'API_ERROR' },
         { status: runRes.status }
       );
     }
@@ -110,7 +93,7 @@ Rules:
 
     if (!runId) {
       return NextResponse.json(
-        { error: 'No run ID returned from Apify' },
+        { error: 'No run ID returned from Apify', code: 'NO_RUN_ID' },
         { status: 500 }
       );
     }
@@ -121,7 +104,7 @@ Rules:
   } catch (error: any) {
     console.error('Job search error:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: error.message || 'Internal server error', code: 'INTERNAL_ERROR' },
       { status: 500 }
     );
   }

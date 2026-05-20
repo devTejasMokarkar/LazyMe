@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { signInAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
+import TopNav from './TopNav';
 
 export default function LandingPage() {
   const [prompt, setPrompt] = useState('');
@@ -21,6 +22,7 @@ export default function LandingPage() {
   const [showPromptHelper, setShowPromptHelper] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<{ name: string, type: string } | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedFileRef = useRef<File | null>(null);
@@ -38,6 +40,7 @@ export default function LandingPage() {
   };
 
   const handleSendClick = async () => {
+    setIsLoading(true);
     // If a file is uploaded, parse it first, store in localStorage, then login
     if (selectedFileRef.current) {
       setIsParsing(true);
@@ -54,6 +57,7 @@ export default function LandingPage() {
         }
       } catch (error) {
         console.error('Pre-parse failed:', error);
+        setIsLoading(false);
       } finally {
         setIsParsing(false);
       }
@@ -139,7 +143,8 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="w-full bg-background text-on-background min-h-screen selection:bg-primary/30">
+    <div className="w-full bg-background text-on-background min-h-screen selection:bg-primary/30 flex flex-col justify-between">
+      <TopNav />
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -149,52 +154,56 @@ export default function LandingPage() {
       />
       
       {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center pt-20 pb-16 px-6 min-h-[90vh] bg-dot-grid overflow-hidden">
+      <section className="relative flex-1 flex flex-col items-center justify-center pt-24 pb-12 px-6 bg-dot-grid overflow-hidden">
+        {/* Ambient Glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-secondary/10 rounded-full blur-[100px] pointer-events-none" />
+
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-3 py-1 bg-primary-container/20 border border-primary-container/40 hairline-border rounded-full mb-12"
+          className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full mb-8 backdrop-blur-md"
         >
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
           </span>
-          <span className="text-[11px] font-bold text-primary uppercase tracking-widest">Beta Access Open</span>
+          <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Beta Access Open</span>
         </motion.div>
 
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-4xl w-full flex flex-col items-center text-center relative z-10"
         >
-          <div className="w-20 h-20 rounded-3xl bg-primary-container/20 flex items-center justify-center mb-10 border border-primary/50 shadow-[0_20px_50px_rgba(255,178,186,0.2)]">
-            <motion.div animate={{ rotate: isMatching ? 360 : 0 }} transition={{ repeat: Infinity, duration: 1 }}>
-              <Wand2 className="w-10 h-10 text-primary fill-primary/20" />
+          <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-8 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+            <motion.div animate={{ rotate: isMatching ? 360 : 0 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
+              <Wand2 className="w-8 h-8 text-primary fill-primary/20" />
             </motion.div>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold text-on-surface leading-tight mb-6 tracking-tighter">
+          <h1 className="text-4xl md:text-6xl font-bold text-on-surface leading-tight mb-4 tracking-tighter max-w-3xl">
             {isMatching ? "Analyzing Profile..." : matchResult ? "High Match Detected!" : "Welcome to LazyMe AI"}
           </h1>
-          <p className="text-on-surface-variant text-lg md:text-xl font-medium max-w-2xl mb-12 leading-relaxed">
+          <p className="text-on-surface-variant text-base md:text-lg font-medium max-w-2xl mb-8 leading-relaxed">
             {matchResult 
               ? `We found a ${matchResult.matchScore}% match for ${matchResult.role} at ${matchResult.company}. Sign in to see the full analysis.`
               : "Upload your resume or paste a job link to get started. LazyMe AI is your technical companion for career growth."}
           </p>
 
           {!matchResult && (
-            <div className="flex flex-wrap justify-center gap-4 mb-20">
+            <div className="flex flex-wrap justify-center gap-3 mb-10">
               {actions.map((action, i) => (
                 <motion.button 
                   key={action.label}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + i * 0.1 }}
+                  transition={{ delay: 0.1 + i * 0.05 }}
                   onClick={action.onClick}
-                  className="px-8 py-3.5 bg-surface-container border border-outline-variant rounded-full text-on-surface hover:bg-surface-container-high transition-all flex items-center gap-3 group shadow-xl hover:scale-105 active:scale-95"
+                  className="px-5 py-2.5 glass rounded-full text-on-surface hover:bg-white/5 hover:scale-102 active:scale-98 transition-all flex items-center gap-2 group shadow-lg"
                 >
-                  <action.icon className={`w-5 h-5 ${action.color}`} />
-                  <span className="text-[11px] font-bold uppercase tracking-widest">{action.label}</span>
+                  <action.icon className={`w-4 h-4 ${action.color}`} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">{action.label}</span>
                 </motion.button>
               ))}
             </div>
@@ -202,43 +211,34 @@ export default function LandingPage() {
 
           {matchResult && (
             <form action={signInAction}>
-              <button type="submit" className="px-12 py-5 bg-primary text-on-primary rounded-2xl font-bold text-xl shadow-2xl shadow-primary/40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-4">
-                Login to See Full Report <ArrowRight className="w-6 h-6" />
+              <button type="submit" className="btn-primary px-8 py-4 rounded-xl font-bold text-base shadow-xl">
+                Login to See Full Report <ArrowRight className="w-5 h-5" />
               </button>
             </form>
           )}
         </motion.div>
 
-        {/* Floating Prompt Bar */}
-        <div className="w-full max-w-4xl px-4 mt-12 relative z-20">
+        {/* Floating Prompt Bar Container */}
+        <div className="w-full max-w-3xl px-4 mt-4 relative z-20">
           <AnimatePresence>
             {uploadedFile && (
               <motion.div 
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="mb-4 flex items-start"
+                className="mb-3 flex justify-center"
               >
-                <div className="relative group">
-                  <div className="w-32 h-40 bg-white border border-outline-variant rounded-xl overflow-hidden shadow-2xl flex flex-col">
-                    <div className="flex-1 p-3 bg-surface-container-low/30 overflow-hidden">
-                      <div className="space-y-1 opacity-20">
-                        <div className="h-1 w-full bg-on-surface rounded" />
-                        <div className="h-1 w-[80%] bg-on-surface rounded" />
-                        <div className="h-1 w-[90%] bg-on-surface rounded" />
-                        <div className="h-1 w-full bg-on-surface rounded" />
-                      </div>
-                    </div>
-                    <div className="h-10 bg-surface-container-highest flex items-center px-3 gap-2 border-t border-outline-variant">
-                      <div className="w-6 h-6 bg-red-500 rounded flex items-center justify-center text-[8px] font-bold text-white">PDF</div>
-                      <span className="text-[10px] font-bold truncate max-w-[60px]">{uploadedFile.name}</span>
-                    </div>
+                <div className="flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-xl shadow-lg backdrop-blur-md">
+                  <div className="w-8 h-8 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-center text-[9px] font-bold text-red-400">PDF</div>
+                  <div className="text-left max-w-[180px]">
+                    <p className="text-xs font-bold truncate text-on-surface">{uploadedFile.name}</p>
+                    <p className="text-[9px] text-on-surface-variant uppercase font-semibold">Ready to parse</p>
                   </div>
                   <button 
                     onClick={() => setUploadedFile(null)}
-                    className="absolute -top-2 -left-2 w-6 h-6 bg-surface-container-highest border border-outline-variant rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                    className="ml-2 p-1 hover:bg-white/5 rounded-full text-on-surface-variant hover:text-white transition-colors"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </motion.div>
@@ -246,20 +246,20 @@ export default function LandingPage() {
 
             {showPromptHelper && (
               <motion.div 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="bg-surface-container-high border border-outline-variant rounded-3xl p-8 mb-6 shadow-2xl"
+                exit={{ opacity: 0, y: 15 }}
+                className="glass rounded-2xl p-6 mb-4 shadow-2xl text-left"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-[11px] font-bold text-primary uppercase tracking-widest">AI Suggestions</h3>
-                  <button onClick={() => setShowPromptHelper(false)}><X className="w-4 h-4" /></button>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-[10px] font-bold text-primary uppercase tracking-widest">AI Suggestions</h3>
+                  <button onClick={() => setShowPromptHelper(false)} className="text-on-surface-variant hover:text-white"><X className="w-4 h-4" /></button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {suggestions.map((s, i) => (
-                    <button key={i} onClick={() => { setPrompt(s.text); setShowPromptHelper(false); }} className="text-left p-4 bg-background border border-outline-variant rounded-xl hover:border-primary transition-all group">
+                    <button key={i} onClick={() => { setPrompt(s.text); setShowPromptHelper(false); }} className="text-left p-3.5 bg-white/5 border border-white/5 hover:border-primary/50 rounded-xl transition-all group">
                       <span className="text-[8px] font-bold text-primary uppercase block mb-1">{s.category}</span>
-                      <p className="text-sm font-medium italic">"{s.text}"</p>
+                      <p className="text-xs font-medium italic text-on-surface-variant group-hover:text-on-surface">"{s.text}"</p>
                     </button>
                   ))}
                 </div>
@@ -267,25 +267,31 @@ export default function LandingPage() {
             )}
             
             {showJDModal && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-surface-container-high border-2 border-primary/30 rounded-2xl p-6 shadow-2xl mb-4"
-              >
-                <textarea 
-                  value={jdText}
-                  onChange={(e) => setJdText(e.target.value)}
-                  placeholder="Paste Job Description here..."
-                  className="w-full h-40 bg-background border border-outline-variant rounded-xl p-4 text-on-surface outline-none focus:ring-1 focus:ring-primary mb-4"
-                />
-                <div className="flex justify-end gap-3">
-                  <button onClick={() => setShowJDModal(false)} className="px-6 py-2 text-sm font-bold">Cancel</button>
-                  <button onClick={handleMatchPreview} className="px-8 py-2 bg-primary text-on-primary rounded-xl font-bold text-sm shadow-lg">
-                    {isMatching ? "Analyzing..." : "Analyze Match"}
-                  </button>
-                </div>
-              </motion.div>
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="w-full max-w-xl glass rounded-2xl p-6 shadow-2xl text-left"
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-bold text-on-surface">Paste Job Description</h3>
+                    <button onClick={() => setShowJDModal(false)} className="text-on-surface-variant hover:text-white"><X className="w-4 h-4" /></button>
+                  </div>
+                  <textarea 
+                    value={jdText}
+                    onChange={(e) => setJdText(e.target.value)}
+                    placeholder="Paste Job Description here..."
+                    className="w-full h-48 bg-black/20 border border-white/10 rounded-xl p-4 text-sm text-on-surface outline-none focus:border-primary mb-4 resize-none"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => setShowJDModal(false)} className="px-4 py-2 text-xs font-bold text-on-surface-variant hover:text-white">Cancel</button>
+                    <button onClick={handleMatchPreview} className="btn-primary px-6 py-2 text-xs font-bold shadow-lg">
+                      {isMatching ? "Analyzing..." : "Analyze Match"}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>
 
@@ -294,13 +300,24 @@ export default function LandingPage() {
             <input type="hidden" name="redirectTo" value="/resume" />
           </form>
 
-          <div className="bg-surface-container-high/90 backdrop-blur-2xl border border-outline-variant rounded-2xl p-3 flex items-center gap-4 shadow-[0_30px_100px_rgba(0,0,0,0.6)] group">
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface hover:bg-surface-bright transition-all shadow-lg active:scale-90">
-                <Plus className="w-6 h-6" />
+          {/* Prompt Bar */}
+          <div className="glass rounded-xl p-2 flex items-center gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center gap-1">
+              <button 
+                type="button" 
+                onClick={() => fileInputRef.current?.click()} 
+                className="w-10 h-10 rounded-lg hover:bg-white/5 flex items-center justify-center text-on-surface-variant hover:text-white transition-all active:scale-95"
+                title="Upload Resume"
+              >
+                <Plus className="w-5 h-5" />
               </button>
-              <button type="button" onClick={() => setShowJDModal(!showJDModal)} className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface hover:bg-surface-bright transition-all shadow-lg active:scale-90">
-                <Code className="w-6 h-6" />
+              <button 
+                type="button" 
+                onClick={() => setShowJDModal(true)} 
+                className="w-10 h-10 rounded-lg hover:bg-white/5 flex items-center justify-center text-on-surface-variant hover:text-white transition-all active:scale-95"
+                title="Paste Job Description"
+              >
+                <Code className="w-5 h-5" />
               </button>
             </div>
             
@@ -308,36 +325,37 @@ export default function LandingPage() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onClick={() => setShowPromptHelper(true)}
-              className="bg-transparent border-none focus:ring-0 text-on-surface w-full font-medium text-lg placeholder:text-on-surface-variant"
+              className="bg-transparent border-none focus:ring-0 text-on-surface w-full font-medium text-base placeholder:text-on-surface-variant/60 outline-none"
               placeholder="Tell LazyMe what to find next..."
             />
 
-            <div className="flex items-center gap-3">
-              <button type="button" className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
-                <Palette className="w-5 h-5" />
-              </button>
-              <button 
-                type="button" 
-                onClick={handleSendClick}
-                disabled={isParsing}
-                className="h-12 px-8 bg-primary-container text-on-primary-container rounded-xl flex items-center gap-3 font-bold text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
-              >
-                {isParsing ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Parsing...</>
-                ) : (
-                  <><span>Send</span><Send className="w-4 h-4 fill-on-primary-container" /></>
-                )}
-              </button>
-            </div>
+            <button 
+              type="button" 
+              onClick={handleSendClick}
+              disabled={isParsing}
+              className="h-10 px-5 btn-primary rounded-lg flex items-center gap-2 font-bold text-xs shadow-lg disabled:opacity-50 shrink-0"
+            >
+              {isParsing ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Parsing...</>
+              ) : (
+                <><span>Send</span><Send className="w-3 h-3 fill-white" /></>
+              )}
+            </button>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mt-32 relative z-10">
+        <div className="grid grid-cols-3 gap-4 w-full max-w-3xl mt-16 relative z-10">
           {stats.map((stat, i) => (
-            <motion.div key={stat.label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 + i * 0.1 }} className="bg-surface-container-low border border-outline-variant rounded-3xl p-8 flex flex-col items-center hover:bg-surface-container transition-colors shadow-xl">
-              <span className="text-4xl font-mono text-primary font-bold mb-2">{stat.value}</span>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-on-surface-variant font-bold">{stat.label}</span>
+            <motion.div 
+              key={stat.label} 
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.3 + i * 0.05 }} 
+              className="bg-white/2 flex flex-col items-center justify-center p-4 rounded-2xl border border-white/5 hover:border-white/10 transition-all"
+            >
+              <span className="text-xl md:text-2xl font-mono text-primary font-bold mb-1">{stat.value}</span>
+              <span className="text-[8px] md:text-[9px] uppercase tracking-wider text-on-surface-variant font-bold">{stat.label}</span>
             </motion.div>
           ))}
         </div>
@@ -402,6 +420,25 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Global Loader Overlay */}
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/80 backdrop-blur-md"
+          >
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-12 h-12 text-primary animate-spin" />
+              <p className="text-sm font-semibold text-on-surface tracking-wider">
+                {isParsing ? "Parsing Resume & Preparing Session..." : "Initializing Session..."}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

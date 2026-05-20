@@ -53,9 +53,9 @@ export default function Sidebar() {
           "fixed top-16 left-0 h-[calc(100vh-64px)] z-40",
           "hidden lg:flex flex-col",
           "transition-all duration-300 ease-out",
-          "bg-surface-container-low/80 backdrop-blur-xl",
-          "border-r border-outline-variant/50",
-          "before:absolute before:inset-0 before:bg-gradient-to-b before:from-primary/5 before:to-transparent before:pointer-events-none"
+          "glass-dark",
+          "border-r",
+          "before:absolute before:inset-0 before:bg-gradient-to-b before:from-primary/10 before:to-transparent before:pointer-events-none"
         )}
         style={{
           width: isExpanded ? SIDEBAR_WIDTH : COLLAPSED_WIDTH,
@@ -69,8 +69,8 @@ export default function Sidebar() {
             className="flex items-center gap-3 overflow-hidden"
             animate={{ opacity: 1 }}
           >
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Sparkles className="w-4 h-4 text-primary" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+              <img src="/logo.png" alt="LazyMe Logo" className="w-full h-full object-contain" />
             </div>
             <AnimatePresence mode="wait">
               {isExpanded && (
@@ -99,8 +99,8 @@ export default function Sidebar() {
                 className={cn(
                   "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
                   isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                    ? "bg-primary/20 text-primary border border-primary/30"
+                    : "text-on-surface-variant hover:bg-white/5 hover:text-white border border-transparent"
                 )}
               >
                 {/* Active Indicator */}
@@ -222,15 +222,15 @@ export default function Sidebar() {
             className={cn(
               "fixed top-0 left-0 h-screen w-[240px] z-50",
               "flex flex-col",
-              "bg-surface-container-low/95 backdrop-blur-xl",
-              "border-r border-outline-variant/50",
+              "glass-dark",
+              "border-r",
               "lg:hidden"
             )}
           >
             <div className="h-16 flex items-center px-5 border-b border-outline-variant/30">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-primary" />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                  <img src="/logo.png" alt="LazyMe Logo" className="w-full h-full object-contain" />
                 </div>
                 <span className="font-bold text-on-surface text-lg tracking-tight">LazyMe</span>
               </div>
@@ -247,8 +247,8 @@ export default function Sidebar() {
                     className={cn(
                       "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
                       isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                        ? "bg-primary/20 text-primary border border-primary/30"
+                        : "text-on-surface-variant hover:bg-white/5 hover:text-white border border-transparent"
                     )}
                   >
                     {isActive && (
