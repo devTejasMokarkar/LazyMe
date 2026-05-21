@@ -66,7 +66,50 @@ function handleGeminiError(error: any): never {
   throw new GeminiServiceError(error.message || "An unexpected AI service error occurred.", error.status || 500);
 }
 
-async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string): Promise<string> {
+async function callOllama(prompt: string, model: string = 'llama3.2'): Promise<string | null> {
+  const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+  
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    
+    const r = await fetch(`${ollamaUrl}/api/generate`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        prompt,
+        stream: false,
+        options: {
+          temperature: 0.1,
+          num_predict: 2000
+        }
+      })
+    });
+    
+    clearTimeout(timer);
+    
+    if (!r.ok) return null;
+    
+    const data = await r.json();
+    return data.response || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string): Promise<string> {
+  // Try Ollama first (local, free, no rate limits)
+  const ollamaModels = ['deepseek-coder:6.7b', 'llama3.2', 'llama3.1', 'qwen2.5', 'mistral', 'gemma2'];
+  for (const model of ollamaModels) {
+    const result = await callOllama(prompt, model);
+    if (result) {
+      console.log(`Ollama ${model} successful`);
+      return result;
+    }
+  }
+
   if (!openAIKey) throw new Error("OPENROUTER_API_KEY not configured");
 
   console.log("Attempting OpenRouter fallback...");

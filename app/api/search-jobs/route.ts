@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { expandSearchKeywords, analyzeJobMatch, JobMatchResult } from '@/utils/jobMatcher';
 
 interface JobSearchRequest {
   resumeData?: {
@@ -12,12 +13,13 @@ interface JobSearchRequest {
   minSalary?: number;
   maxSalary?: number;
   expFilter?: number;
+  useAI?: boolean;
 }
 
 export async function POST(request: Request) {
   try {
     const body: JobSearchRequest = await request.json();
-    const { resumeData, keyword, location, minSalary, maxSalary, expFilter } = body;
+    const { resumeData, keyword, location, minSalary, maxSalary, expFilter, useAI = true } = body;
 
     const apiToken = process.env.APIFY_NAUKRI_TOKEN;
     if (!apiToken) {
@@ -29,14 +31,28 @@ export async function POST(request: Request) {
 
     let searchKeyword = keyword;
     let searchLocation = location;
+    let expandedKeywords: string[] = [];
 
-    // Use resume data directly - no AI calls to avoid quota issues
+    // Use resume data directly or with AI enhancement
     if (resumeData && !keyword) {
       const jobTitle = resumeData.title || resumeData.experience?.[0]?.role || 'Software Developer';
       const userLocation = resumeData.location || '';
       
       searchKeyword = jobTitle;
       searchLocation = userLocation;
+
+      // AI-powered keyword expansion for better job search
+      if (useAI) {
+        try {
+          expandedKeywords = await expandSearchKeywords(resumeData);
+          if (expandedKeywords.length > 0) {
+            console.log('AI expanded keywords:', expandedKeywords.slice(0, 3).join(', '));
+          }
+        } catch (error) {
+          // Silently use fallback
+          expandedKeywords = [];
+        }
+      }
     }
 
     if (!searchKeyword) {
@@ -46,7 +62,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const input: any = { position: searchKeyword };
+    // Build search input for Apify - use expanded keywords if available
+    const input: any = { 
+      position: expandedKeywords.length > 0 ? expandedKeywords[0] : searchKeyword 
+    };
     if (searchLocation) input.location = searchLocation;
     if (minSalary) input.minSalary = minSalary;
     if (maxSalary) input.maxSalary = maxSalary;
@@ -62,9 +81,12 @@ export async function POST(request: Request) {
     if (runRes.status === 402) {
       return NextResponse.json(
         { 
-          error: 'You have exceeded your Apify usage limit. Please upgrade your plan to continue searching for jobs.',
+          error: 'Apify free tier limit reached. Try manual search or wait a few minutes.',
           code: 'UPGRADE_REQUIRED',
-          upgradeUrl: 'https://console.apify.com/billing/subscription'
+          upgradeUrl: 'https://console.apify.com/billing/subscription',
+          jobs: [],
+          message: 'Apify search limit reached. Try manual search below.',
+          suggestion: 'manual'
         },
         { status: 402 }
       );
@@ -100,7 +122,45 @@ export async function POST(request: Request) {
 
     const jobs = await pollForResults(runId, apiToken);
 
-    return NextResponse.json({ jobs });
+    // AI-powered job matching and scoring
+    let jobsWithScores: any[] = [];
+    if (resumeData && useAI && jobs.length > 0) {
+      try {
+        // Score jobs in parallel (limit to avoid rate limits)
+        const jobsToScore = jobs.slice(0, 20);
+        const scorePromises = jobsToScore.map(async (job: any) => {
+          try {
+            const jobDesc = job.description || job.requirements || job.title || '';
+            if (!jobDesc) return { ...job, matchScore: 0, matchAnalysis: null };
+            
+            const matchResult = await analyzeJobMatch(resumeData, jobDesc);
+            return {
+              ...job,
+              matchScore: matchResult.matchScore,
+              matchAnalysis: matchResult
+            };
+          } catch (error) {
+            // Return job without AI score
+            return { ...job, matchScore: 0, matchAnalysis: null };
+          }
+        });
+
+        const scoredJobs = await Promise.all(scorePromises);
+        jobsWithScores = scoredJobs.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+      } catch (error) {
+        // Return unsorted jobs if AI scoring fails
+        jobsWithScores = jobs;
+      }
+    } else {
+      jobsWithScores = jobs;
+    }
+
+    return NextResponse.json({ 
+      jobs: jobsWithScores,
+      expandedKeywords,
+      searchKeyword: input.position,
+      aiFallback: expandedKeywords.length === 0
+    });
   } catch (error: any) {
     console.error('Job search error:', error);
     return NextResponse.json(

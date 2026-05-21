@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Search, Briefcase, MapPin, Currency, ExternalLink, Eye, Loader2, Sparkles, X, Zap } from 'lucide-react';
+import { Search, Briefcase, MapPin, Currency, ExternalLink, Eye, Loader2, Sparkles, X, Zap, Target, TrendingUp, AlertCircle } from 'lucide-react';
 
 interface Job {
   title: string;
@@ -12,6 +12,14 @@ interface Job {
   skills: string[];
   postedOn: string;
   url: string;
+  matchScore?: number;
+  matchAnalysis?: {
+    strengths: string[];
+    gaps: string[];
+    missingSkills: string[];
+    recommendation: string;
+    shouldApply: boolean;
+  };
   [key: string]: any;
 }
 
@@ -72,7 +80,8 @@ export default function ApplyPage() {
           resumeData,
           minSalary: minSalary || undefined,
           maxSalary: maxSalary || undefined,
-          expFilter: expFilter || undefined
+          expFilter: expFilter || undefined,
+          useAI: true
         })
       });
 
@@ -80,7 +89,22 @@ export default function ApplyPage() {
 
       if (!response.ok) {
         if (result.code === 'UPGRADE_REQUIRED') {
-          setStatus('Please upgrade your Apify plan to continue searching. Click the button below to upgrade.');
+          // Still show jobs if available, just warn about limit
+          if (result.jobs && result.jobs.length > 0) {
+            setJobs(result.jobs);
+            setStatus(`Found ${result.jobs.length} jobs. Note: ${result.message || 'Search limit reached, showing available results.'}`);
+            setIsError(false);
+            return;
+          }
+          // Suggest manual search
+          if (result.suggestion === 'manual') {
+            setStatus('Apify free tier limit reached. Try manual search below with the same keywords.');
+            setSearchMode('manual');
+            setKeyword(result.searchKeyword || '');
+            setIsError(false);
+            return;
+          }
+          setStatus('Apify search limit reached. Try manual search below or wait a few minutes before retrying.');
           setIsError(true);
           return;
         }
@@ -88,7 +112,10 @@ export default function ApplyPage() {
       }
 
       setJobs(result.jobs);
-      setStatus(`Found ${result.jobs.length} relevant jobs for your profile!`);
+      const aiMsg = result.expandedKeywords?.length > 0 
+        ? `Found ${result.jobs.length} jobs using AI-enhanced search`
+        : `Found ${result.jobs.length} relevant jobs for your profile!`;
+      setStatus(aiMsg);
     } catch (e: any) {
       setStatus('Error: ' + e.message);
       setIsError(true);
@@ -159,7 +186,13 @@ export default function ApplyPage() {
 
       if (!response.ok) {
         if (result.code === 'UPGRADE_REQUIRED') {
-          setStatus('Please upgrade your Apify plan to continue searching. Click the button below to upgrade.');
+          if (result.jobs && result.jobs.length > 0) {
+            setJobs(result.jobs);
+            setStatus(`Found ${result.jobs.length} jobs. Note: Search limit reached.`);
+            setIsError(false);
+            return;
+          }
+          setStatus('Job search limit reached. Please try again in a few minutes.');
           setIsError(true);
           return;
         }
@@ -226,25 +259,37 @@ export default function ApplyPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-medium text-on-background mb-1">AI-Powered Job Matching</h3>
-                  <p className="text-sm text-on-surface-variant mb-3">
-                    Found your resume with <strong>{resumeData.title || 'Software Developer'}</strong> and 
-                    {resumeData.skills?.length ? ` ${resumeData.skills.slice(0, 5).join(', ')}` : ' relevant skills'}.
-                  </p>
                   
-                  {resumeData.location && (
-                    <p className="text-sm text-on-surface-variant mb-3">
-                      <MapPin className="w-4 h-4 inline mr-1" />
-                      Location: {resumeData.location}
-                    </p>
-                  )}
+                  {isSearching ? (
+                    <div className="flex items-center gap-3 py-2">
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                      <p className="text-sm text-on-surface-variant">
+                        Analyzing your resume and finding the most relevant jobs...
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-on-surface-variant mb-3">
+                        Found your resume with <strong>{resumeData.title || 'Software Developer'}</strong> and 
+                        {resumeData.skills?.length ? ` ${resumeData.skills.slice(0, 5).join(', ')}` : ' relevant skills'}.
+                      </p>
+                      
+                      {resumeData.location && (
+                        <p className="text-sm text-on-surface-variant mb-3">
+                          <MapPin className="w-4 h-4 inline mr-1" />
+                          Location: {resumeData.location}
+                        </p>
+                      )}
 
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {resumeData.skills?.slice(0, 6).map((skill, i) => (
-                      <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {resumeData.skills?.slice(0, 6).map((skill, i) => (
+                          <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
 
                   <button
                     onClick={autoSearch}
@@ -353,7 +398,15 @@ export default function ApplyPage() {
       {/* Jobs Grid with Scroll */}
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         <div className="max-w-4xl mx-auto">
-          <div className="space-y-3">
+          {isSearching && (
+            <div className="flex flex-col items-center justify-center py-12 text-on-surface-variant">
+              <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary" />
+              <p className="text-sm">Searching and analyzing jobs...</p>
+            </div>
+          )}
+          
+          {!isSearching && (
+            <div className="space-y-3">
             {jobs.length === 0 && !status && (
               <div className="text-center py-12 text-on-surface-variant">
                 <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-30" />
@@ -370,9 +423,59 @@ export default function ApplyPage() {
               const posted = job.postedOn || job.postedDate || job.postedAt || '';
               const skills = Array.isArray(job.skills) ? job.skills.slice(0, 4) : (Array.isArray(job.keySkills) ? job.keySkills.slice(0, 4) : []);
               const jobUrl = extractUrl(job);
+              const matchScore = job.matchScore || 0;
+              const analysis = job.matchAnalysis;
+
+              const getScoreColor = (score: number) => {
+                if (score >= 80) return 'from-green-500 to-emerald-600';
+                if (score >= 60) return 'from-blue-500 to-cyan-600';
+                if (score >= 40) return 'from-yellow-500 to-orange-600';
+                return 'from-red-500 to-rose-600';
+              };
+
+              const getScoreBg = (score: number) => {
+                if (score >= 80) return 'bg-green-50 border-green-200';
+                if (score >= 60) return 'bg-blue-50 border-blue-200';
+                if (score >= 40) return 'bg-yellow-50 border-yellow-200';
+                return 'bg-red-50 border-red-200';
+              };
+
+              const getScoreText = (score: number) => {
+                if (score >= 80) return 'text-green-700';
+                if (score >= 60) return 'text-blue-700';
+                if (score >= 40) return 'text-yellow-700';
+                return 'text-red-700';
+              };
 
               return (
                 <div key={idx} className="bg-surface-container border border-outline-variant/50 rounded-xl p-4 hover:border-outline-variant transition-colors">
+                  {/* AI Match Score Header */}
+                  {matchScore > 0 && analysis && (
+                    <div className={`flex items-center gap-3 mb-3 p-3 rounded-lg border ${getScoreBg(matchScore)}`}>
+                      <div className={`flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br ${getScoreColor(matchScore)} text-white font-bold text-sm`}>
+                        {matchScore}%
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Target className={`w-4 h-4 ${getScoreText(matchScore)}`} />
+                          <span className={`text-sm font-semibold ${getScoreText(matchScore)}`}>
+                            {matchScore >= 80 ? 'Excellent Match' : matchScore >= 60 ? 'Good Match' : matchScore >= 40 ? 'Moderate Match' : 'Poor Match'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-on-surface-variant mt-0.5">{analysis.recommendation}</p>
+                      </div>
+                      {analysis.shouldApply ? (
+                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+                          Apply
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">
+                          Skip
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   <h3 className="text-base font-medium text-on-background mb-1">{escHtml(title)}</h3>
                   <p className="text-sm text-on-surface-variant mb-3">
                     {escHtml(company)}{loc ? ` · ${escHtml(loc)}` : ''}
@@ -397,6 +500,38 @@ export default function ApplyPage() {
                       </span>
                     ))}
                   </div>
+
+                  {/* AI Analysis Details */}
+                  {analysis && analysis.strengths.length > 0 && (
+                    <div className="mb-3 p-3 bg-surface-container-low rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="w-3 h-3 text-green-600" />
+                        <span className="text-xs font-semibold text-green-700">Strengths</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {analysis.strengths.slice(0, 3).map((s, i) => (
+                          <span key={i} className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700 border border-green-200">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                      {analysis.missingSkills.length > 0 && (
+                        <>
+                          <div className="flex items-center gap-2 mb-2 mt-3">
+                            <AlertCircle className="w-3 h-3 text-orange-600" />
+                            <span className="text-xs font-semibold text-orange-700">Missing Skills</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {analysis.missingSkills.slice(0, 3).map((s, i) => (
+                              <span key={i} className="text-xs px-2 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-on-surface-variant">
@@ -444,7 +579,8 @@ export default function ApplyPage() {
                 </div>
               );
             })}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
