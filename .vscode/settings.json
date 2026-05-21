@@ -1,2 +1,8 @@
 {
+  "remote.portsAttributes": {
+    "3000": {
+      "label": "LazyMe App Preview",
+      "onAutoForward": "openPreview"
+    }
+  }
 }

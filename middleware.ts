@@ -5,10 +5,9 @@ const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
-  const isOnDashboard = req.nextUrl.pathname.startsWith("/dashboard");
   const isOnResume = req.nextUrl.pathname.startsWith("/resume");
 
-  if ((isOnDashboard || isOnResume) && !isLoggedIn) {
+  if (isOnResume && !isLoggedIn) {
     return Response.redirect(new URL("/", req.nextUrl));
   }
 });

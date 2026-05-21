@@ -4,41 +4,26 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { 
-  Rocket, Zap, FileText, Wand2, Plus, Send, 
-  Palette, Code, X, Sparkles, Copy, 
-  Bold, Italic, List as ListIcon, MessageSquareQuote, Check, Loader2 
+  Rocket, Zap, FileText, Plus, Send, 
+  Palette, Code, X, Sparkles, 
+  MessageSquareQuote, Loader2, Wand2, Copy
 } from 'lucide-react';
-import { cn, validateParsedResume } from '@/lib/utils';
+import { cn, validateParsedResume, calculateResumeCompleteness } from '@/lib/utils';
 
 export default function DiscoveryChat() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showJDModal, setShowJDModal] = useState(false);
   const [jdText, setJdText] = useState('');
-  const [showPromptHelper, setShowPromptHelper] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [showQNA, setShowQNA] = useState(false);
   const [interviewQNA, setInterviewQNA] = useState<{q: string; a: string}[]>([]);
-  const [copyStatus, setCopyStatus] = useState<number | null>(null);
   const [isMatching, setIsMatching] = useState(false);
   const [matchResult, setMatchResult] = useState<any>(null);
   const [uploadedResume, setUploadedResume] = useState<{ name: string; data: any } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const suggestions = [
-    { text: "Tailor my resume for a Staff Product Engineer role at Stripe", category: "Optimization" },
-    { text: "List remote-first fintech startups hiring in India with >$10M funding", category: "Discovery" },
-    { text: "Analyze this JD and highlight the top 3 soft skills I should emphasize", category: "Matching" },
-    { text: "Generate 5 behavioral interview questions based on my recent projects", category: "Preparation" },
-    { text: "Find YC startups in the AI space that have raised a Series A recently", category: "Discovery" },
-    { text: "Rewrite my experience bullet points using the Google X-Y-Z formula", category: "Optimization" }
-  ];
 
-  const handleCopy = (text: string, index: number) => {
-    setPrompt(text);
-    setCopyStatus(index);
-    setTimeout(() => setCopyStatus(null), 2000);
-  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,6 +52,17 @@ export default function DiscoveryChat() {
           setUploadError(validationError);
           return; // don't set uploadedResume — block Send
         }
+
+        // Check completeness - must be at least 70%
+        const completeness = calculateResumeCompleteness(data);
+        if (completeness < 70) {
+          setUploadError(
+            `Failed to parse PDF completely. Only ${completeness}% of details were extracted. ` +
+            `The file may be image-based or corrupted. Please try a different format (DOCX or text-based PDF).`
+          );
+          return;
+        }
+
         // Store parsed resume in state — don't redirect, let the user click Send
         setUploadedResume({ name: file.name, data });
       } else {
@@ -257,52 +253,7 @@ export default function DiscoveryChat() {
       <div className="fixed bottom-12 left-[calc(240px+48px)] right-[48px] z-40">
         <div className="max-w-6xl mx-auto space-y-4">
           
-          {/* Prompt Suggestions / Helper */}
-          <AnimatePresence>
-            {showPromptHelper && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                className="bg-surface-container-low/95 backdrop-blur-2xl border border-outline-variant rounded-2xl p-6 shadow-2xl mb-4"
-              >
-                <div className="flex justify-between items-center mb-6">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                    <h3 className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">AI Prompt Assistant</h3>
-                  </div>
-                  <button onClick={() => setShowPromptHelper(false)} className="text-on-surface-variant hover:text-on-surface">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {suggestions.map((s, i) => (
-                    <div 
-                      key={i} 
-                      className="group relative flex items-center bg-surface-container-high hover:bg-primary-container/10 border border-outline-variant rounded-2xl transition-all"
-                    >
-                      <button 
-                        onClick={() => { setPrompt(s.text); setShowPromptHelper(false); }}
-                        className="flex-1 text-left p-5 pr-12"
-                      >
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[8px] font-black text-primary uppercase tracking-widest">{s.category}</span>
-                          <p className="text-sm font-medium text-on-surface leading-snug group-hover:text-primary transition-colors italic">"{s.text}"</p>
-                        </div>
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleCopy(s.text, i); }}
-                        className="absolute right-4 p-2 bg-background rounded-lg text-on-surface-variant hover:text-primary transition-all shadow-sm"
-                        title="Copy to input"
-                      >
-                        {copyStatus === i ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+
 
           {/* JD Input Area */}
           <AnimatePresence>
@@ -345,7 +296,7 @@ export default function DiscoveryChat() {
                 onClick={() => fileInputRef.current?.click()}
                 className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface hover:bg-surface-bright transition-all shadow-lg active:scale-90"
               >
-                {isMatching ? <Loader2 className="w-5 h-5 animate-spin text-primary" /> : <Plus className="w-6 h-6 border-outline text-white" />}
+                {isMatching ? <Loader2 className="w-5 h-5 animate-spin text-primary" /> : <Plus className="w-6 h-6 border-outline text-on-surface" />}
               </button>
               <button 
                 onClick={() => setShowJDModal(!showJDModal)}
@@ -359,14 +310,7 @@ export default function DiscoveryChat() {
             </div>
             
             <div className="flex-1 flex items-center gap-4">
-              <div className="hidden sm:flex items-center bg-background/50 rounded-xl p-1 gap-1 border border-outline-variant">
-                <button 
-                  onClick={() => setShowPromptHelper(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-surface-container-highest rounded-lg text-on-surface font-bold text-[10px] uppercase tracking-widest shadow-md hover:bg-primary-container/20 transition-colors"
-                >
-                  <Wand2 className="w-3.5 h-3.5" /> Helper
-                </button>
-              </div>
+
               <div className="flex-1 flex flex-col gap-1">
                 {uploadedResume && (
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-lg w-fit">
@@ -387,18 +331,18 @@ export default function DiscoveryChat() {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      if (uploadedResume) {
-                        sessionStorage.setItem('pendingResume', JSON.stringify(uploadedResume.data));
-                        window.dispatchEvent(new Event('pendingResumeReady'));
-                        router.push('/resume');
-                      } else if (prompt.toLowerCase().includes('yc') || prompt.toLowerCase().includes('startups')) {
-                        router.push('/board');
-                      } else if (prompt.trim()) {
-                        alert("LazyMe AI is processing your request...");
-                      }
-                    }
+                    if (uploadedResume) {
+  // Store parsed resume in localStorage for ResumeBuilder
+  localStorage.setItem('lazyme_pending_resume', JSON.stringify(uploadedResume.data));
+  // Notify listeners of the new pending resume
+  window.dispatchEvent(new Event('pendingResumeReady'));
+  window.dispatchEvent(new StorageEvent('storage', { key: 'lazyme_pending_resume', newValue: JSON.stringify(uploadedResume.data) }));
+  router.push('/resume');
+} else if (prompt.toLowerCase().includes('yc') || prompt.toLowerCase().includes('startups')) {
+  router.push('/board');
+} else if (prompt.trim()) {
+  alert("LazyMe AI is processing your request...");
+}
                   }}
                   className="bg-transparent border-none focus:ring-0 text-on-surface w-full font-medium text-lg placeholder:text-on-surface-variant"
                   placeholder={uploadedResume ? "Add a message or click Send to view your resume..." : "Tell LazyMe what to find next..."}
@@ -410,19 +354,17 @@ export default function DiscoveryChat() {
               <button className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
                 <Palette className="w-5 h-5" />
               </button>
-              <button 
+              <button
                 onClick={() => {
                   if (uploadedResume) {
-                    // Pass parsed resume data to the resume page via sessionStorage.
-                    // Also fire a custom event in case ResumeBuilder is already mounted
-                    // (Next.js layout cache keeps it alive across navigations).
-                    sessionStorage.setItem('pendingResume', JSON.stringify(uploadedResume.data));
+                    localStorage.setItem('lazyme_pending_resume', JSON.stringify(uploadedResume.data));
                     window.dispatchEvent(new Event('pendingResumeReady'));
+                    window.dispatchEvent(new StorageEvent('storage', { key: 'lazyme_pending_resume', newValue: JSON.stringify(uploadedResume.data) }));
                     router.push('/resume');
                   } else if (prompt.toLowerCase().includes('yc') || prompt.toLowerCase().includes('startups')) {
                     router.push('/board');
                   } else if (prompt.trim()) {
-                    alert("LazyMe AI is processing your request...");
+                    alert('LazyMe AI is processing your request...');
                   }
                 }}
                 className="h-12 px-8 bg-primary-container text-on-primary-container rounded-xl flex items-center gap-3 font-bold text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"

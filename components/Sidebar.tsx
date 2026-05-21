@@ -25,7 +25,6 @@ export default function Sidebar() {
 
   const navItems = [
     { id: 'resume', label: 'Resume Builder', icon: FileText, href: '/resume' },
-    { id: 'chat', label: 'AI Chat', icon: MessageSquare, href: '/chat' },
   ];
 
   const bottomItems = [
@@ -100,7 +99,7 @@ export default function Sidebar() {
                   "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
                   isActive
                     ? "bg-primary/20 text-primary border border-primary/30"
-                    : "text-on-surface-variant hover:bg-white/5 hover:text-white border border-transparent"
+                    : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border border-transparent"
                 )}
               >
                 {/* Active Indicator */}
@@ -248,7 +247,7 @@ export default function Sidebar() {
                       "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
                       isActive
                         ? "bg-primary/20 text-primary border border-primary/30"
-                        : "text-on-surface-variant hover:bg-white/5 hover:text-white border border-transparent"
+                        : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border border-transparent"
                     )}
                   >
                     {isActive && (

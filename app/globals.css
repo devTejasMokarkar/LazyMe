@@ -195,7 +195,7 @@ body {
   
   .btn-secondary {
     @apply px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center justify-center gap-2;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgb(var(--surface-container-high) / 0.5);
     border: 1px solid var(--border);
     color: rgb(var(--text-primary));
   }

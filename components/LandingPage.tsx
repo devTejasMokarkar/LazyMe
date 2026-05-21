@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, Upload, Target, Zap, CheckCircle2, 
   Rocket, FileText, Wand2, Send, MessageSquareQuote, 
-  Plus, Palette, Code, X, Sparkles, Copy, Check, Loader2, MapPin
+  Plus, Palette, Code, X, Sparkles, Copy, Check, Loader2, MapPin, Lock
 } from 'lucide-react';
 import { signInAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 import TopNav from './TopNav';
 
 export default function LandingPage() {
@@ -27,6 +28,39 @@ export default function LandingPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedFileRef = useRef<File | null>(null);
   const loginFormRef = useRef<HTMLFormElement>(null);
+
+  const isResumeUploaded = !!uploadedFile || !!selectedFileRef.current;
+
+  const actions = [
+    { 
+      label: 'Analyze my resume', 
+      icon: FileText, 
+      color: 'text-primary',
+      onClick: () => fileInputRef.current?.click(),
+      disabled: false
+    },
+    { 
+      label: 'Match this job', 
+      icon: isResumeUploaded ? Zap : Lock, 
+      color: isResumeUploaded ? 'text-tertiary' : 'text-on-surface-variant/30',
+      onClick: () => { if (isResumeUploaded) setShowJDModal(true); },
+      disabled: !isResumeUploaded,
+      tooltip: !isResumeUploaded ? 'Upload a resume first to unlock Job Matching' : undefined
+    },
+    { 
+      label: 'Interview Q&A', 
+      icon: MessageSquareQuote, 
+      color: 'text-orange-400',
+      onClick: () => setShowQNA(true),
+      disabled: false
+    },
+  ];
+
+  useEffect(() => {
+    if (!showJDModal) {
+      setJdError(null);
+    }
+  }, [showJDModal]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,7 +87,13 @@ export default function LandingPage() {
         });
         const data = await res.json();
         if (res.ok) {
+localStorage.removeItem('lazyme_pending_resume');
           localStorage.setItem('lazyme_pending_resume', JSON.stringify(data));
+          // Notify other components/pages about the new pending resume
+          window.dispatchEvent(new Event('pendingResumeReady'));
+          // Also trigger a storage event manually for same-page listeners
+          window.dispatchEvent(new StorageEvent('storage', { key: 'lazyme_pending_resume', newValue: JSON.stringify(data) }));
+
         }
       } catch (error) {
         console.error('Pre-parse failed:', error);
@@ -79,32 +119,7 @@ export default function LandingPage() {
     { text: "What are the most common system design questions for L5 roles?", category: "Preparation" }
   ];
 
-  const actions = [
-    { 
-      label: 'Analyze my resume', 
-      icon: FileText, 
-      color: 'text-primary',
-      onClick: () => fileInputRef.current?.click()
-    },
-    { 
-      label: 'Find YC startups', 
-      icon: Rocket, 
-      color: 'text-secondary',
-      onClick: () => { setPrompt("List remote-first YC startups..."); setShowPromptHelper(true); }
-    },
-    { 
-      label: 'Match this job', 
-      icon: Zap, 
-      color: 'text-tertiary',
-      onClick: () => setShowJDModal(true)
-    },
-    { 
-      label: 'Interview Q&A', 
-      icon: MessageSquareQuote, 
-      color: 'text-orange-400',
-      onClick: () => setShowQNA(true)
-    },
-  ];
+
 
   const interviewQNA = [
     {
@@ -117,18 +132,97 @@ export default function LandingPage() {
     }
   ];
 
-  const handleMatchPreview = () => {
+  const [jdError, setJdError] = useState<string | null>(null);
+
+  const handleMatchPreview = async () => {
+    setJdError(null);
+
+    if (!selectedFileRef.current) {
+      setJdError("Please upload a resume first using the '+' button or 'Analyze my resume' action.");
+      return;
+    }
+
+    const trimmedJd = jdText.trim();
+    if (!trimmedJd || trimmedJd.length < 20) {
+      setJdError("Please enter a valid job description (at least 20 characters) to analyze.");
+      return;
+    }
+
     setIsMatching(true);
-    setTimeout(() => {
-      setIsMatching(false);
-      setShowJDModal(false);
-      setMatchResult({
-        company: 'Demo Corp',
-        role: 'AI Engineer',
-        matchScore: 92,
-        reason: 'Your experience with React and LLMs is a perfect fit.'
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFileRef.current);
+      const res = await fetch('/api/parse-resume', {
+        method: 'POST',
+        body: formData
       });
-    }, 2000);
+      const data = await res.json();
+      if (!res.ok) {
+        setJdError(data.error || "Failed to parse the uploaded resume.");
+        setIsMatching(false);
+        return;
+      }
+
+      // Save parsed data to localStorage so it is available post-login
+      localStorage.setItem('lazyme_pending_resume', JSON.stringify(data));
+
+      // Heuristic 1: Extract Job Title
+      let matchedRole = data.title || "Software Engineer";
+      const commonRoles = [
+        "Frontend Engineer", "Frontend Developer", "Backend Engineer", "Backend Developer",
+        "Fullstack Engineer", "Fullstack Developer", "Software Engineer", "Software Developer",
+        "AI Engineer", "Machine Learning Engineer", "Data Scientist", "Product Manager",
+        "Project Manager", "DevOps Engineer", "UI/UX Designer", "Product Designer",
+        "Mobile Developer", "iOS Developer", "Android Developer", "QA Engineer"
+      ];
+      for (const role of commonRoles) {
+        const regex = new RegExp(`\\b${role}\\b`, 'i');
+        if (regex.test(trimmedJd)) {
+          matchedRole = role;
+          break;
+        }
+      }
+
+      // Heuristic 2: Extract Company Name
+      let matchedCompany = "Selected Company";
+      const companyRegex = /(?:at|for|hiring\s+by)\s+([A-Z][a-zA-Z0-9\s.]{2,20})(?:\b)/;
+      const match = trimmedJd.match(companyRegex);
+      if (match && match[1]) {
+        const candidate = match[1].trim();
+        const genericWords = ["Our", "We", "The", "A", "An", "You", "Your", "This", "Join", "Apply"];
+        if (!genericWords.includes(candidate)) {
+          matchedCompany = candidate;
+        }
+      }
+
+      // Heuristic 3: Compute Score based on Skills match
+      const skills = Array.isArray(data.skills) ? data.skills : [];
+      let matchCount = 0;
+      skills.forEach((skill: string) => {
+        if (skill && skill.length > 1) {
+          const escapedSkill = skill.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const regex = new RegExp(`\\b${escapedSkill}\\b`, 'i');
+          if (regex.test(trimmedJd)) {
+            matchCount++;
+          }
+        }
+      });
+
+      const matchScore = Math.min(96, Math.max(65, 70 + matchCount * 3));
+
+      setMatchResult({
+        company: matchedCompany,
+        role: matchedRole,
+        matchScore,
+        reason: `Matched ${matchCount} skills from your resume with the job requirements.`
+      });
+      setShowJDModal(false);
+    } catch (err) {
+      console.error("Match preview failed:", err);
+      setJdError("Network error. Please try again.");
+    } finally {
+      setIsMatching(false);
+    }
   };
 
   const steps = [
@@ -200,9 +294,16 @@ export default function LandingPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + i * 0.05 }}
                   onClick={action.onClick}
-                  className="px-5 py-2.5 glass rounded-full text-on-surface hover:bg-white/5 hover:scale-102 active:scale-98 transition-all flex items-center gap-2 group shadow-lg"
+                  disabled={action.disabled}
+                  title={action.tooltip}
+                  className={cn(
+                    "px-5 py-2.5 glass rounded-full text-on-surface transition-all flex items-center gap-2 group shadow-lg",
+                    action.disabled 
+                      ? "opacity-40 cursor-not-allowed" 
+                      : "hover:bg-white/5 hover:scale-102 active:scale-98"
+                  )}
                 >
-                  <action.icon className={`w-4 h-4 ${action.color}`} />
+                  <action.icon className={cn("w-4 h-4 transition-transform", !action.disabled && "group-hover:scale-110", action.color)} />
                   <span className="text-[10px] font-bold uppercase tracking-wider">{action.label}</span>
                 </motion.button>
               ))}
@@ -228,7 +329,7 @@ export default function LandingPage() {
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 className="mb-3 flex justify-center"
               >
-                <div className="flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-xl shadow-lg backdrop-blur-md">
+                <div className="flex items-center gap-3 px-4 py-2 bg-surface-container-high border border-outline-variant rounded-xl shadow-lg backdrop-blur-md">
                   <div className="w-8 h-8 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-center text-[9px] font-bold text-red-400">PDF</div>
                   <div className="text-left max-w-[180px]">
                     <p className="text-xs font-bold truncate text-on-surface">{uploadedFile.name}</p>
@@ -236,7 +337,7 @@ export default function LandingPage() {
                   </div>
                   <button 
                     onClick={() => setUploadedFile(null)}
-                    className="ml-2 p-1 hover:bg-white/5 rounded-full text-on-surface-variant hover:text-white transition-colors"
+                    className="ml-2 p-1 hover:bg-surface-container-highest rounded-full text-on-surface-variant hover:text-on-surface transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -253,11 +354,11 @@ export default function LandingPage() {
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-[10px] font-bold text-primary uppercase tracking-widest">AI Suggestions</h3>
-                  <button onClick={() => setShowPromptHelper(false)} className="text-on-surface-variant hover:text-white"><X className="w-4 h-4" /></button>
+                  <button onClick={() => setShowPromptHelper(false)} className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high p-1 rounded-md transition-colors"><X className="w-4 h-4" /></button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {suggestions.map((s, i) => (
-                    <button key={i} onClick={() => { setPrompt(s.text); setShowPromptHelper(false); }} className="text-left p-3.5 bg-white/5 border border-white/5 hover:border-primary/50 rounded-xl transition-all group">
+                    <button key={i} onClick={() => { setPrompt(s.text); setShowPromptHelper(false); }} className="text-left p-3.5 bg-surface-container-high/50 border border-outline-variant hover:border-primary/50 rounded-xl transition-all group">
                       <span className="text-[8px] font-bold text-primary uppercase block mb-1">{s.category}</span>
                       <p className="text-xs font-medium italic text-on-surface-variant group-hover:text-on-surface">"{s.text}"</p>
                     </button>
@@ -276,17 +377,25 @@ export default function LandingPage() {
                 >
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-bold text-on-surface">Paste Job Description</h3>
-                    <button onClick={() => setShowJDModal(false)} className="text-on-surface-variant hover:text-white"><X className="w-4 h-4" /></button>
+                    <button onClick={() => setShowJDModal(false)} className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high p-1 rounded-md transition-colors"><X className="w-4 h-4" /></button>
                   </div>
-                  <textarea 
+                   <textarea 
                     value={jdText}
-                    onChange={(e) => setJdText(e.target.value)}
+                    onChange={(e) => {
+                      setJdText(e.target.value);
+                      if (jdError) setJdError(null);
+                    }}
                     placeholder="Paste Job Description here..."
-                    className="w-full h-48 bg-black/20 border border-white/10 rounded-xl p-4 text-sm text-on-surface outline-none focus:border-primary mb-4 resize-none"
+                    className="w-full h-48 bg-background border border-outline-variant rounded-xl p-4 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary mb-4 resize-none"
                   />
+                  {jdError && (
+                    <div className="mb-4 text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-3.5 py-2 rounded-lg">
+                      {jdError}
+                    </div>
+                  )}
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => setShowJDModal(false)} className="px-4 py-2 text-xs font-bold text-on-surface-variant hover:text-white">Cancel</button>
-                    <button onClick={handleMatchPreview} className="btn-primary px-6 py-2 text-xs font-bold shadow-lg">
+                    <button onClick={() => setShowJDModal(false)} className="px-4 py-2 text-xs font-bold text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all">Cancel</button>
+                    <button onClick={handleMatchPreview} disabled={isMatching} className="btn-primary px-6 py-2 text-xs font-bold shadow-lg disabled:opacity-50">
                       {isMatching ? "Analyzing..." : "Analyze Match"}
                     </button>
                   </div>
@@ -306,7 +415,7 @@ export default function LandingPage() {
               <button 
                 type="button" 
                 onClick={() => fileInputRef.current?.click()} 
-                className="w-10 h-10 rounded-lg hover:bg-white/5 flex items-center justify-center text-on-surface-variant hover:text-white transition-all active:scale-95"
+                className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-all active:scale-95"
                 title="Upload Resume"
               >
                 <Plus className="w-5 h-5" />
@@ -314,7 +423,7 @@ export default function LandingPage() {
               <button 
                 type="button" 
                 onClick={() => setShowJDModal(true)} 
-                className="w-10 h-10 rounded-lg hover:bg-white/5 flex items-center justify-center text-on-surface-variant hover:text-white transition-all active:scale-95"
+                className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-all active:scale-95"
                 title="Paste Job Description"
               >
                 <Code className="w-5 h-5" />

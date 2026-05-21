@@ -133,14 +133,55 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center h-full gap-4">
-        <div className="relative">
-          <Loader2 className="w-10 h-10 text-primary animate-spin" />
-          <Sparkles className="absolute -top-0.5 -right-0.5 w-4 h-4 text-primary" />
+      <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-8 animate-pulse">
+        {/* Discovery Chat Hero Skeleton */}
+        <div className="bg-surface-container-low border border-outline-variant/30 rounded-3xl p-8 h-40 flex flex-col justify-end space-y-4">
+          <div className="h-8 bg-white/5 rounded-lg w-1/3" />
+          <div className="h-12 bg-white/5 rounded-xl w-full" />
         </div>
-        <div className="text-center">
-          <h3 className="text-lg font-bold">Syncing...</h3>
-          <p className="text-sm text-on-surface-variant mt-1">Finding matching opportunities</p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+          {/* Sidebar Filters Skeleton */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="bg-surface-container-low border border-outline-variant/50 rounded-2xl p-5 space-y-6">
+              <div className="h-5 bg-white/5 rounded-lg w-1/2" />
+              <div className="space-y-3">
+                <div className="h-4 bg-white/5 rounded-lg w-1/3" />
+                <div className="flex gap-2">
+                  <div className="h-8 bg-white/5 rounded-lg w-16" />
+                  <div className="h-8 bg-white/5 rounded-lg w-16" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 bg-white/5 rounded-lg w-1/2" />
+                <div className="h-2 bg-white/5 rounded-full w-full" />
+              </div>
+            </div>
+          </div>
+
+          {/* Job Feed Skeleton */}
+          <div className="lg:col-span-9 space-y-6">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="bg-surface-container-low border border-outline-variant/50 rounded-2xl p-6 space-y-4">
+                <div className="flex gap-4">
+                  <div className="w-12 h-12 bg-white/5 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-6 bg-white/5 rounded-lg w-1/3" />
+                    <div className="h-4 bg-white/5 rounded-lg w-1/4" />
+                  </div>
+                  <div className="w-16 h-8 bg-white/5 rounded-lg" />
+                </div>
+                <div className="h-2 bg-white/5 rounded-full w-full" />
+                <div className="flex justify-between items-center pt-4 border-t border-outline-variant/30">
+                  <div className="h-6 bg-white/5 rounded-lg w-20" />
+                  <div className="flex gap-3">
+                    <div className="h-9 bg-white/5 rounded-xl w-24" />
+                    <div className="h-9 bg-white/5 rounded-xl w-24" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

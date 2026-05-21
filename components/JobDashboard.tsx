@@ -177,7 +177,52 @@ export function JobDashboard({
   const filteredJobs = getFilteredJobs();
 
   if (loading) {
-    return <Loader />;
+    return (
+      <div className="flex flex-col h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans animate-pulse">
+        {/* Header Skeleton */}
+        <header className="h-16 border-b border-slate-800 bg-[#1e293b] flex items-center justify-between px-6 shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="h-6 bg-slate-700 rounded-lg w-28" />
+            <div className="h-4 w-[1px] bg-slate-700 mx-2" />
+            <div className="h-4 bg-slate-700 rounded-lg w-36" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-8 bg-slate-700 rounded-lg w-20" />
+            <div className="h-8 bg-slate-700 rounded-lg w-20" />
+            <div className="h-10 bg-slate-700 rounded-xl w-32" />
+          </div>
+        </header>
+
+        {/* Filters Bar Skeleton */}
+        <div className="h-14 border-b border-slate-800 bg-[#0f172a] flex items-center px-6 gap-4 shrink-0">
+          <div className="h-9 bg-[#1e293b] rounded-lg w-80" />
+          <div className="h-9 bg-[#1e293b] rounded-lg w-40" />
+        </div>
+
+        {/* Job List Skeleton */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="bg-[#1e293b] border-2 border-slate-800 rounded-xl p-6 space-y-4 max-w-6xl mx-auto">
+              <div className="flex gap-4">
+                <div className="w-5 h-5 bg-slate-700 rounded mt-1" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="h-6 bg-slate-700 rounded-lg w-1/3" />
+                    <div className="h-5 bg-slate-700 rounded-full w-20" />
+                  </div>
+                  <div className="h-4 bg-slate-700 rounded-lg w-1/4" />
+                </div>
+              </div>
+              <div className="flex gap-2 pl-9">
+                <div className="h-6 bg-slate-700 rounded-md w-16" />
+                <div className="h-6 bg-slate-700 rounded-md w-16" />
+                <div className="h-6 bg-slate-700 rounded-md w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

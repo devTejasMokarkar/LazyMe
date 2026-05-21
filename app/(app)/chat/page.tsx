@@ -1,5 +1,5 @@
-import DiscoveryChat from "@/components/DiscoveryChat";
+import { notFound } from "next/navigation";
 
 export default function Page() {
-  return <DiscoveryChat />;
+  notFound();
 }

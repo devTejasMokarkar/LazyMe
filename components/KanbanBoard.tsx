@@ -240,9 +240,59 @@ export default function KanbanBoard() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-6">
-        <Loader2 className="w-12 h-12 text-primary animate-spin" />
-        <p className="text-on-surface-variant font-bold text-[10px] uppercase tracking-widest">Hydrating Application Timeline...</p>
+      <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative animate-pulse">
+        {/* Header Skeleton */}
+        <header className="h-28 px-10 border-b border-outline-variant flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-40">
+          <div className="flex items-center gap-12">
+            <div className="space-y-2">
+              <div className="h-8 bg-white/5 rounded-lg w-28" />
+              <div className="h-4 bg-white/5 rounded-lg w-36" />
+            </div>
+            <div className="h-12 bg-white/5 rounded-2xl w-[420px]" />
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white/5 rounded-2xl" />
+            <div className="w-12 h-12 bg-white/5 rounded-2xl" />
+            <div className="h-12 bg-white/5 rounded-2xl w-40" />
+          </div>
+        </header>
+
+        {/* Stats Bar Skeleton */}
+        <div className="px-10 py-10 flex gap-8">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="flex-1 bg-surface border border-outline-variant rounded-3xl p-8 flex items-center gap-6">
+              <div className="w-14 h-14 bg-white/5 rounded-2xl shrink-0" />
+              <div className="space-y-2 flex-1">
+                <div className="h-3 bg-white/5 rounded-lg w-1/2" />
+                <div className="h-6 bg-white/5 rounded-lg w-1/4" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Columns Skeleton */}
+        <div className="flex-1 px-10 pb-16 flex gap-10 overflow-hidden">
+          {[1, 2, 3].map((colIndex) => (
+            <div key={colIndex} className="w-[380px] flex flex-col gap-8">
+              <div className="flex justify-between items-center px-3">
+                <div className="h-5 bg-white/5 rounded-lg w-24" />
+                <div className="w-5 h-5 bg-white/5 rounded-full" />
+              </div>
+              <div className="flex-1 bg-surface-container-low/10 p-3 rounded-[2.5rem] space-y-6">
+                {[1, 2].map((cardIndex) => (
+                  <div key={cardIndex} className="bg-surface border border-outline-variant rounded-[2rem] p-6 space-y-4">
+                    <div className="flex justify-between">
+                      <div className="w-12 h-12 bg-white/5 rounded-2xl" />
+                      <div className="w-16 h-6 bg-white/5 rounded-lg" />
+                    </div>
+                    <div className="h-6 bg-white/5 rounded-lg w-3/4" />
+                    <div className="h-4 bg-white/5 rounded-lg w-1/2" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

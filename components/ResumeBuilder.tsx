@@ -9,7 +9,7 @@ import {
   Monitor, Smartphone, Briefcase, Palette
 } from 'lucide-react';
 import Link from 'next/link';
-import { cn, validateParsedResume } from '@/lib/utils';
+import { cn, validateParsedResume, calculateResumeCompleteness } from '@/lib/utils';
 import { useToast } from './ToastProvider';
 import DownloadDropdown from './DownloadDropdown';
 import { resumeToLatex } from '@/utils/latexFormatter';
@@ -89,10 +89,64 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingResumeApplied = useRef(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (initialPrompt !== undefined) setNeedsUpload(true);
   }, [initialPrompt]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    
+    // Clear all cached resume data
+    localStorage.removeItem('lazyme_pending_resume');
+    sessionStorage.removeItem('pendingResume');
+    sessionStorage.removeItem('lazyme_pending_resume');
+    pendingResumeApplied.current = false;
+    
+    // Reset state
+    setResumeId(null);
+    setUserName('');
+    setUserRole('');
+    setExperience([]);
+    setSkills([]);
+    setEmail('');
+    setPhone('');
+    setLocation('');
+    setSummary('');
+    setEducation([]);
+    setVersions([]);
+    setHistory([]);
+    setHistoryIndex(-1);
+    setParsingFeedback([]);
+    setParseError(null);
+    setUploadSuccess(false);
+    lastSavedContent.current = '';
+    
+    // Fetch fresh data from database
+    try {
+      const res = await fetch('/api/resumes?_t=' + Date.now());
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const primary = data.find((r: any) => r.isDefault) || data[0];
+          loadResume(primary);
+          setVersions(data.map((r: any) => ({
+            id: r.id, name: r.name, timestamp: new Date(r.updatedAt).toLocaleString(), content: r.content
+          })));
+        } else {
+          // No resumes in DB, show upload prompt
+          setNeedsUpload(true);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch resumes:", error);
+      showToast("Failed to refresh resume", "error");
+    } finally {
+      setIsRefreshing(false);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && needsUpload && fileInputRef.current) {
@@ -101,91 +155,172 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   }, [loading, needsUpload]);
 
   useEffect(() => {
-    // Clear any stale pending resume on mount (handles logout/login)
-    sessionStorage.removeItem('pendingResume');
-    localStorage.removeItem('lazyme_pending_resume');
+    let cancelled = false;
 
-    function applyPendingResume() {
-      const pending = sessionStorage.getItem('pendingResume');
-      if (!pending) return false;
-      sessionStorage.removeItem('pendingResume');
-      try {
-        const parsed = JSON.parse(pending);
-        pendingResumeApplied.current = true;
-        setUserName(parsed.name || 'Your Name');
-        setUserRole(parsed.title || 'Your Role');
-        setExperience(parsed.experience || []);
-        setSkills(normalizeSkills(parsed.skills));
-        setEmail(parsed.email || '');
-        setPhone(parsed.phone || '');
-        setLocation(parsed.location || '');
-        setSummary(parsed.summary || '');
-        setEducation(parsed.education || []);
-        setUploadSuccess(true);
-        setLoading(false);
-        setParsingFeedback([
-          { name: 'Identity', status: 'success', confidence: 98 },
-          { name: 'Experience', status: 'success', confidence: 94 },
-          { name: 'Skills', status: 'success', confidence: 91 },
-          { name: 'Education', status: 'success', confidence: 88 }
-        ]);
+    async function initResume() {
+      // Step 1: Check localStorage/sessionStorage for pending resume data
+      const pending = localStorage.getItem('lazyme_pending_resume') || sessionStorage.getItem('pendingResume');
+      
+      if (pending) {
+        // IMMEDIATELY clear storage so no other mount/call can re-read stale data
+        sessionStorage.removeItem('pendingResume');
+        localStorage.removeItem('lazyme_pending_resume');
         
-        lastSavedContent.current = JSON.stringify({
-          name: parsed.name || 'Your Name',
-          title: parsed.title || 'Your Role',
-          experience: parsed.experience || [],
-          skills: normalizeSkills(parsed.skills),
-          email: parsed.email || '',
-          phone: parsed.phone || '',
-          location: parsed.location || '',
-          summary: parsed.summary || '',
-          education: parsed.education || []
-        });
+        // Mark that this component instance consumed pending data
+        pendingResumeApplied.current = true;
 
-        const baseline = {
-          userName: parsed.name || 'Your Name',
-          userRole: parsed.title || 'Your Role',
-          experience: parsed.experience || [],
-          skills: normalizeSkills(parsed.skills),
-          email: parsed.email || '',
-          phone: parsed.phone || '',
-          location: parsed.location || '',
-          summary: parsed.summary || '',
-          education: parsed.education || []
-        };
-        setHistory([baseline]);
-        setHistoryIndex(0);
-        isUndoRedoActionRef.current = true;
+        try {
+          const parsed = JSON.parse(pending);
+          
+          // Apply parsed data to state
+          setUserName(parsed.name || 'Your Name');
+          setUserRole(parsed.title || 'Your Role');
+          setExperience(parsed.experience || []);
+          setSkills(normalizeSkills(parsed.skills));
+          setEmail(parsed.email || '');
+          setPhone(parsed.phone || '');
+          setLocation(parsed.location || '');
+          setSummary(parsed.summary || '');
+          setEducation(parsed.education || []);
+          setUploadSuccess(true);
+          setLoading(false);
+          setParsingFeedback([
+            { name: 'Identity', status: 'success', confidence: 98 },
+            { name: 'Experience', status: 'success', confidence: 94 },
+            { name: 'Skills', status: 'success', confidence: 91 },
+            { name: 'Education', status: 'success', confidence: 88 }
+          ]);
+          
+          lastSavedContent.current = JSON.stringify({
+            name: parsed.name || 'Your Name',
+            title: parsed.title || 'Your Role',
+            experience: parsed.experience || [],
+            skills: normalizeSkills(parsed.skills),
+            email: parsed.email || '',
+            phone: parsed.phone || '',
+            location: parsed.location || '',
+            summary: parsed.summary || '',
+            education: parsed.education || []
+          });
 
-        setTimeout(() => setUploadSuccess(false), 5000);
-        return true;
-      } catch { return false; }
-    }
-    applyPendingResume();
-    const handler = () => applyPendingResume();
-    window.addEventListener('pendingResumeReady', handler);
-    return () => window.removeEventListener('pendingResumeReady', handler);
-  }, []);
+          const baseline = {
+            userName: parsed.name || 'Your Name',
+            userRole: parsed.title || 'Your Role',
+            experience: parsed.experience || [],
+            skills: normalizeSkills(parsed.skills),
+            email: parsed.email || '',
+            phone: parsed.phone || '',
+            location: parsed.location || '',
+            summary: parsed.summary || '',
+            education: parsed.education || []
+          };
+          setHistory([baseline]);
+          setHistoryIndex(0);
+          isUndoRedoActionRef.current = true;
 
-  useEffect(() => {
-    async function fetchResumes() {
-      if (pendingResumeApplied.current) { setLoading(false); return; }
+          setTimeout(() => setUploadSuccess(false), 5000);
+
+          // Save to database
+          if (parsed.id) {
+            setResumeId(parsed.id);
+            try {
+              const res = await fetch('/api/resumes?_t=' + Date.now());
+              if (!cancelled && res.ok) {
+                const data = await res.json();
+                setVersions(data.map((r: any) => ({
+                  id: r.id, name: r.name, timestamp: new Date(r.updatedAt).toLocaleString(), content: r.content
+                })));
+              }
+            } catch (error) {
+              console.error("Failed to fetch versions:", error);
+            }
+          } else {
+            try {
+              const saveRes = await fetch('/api/resumes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: `Resume ${new Date().toLocaleDateString()}`,
+                  content: { 
+                    name: parsed.name, 
+                    title: parsed.title, 
+                    experience: parsed.experience, 
+                    skills: parsed.skills, 
+                    email: parsed.email, 
+                    phone: parsed.phone, 
+                    location: parsed.location, 
+                    summary: parsed.summary, 
+                    education: parsed.education 
+                  },
+                  isDefault: true
+                })
+              });
+              if (!cancelled && saveRes.ok) {
+                const newResume = await saveRes.json();
+                setResumeId(newResume.id);
+                setVersions(prev => [{
+                  id: newResume.id,
+                  timestamp: new Date().toLocaleString(),
+                  name: newResume.name,
+                  content: newResume.content
+                }, ...prev]);
+              }
+            } catch (dbErr) {
+              console.error("Failed to auto-save pending resume to DB:", dbErr);
+            }
+          }
+
+          return; // Done — do NOT fall through to DB fetch
+        } catch (err) {
+          console.error("Failed to parse pending resume:", err);
+        }
+      }
+
+      // Step 2: If pending data was already consumed by a previous mount (Strict Mode),
+      // do NOT overwrite the state with stale DB data
+      if (pendingResumeApplied.current) {
+        setLoading(false);
+        return;
+      }
+
+      // Step 3: No pending resume at all — fetch from DB
       try {
-        // Always fetch fresh data with cache-busting
         const res = await fetch('/api/resumes?_t=' + Date.now());
-        if (!res.ok) return;
+        if (cancelled || !res.ok) return;
         const data = await res.json();
+        if (cancelled) return;
         if (Array.isArray(data) && data.length > 0) {
           const primary = data.find((r: any) => r.isDefault) || data[0];
-          if (initialPrompt === undefined) loadResume(primary);
+          if (initialPrompt === undefined) {
+            loadResume(primary);
+          }
           setVersions(data.map((r: any) => ({
             id: r.id, name: r.name, timestamp: new Date(r.updatedAt).toLocaleString(), content: r.content
           })));
         }
-      } catch (error) { console.error("Failed to fetch resumes:", error); }
-      finally { setLoading(false); }
+      } catch (error) {
+        console.error("Failed to fetch resumes:", error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-    fetchResumes();
+
+    initResume();
+
+    const handler = (e?: Event) => {
+      if (!e || e.type === 'pendingResumeReady' || (e as StorageEvent).key === 'lazyme_pending_resume') {
+        // Reset the flag so the new pending data can be consumed
+        pendingResumeApplied.current = false;
+        initResume();
+      }
+    };
+    window.addEventListener('pendingResumeReady', handler);
+    window.addEventListener('storage', handler as EventListener);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('pendingResumeReady', handler);
+      window.removeEventListener('storage', handler as EventListener);
+    };
   }, []);
 
   const loadResume = (resume: any) => {
@@ -229,19 +364,9 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     isUndoRedoActionRef.current = true;
   };
 
-  const saveCurrentVersion = async (name: string = `Backup ${new Date().toLocaleTimeString()}`) => {
+  const saveCurrentVersion = async (name?: string) => {
     const content = { name: userName, title: userRole, experience, skills, email, phone, location, summary, education };
-    const currentSerialized = JSON.stringify({
-      name: userName,
-      title: userRole,
-      experience,
-      skills,
-      email,
-      phone,
-      location,
-      summary,
-      education
-    });
+    const currentSerialized = JSON.stringify(content);
 
     if (currentSerialized === lastSavedContent.current) {
       showToast("already saved no changes detected", "info");
@@ -249,17 +374,52 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     }
 
     try {
-      const res = await fetch('/api/resumes', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, content, isDefault: false })
-      });
-      if (res.ok) {
-        const newResume = await res.json();
-        setVersions(prev => [{ id: newResume.id, timestamp: new Date().toLocaleString(), name, content }, ...prev]);
-        lastSavedContent.current = currentSerialized;
-        showToast("saved successfully", "success");
+      if (resumeId) {
+        // Update existing resume
+        const res = await fetch('/api/resumes', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: resumeId, content, name })
+        });
+        if (res.ok) {
+          lastSavedContent.current = currentSerialized;
+          showToast("saved successfully", "success");
+          
+          // Update versions list
+          setVersions(prev => prev.map(v => v.id === resumeId ? {
+            ...v,
+            name: name || v.name,
+            timestamp: new Date().toLocaleString(),
+            content
+          } : v));
+        } else {
+          showToast("Failed to save resume", "error");
+        }
       } else {
-        showToast("Failed to save resume", "error");
+        // Create new default resume
+        const res = await fetch('/api/resumes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name || `Resume ${new Date().toLocaleDateString()}`,
+            content,
+            isDefault: true
+          })
+        });
+        if (res.ok) {
+          const newResume = await res.json();
+          setResumeId(newResume.id);
+          lastSavedContent.current = currentSerialized;
+          showToast("saved successfully", "success");
+          setVersions(prev => [{
+            id: newResume.id,
+            timestamp: new Date().toLocaleString(),
+            name: newResume.name,
+            content: newResume.content
+          }, ...prev]);
+        } else {
+          showToast("Failed to save resume", "error");
+        }
       }
     } catch (error) {
       console.error("Save failed:", error);
@@ -267,7 +427,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     }
   };
 
-  const revertToVersion = (version: ResumeVersion) => {
+  const revertToVersion = async (version: ResumeVersion) => {
     setUserName(version.content.name);
     setUserRole(version.content.title);
     setExperience(version.content.experience);
@@ -306,6 +466,16 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     setHistory([baseline]);
     setHistoryIndex(0);
     isUndoRedoActionRef.current = true;
+
+    try {
+      await fetch('/api/resumes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: version.id, isDefault: true })
+      });
+    } catch (err) {
+      console.error("Failed to mark version as default:", err);
+    }
   };
 
   const addEducation = () => {
@@ -339,6 +509,23 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           ]);
           return;
         }
+
+        // Check completeness - must be at least 70%
+        const completeness = calculateResumeCompleteness(data);
+        if (completeness < 70) {
+          setParseError(
+            `Failed to parse PDF completely. Only ${completeness}% of details were extracted. ` +
+            `The file may be image-based or corrupted. Please try a different format (DOCX or text-based PDF).`
+          );
+          setParsingFeedback([
+            { name: 'Identity', status: data.name ? 'success' : 'error', confidence: data.name ? 90 : 0 },
+            { name: 'Experience', status: data.experience?.length > 0 ? 'success' : 'error', confidence: data.experience?.length > 0 ? 80 : 0 },
+            { name: 'Skills', status: data.skills?.length > 0 ? 'success' : 'error', confidence: data.skills?.length > 0 ? 75 : 0 },
+            { name: 'Education', status: data.education?.length > 0 ? 'success' : 'warning', confidence: data.education?.length > 0 ? 85 : 30 }
+          ]);
+          return;
+        }
+
         setUserName(data.name || 'Your Name');
         setUserRole(data.title || 'Your Role');
         setExperience(data.experience || []);
@@ -367,6 +554,11 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
             isDefault: true
           })
         });
+
+        if (saveRes.ok) {
+          const newResume = await saveRes.json();
+          setResumeId(newResume.id);
+        }
 
         lastSavedContent.current = JSON.stringify({
           name: data.name,
@@ -454,6 +646,68 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     }
   }, [userName, userRole, experience, skills, email, phone, location, summary, education, loading]);
 
+  // Debounced auto-save to the database
+  useEffect(() => {
+    if (loading) return;
+
+    const timer = setTimeout(async () => {
+      const content = {
+        name: userName,
+        title: userRole,
+        experience,
+        skills,
+        email,
+        phone,
+        location,
+        summary,
+        education
+      };
+      
+      const currentSerialized = JSON.stringify(content);
+      if (currentSerialized === lastSavedContent.current) return;
+
+      try {
+        if (resumeId) {
+          // Update existing resume
+          const res = await fetch('/api/resumes', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: resumeId, content })
+          });
+          if (res.ok) {
+            lastSavedContent.current = currentSerialized;
+          }
+        } else {
+          // Create new default resume
+          const res = await fetch('/api/resumes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: `Resume ${new Date().toLocaleDateString()}`,
+              content,
+              isDefault: true
+            })
+          });
+          if (res.ok) {
+            const newResume = await res.json();
+            setResumeId(newResume.id);
+            lastSavedContent.current = currentSerialized;
+            setVersions(prev => [{
+              id: newResume.id,
+              timestamp: new Date().toLocaleString(),
+              name: newResume.name,
+              content: newResume.content
+            }, ...prev]);
+          }
+        }
+      } catch (error) {
+        console.error("Auto-save failed:", error);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [userName, userRole, experience, skills, email, phone, location, summary, education, resumeId, loading]);
+
   const handleUndo = () => {
     if (historyIndex > 0) {
       isUndoRedoActionRef.current = true;
@@ -496,8 +750,42 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      <div className="flex-1 flex h-full w-full overflow-hidden bg-background p-6 gap-6 animate-pulse">
+        {/* Sidebar Skeleton */}
+        <div className="flex-1 max-w-3xl space-y-6">
+          <div className="h-10 bg-white/5 rounded-xl border border-white/10 w-1/3" />
+          <div className="glass rounded-xl p-6 space-y-4">
+            <div className="h-8 bg-white/5 rounded-lg w-1/2" />
+            <div className="h-4 bg-white/5 rounded-lg w-1/4" />
+            <div className="flex gap-4 mt-3">
+              <div className="h-4 bg-white/5 rounded-md w-16" />
+              <div className="h-4 bg-white/5 rounded-md w-16" />
+              <div className="h-4 bg-white/5 rounded-md w-16" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="h-6 bg-white/5 rounded-lg w-1/4" />
+            <div className="glass rounded-xl p-4 h-24" />
+          </div>
+          <div className="space-y-3">
+            <div className="h-6 bg-white/5 rounded-lg w-1/4" />
+            <div className="glass rounded-xl p-4 h-32" />
+          </div>
+        </div>
+        {/* Preview Skeleton */}
+        <div className="hidden lg:block w-[600px] bg-background border-l border-white/5 p-6 space-y-6">
+          <div className="h-8 bg-white/5 rounded-lg w-1/2 mx-auto" />
+          <div className="h-4 bg-white/5 rounded-lg w-1/3 mx-auto" />
+          <div className="border-t border-white/10 pt-6 space-y-4">
+            <div className="h-6 bg-white/5 rounded-lg w-1/4" />
+            <div className="h-4 bg-white/5 rounded-lg w-full" />
+            <div className="h-4 bg-white/5 rounded-lg w-5/6" />
+          </div>
+          <div className="border-t border-white/10 pt-6 space-y-4">
+            <div className="h-6 bg-white/5 rounded-lg w-1/4" />
+            <div className="h-16 bg-white/5 rounded-lg w-full" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -536,6 +824,17 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               </button>
             </div>
             <div className="flex items-center gap-1">
+              <button 
+                onClick={handleRefresh} 
+                disabled={isRefreshing}
+                className={cn(
+                  "p-2 rounded-md transition-colors",
+                  isRefreshing ? "text-on-surface-variant/30 cursor-not-allowed" : "hover:bg-surface-container text-on-surface-variant hover:text-primary"
+                )} 
+                title="Refresh Resume"
+              >
+                <RotateCcw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+              </button>
               <button onClick={() => saveCurrentVersion()} className="p-2 hover:bg-surface-container rounded-md text-on-surface-variant hover:text-primary transition-colors" title="Save">
                 <Save className="w-4 h-4" />
               </button>
@@ -562,7 +861,14 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 <Redo2 className="w-4 h-4" />
               </button>
               <div className="w-px h-5 bg-outline-variant/30 mx-1" />
-              <Link href="/apply" className="btn-primary py-1.5 text-sm font-medium">
+              <Link 
+                href={parseError ? "#" : "/apply"} 
+                className={cn(
+                  "btn-primary py-1.5 text-sm font-medium",
+                  parseError && "opacity-50 pointer-events-none cursor-not-allowed"
+                )}
+                onClick={(e) => parseError && e.preventDefault()}
+              >
                 <Briefcase className="w-4 h-4" />
                 Apply Now
               </Link>
@@ -611,6 +917,27 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 </AnimatePresence>
               </div>
             </div>
+
+            {/* Parse Error Alert */}
+            {parseError && (
+              <div className="glass rounded-xl p-4 border border-red-500/30 bg-red-500/5">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+                    <X className="w-4 h-4 text-red-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-bold text-red-400">Failed to Parse Resume</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">{parseError}</p>
+                    <button 
+                      onClick={() => { setParseError(null); setNeedsUpload(true); }}
+                      className="mt-2 text-xs text-primary hover:underline"
+                    >
+                      Try uploading a different file
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Name & Role Card */}
             <div className="glass rounded-xl p-5 group relative">

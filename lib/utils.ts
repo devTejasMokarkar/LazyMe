@@ -42,3 +42,50 @@ export function validateParsedResume(data: any): string | null {
 
   return null; // valid
 }
+
+/**
+ * Calculates the completeness percentage of parsed resume data.
+ * Returns a score from 0-100 based on how many key fields were extracted.
+ */
+export function calculateResumeCompleteness(data: any): number {
+  if (!data || typeof data !== 'object') return 0;
+
+  let score = 0;
+  const maxScore = 100;
+
+  // Name (15 points)
+  const name = (data.name || '').trim();
+  if (name.length > 2 && !PLACEHOLDER_NAMES.some(p => name.toLowerCase().includes(p))) {
+    score += 15;
+  }
+
+  // Email (10 points)
+  if ((data.email || '').trim()) score += 10;
+
+  // Phone (10 points)
+  if ((data.phone || '').trim()) score += 10;
+
+  // Location (5 points)
+  if ((data.location || '').trim()) score += 5;
+
+  // Title/Role (10 points)
+  if ((data.title || '').trim()) score += 10;
+
+  // Summary (10 points)
+  if ((data.summary || '').trim().length > 20) score += 10;
+
+  // Experience (25 points - scaled by number of entries)
+  const expCount = Array.isArray(data.experience) ? data.experience.length : 0;
+  if (expCount > 0) {
+    score += Math.min(25, expCount * 8);
+  }
+
+  // Skills (15 points - scaled by number of skills)
+  const skills = Array.isArray(data.skills) ? data.skills : [];
+  const skillCount = skills.length;
+  if (skillCount > 0) {
+    score += Math.min(15, skillCount * 3);
+  }
+
+  return Math.min(maxScore, score);
+}

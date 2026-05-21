@@ -140,17 +140,6 @@ export async function parseDocument(
       warning: isScanned ? 'Document was scanned. OCR quality may vary.' : undefined
     };
     
-    return {
-      success: true,
-      text,
-      chunks: chunks.map(c => c.text),
-      data: localData,
-      isScanned,
-      usedAI: false,
-      parseMethod,
-      warning: isScanned ? 'Document was scanned. OCR quality may vary.' : undefined
-    };
-    
   } catch (error: any) {
     console.error("Parse error:", error);
     return {

@@ -34,7 +34,7 @@ export default function TopNav() {
         {/* Theme Toggle - Cleaner Design */}
         <button 
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="relative w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-white/5 rounded-lg transition-all"
+          className="relative w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all"
           title="Toggle Theme"
         >
           <AnimatePresence mode="wait">
@@ -59,7 +59,7 @@ export default function TopNav() {
         {(status === "authenticated" && session) ? (
           <>
             {/* Notifications */}
-            <button className="relative w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-white/5 rounded-lg transition-all">
+            <button className="relative w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all">
               <Bell className="w-4.5 h-4.5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-background"></span>
             </button>
@@ -98,7 +98,7 @@ export default function TopNav() {
         {/* Mobile Menu Toggle */}
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-white/5 rounded-lg transition-all"
+          className="lg:hidden w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all"
         >
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -114,14 +114,8 @@ export default function TopNav() {
             className="absolute top-full left-0 right-0 lg:hidden glass-dark border-b p-4 shadow-xl"
           >
             <div className="flex flex-col gap-2">
-              <Link href="/dashboard" className="px-4 py-3 rounded-lg text-on-surface hover:bg-surface-container-high font-medium">
-                Dashboard
-              </Link>
               <Link href="/resume" className="px-4 py-3 rounded-lg text-on-surface hover:bg-surface-container-high font-medium">
                 Resume Builder
-              </Link>
-              <Link href="/chat" className="px-4 py-3 rounded-lg text-on-surface hover:bg-surface-container-high font-medium">
-                AI Chat
               </Link>
             </div>
           </motion.div>
