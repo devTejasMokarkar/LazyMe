@@ -167,3 +167,7 @@ LazyMe AI is not a resume builder. It's an outcome-driven system focused on gett
 ---
 
 **Stop writing resumes. Start getting interviews.**
+
+
+
+<!-- add new project connectors which is whatsapp campaign provider in -->

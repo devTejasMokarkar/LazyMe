@@ -22,6 +22,10 @@ export default function LandingPage() {
   const [copyStatus, setCopyStatus] = useState<number | null>(null);
   const [showPromptHelper, setShowPromptHelper] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<{ name: string, type: string } | null>(null);
+  const [parsedResumeData, setParsedResumeData] = useState<any>(null);
+  const [appendPreview, setAppendPreview] = useState<any>(null);
+  const [appendNotice, setAppendNotice] = useState<string | null>(null);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -66,10 +70,100 @@ export default function LandingPage() {
     const file = e.target.files?.[0];
     if (file) {
       selectedFileRef.current = file;
+      setParsedResumeData(null);
+      setAppendPreview(null);
+      setAppendNotice(null);
       setUploadedFile({
         name: file.name,
         type: file.type
       });
+    }
+  };
+
+  const parseSelectedResume = async () => {
+    if (parsedResumeData) return parsedResumeData;
+    if (!selectedFileRef.current) return null;
+
+    const formData = new FormData();
+    formData.append('file', selectedFileRef.current);
+    const res = await fetch('/api/parse-resume', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to parse resume.");
+    }
+    setParsedResumeData(data);
+    return data;
+  };
+
+  const appendExperienceToResume = (resume: any, entry: any) => ({
+    ...resume,
+    experience: [
+      ...(Array.isArray(resume?.experience) ? resume.experience : []),
+      {
+        company: entry.company || 'Current Company',
+        role: entry.role || 'New Project',
+        duration: entry.duration || 'Current',
+        bullets: Array.isArray(entry.bullets) && entry.bullets.length ? entry.bullets : [prompt.trim()]
+      }
+    ]
+  });
+
+  const formatEnhancedPrompt = (entry: any) => {
+    const bullets = Array.isArray(entry?.bullets) ? entry.bullets : [];
+    return [
+      `${entry?.company || 'Current Company'} | ${entry?.role || 'Project'} | ${entry?.duration || 'Current'}`,
+      ...bullets.map((bullet: string) => `- ${bullet}`)
+    ].join('\n');
+  };
+
+  const handleEnhancePrompt = async () => {
+    const trimmedPrompt = prompt.trim();
+    setAppendNotice(null);
+    setAppendPreview(null);
+
+    if (!trimmedPrompt) {
+      setAppendNotice("Write what you want to add to your resume first.");
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      let resume = null;
+      let parseNotice: string | null = null;
+
+      if (selectedFileRef.current) {
+        try {
+          resume = await parseSelectedResume();
+        } catch (error) {
+          parseNotice = "Resume parsing is unavailable right now. Previewing the append from your typed details.";
+        }
+      }
+
+      const res = await fetch('/api/enhance-resume-append', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: trimmedPrompt, resume })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAppendNotice(data.error || "Could not prepare the resume update.");
+        return;
+      }
+
+      setAppendPreview(data.enhanced);
+      if (data.enhanced) {
+        setPrompt(formatEnhancedPrompt(data.enhanced));
+        setShowPromptHelper(false);
+      }
+      setAppendNotice(parseNotice || data.message);
+    } catch (error: any) {
+      setAppendNotice("Could not use AI enhancement right now. Nothing was appended to your resume.");
+    } finally {
+      setIsEnhancing(false);
     }
   };
 
@@ -79,28 +173,28 @@ export default function LandingPage() {
     if (selectedFileRef.current) {
       setIsParsing(true);
       try {
-        const formData = new FormData();
-        formData.append('file', selectedFileRef.current);
-        const res = await fetch('/api/parse-resume', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        if (res.ok) {
-localStorage.removeItem('lazyme_pending_resume');
-          localStorage.setItem('lazyme_pending_resume', JSON.stringify(data));
-          // Notify other components/pages about the new pending resume
-          window.dispatchEvent(new Event('pendingResumeReady'));
-          // Also trigger a storage event manually for same-page listeners
-          window.dispatchEvent(new StorageEvent('storage', { key: 'lazyme_pending_resume', newValue: JSON.stringify(data) }));
-
+        let data = await parseSelectedResume();
+        if (appendPreview) {
+          data = appendExperienceToResume(data, appendPreview);
         }
+        localStorage.removeItem('lazyme_pending_resume');
+        localStorage.setItem('lazyme_pending_resume', JSON.stringify(data));
+        // Notify other components/pages about the new pending resume
+        window.dispatchEvent(new Event('pendingResumeReady'));
+        // Also trigger a storage event manually for same-page listeners
+        window.dispatchEvent(new StorageEvent('storage', { key: 'lazyme_pending_resume', newValue: JSON.stringify(data) }));
       } catch (error) {
         console.error('Pre-parse failed:', error);
         setIsLoading(false);
+        setAppendNotice(error instanceof Error ? error.message : "Failed to parse resume.");
+        return;
       } finally {
         setIsParsing(false);
       }
+    } else if (appendPreview) {
+      setIsLoading(false);
+      setAppendNotice("Upload your resume first, then Send will append this entry.");
+      return;
     }
     // Now trigger the login form
     loginFormRef.current?.requestSubmit();
@@ -336,7 +430,13 @@ localStorage.removeItem('lazyme_pending_resume');
                     <p className="text-[9px] text-on-surface-variant uppercase font-semibold">Ready to parse</p>
                   </div>
                   <button 
-                    onClick={() => setUploadedFile(null)}
+                    onClick={() => {
+                      selectedFileRef.current = null;
+                      setUploadedFile(null);
+                      setParsedResumeData(null);
+                      setAppendPreview(null);
+                      setAppendNotice(null);
+                    }}
                     className="ml-2 p-1 hover:bg-surface-container-highest rounded-full text-on-surface-variant hover:text-on-surface transition-colors"
                   >
                     <X className="w-4 h-4" />
@@ -345,28 +445,27 @@ localStorage.removeItem('lazyme_pending_resume');
               </motion.div>
             )}
 
-            {showPromptHelper && (
-              <motion.div 
-                initial={{ opacity: 0, y: 15 }}
+            {appendNotice && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 15 }}
-                className="glass rounded-2xl p-6 mb-4 shadow-2xl text-left"
+                exit={{ opacity: 0, y: 8 }}
+                className="mb-3 flex justify-center"
               >
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-[10px] font-bold text-primary uppercase tracking-widest">AI Suggestions</h3>
-                  <button onClick={() => setShowPromptHelper(false)} className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high p-1 rounded-md transition-colors"><X className="w-4 h-4" /></button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {suggestions.map((s, i) => (
-                    <button key={i} onClick={() => { setPrompt(s.text); setShowPromptHelper(false); }} className="text-left p-3.5 bg-surface-container-high/50 border border-outline-variant hover:border-primary/50 rounded-xl transition-all group">
-                      <span className="text-[8px] font-bold text-primary uppercase block mb-1">{s.category}</span>
-                      <p className="text-xs font-medium italic text-on-surface-variant group-hover:text-on-surface">"{s.text}"</p>
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/20 rounded-lg text-xs font-semibold text-primary">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{appendNotice}</span>
+                  <button
+                    onClick={() => setAppendNotice(null)}
+                    className="p-0.5 text-primary/70 hover:text-primary"
+                    title="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </motion.div>
             )}
-            
+
             {showJDModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
                 <motion.div 
@@ -428,15 +527,41 @@ localStorage.removeItem('lazyme_pending_resume');
               >
                 <Code className="w-5 h-5" />
               </button>
+              <button
+                type="button"
+                onClick={() => setShowPromptHelper(true)}
+                className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
+                title="AI Suggestions"
+              >
+                <Palette className="w-5 h-5" />
+              </button>
             </div>
             
-            <input 
+            <textarea 
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onClick={() => setShowPromptHelper(true)}
-              className="bg-transparent border-none focus:ring-0 text-on-surface w-full font-medium text-base placeholder:text-on-surface-variant/60 outline-none"
+              onChange={(e) => {
+                setPrompt(e.target.value);
+                setAppendPreview(null);
+                setAppendNotice(null);
+              }}
+              rows={appendPreview ? 4 : 1}
+              className="bg-transparent border-none focus:ring-0 text-on-surface w-full font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
               placeholder="Tell LazyMe what to find next..."
             />
+
+            <button
+              type="button"
+              onClick={handleEnhancePrompt}
+              disabled={isEnhancing || !prompt.trim()}
+              className="h-10 px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-2 font-bold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+              title="Preview the optimized resume entry before appending"
+            >
+              {isEnhancing ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Enhancing...</>
+              ) : (
+                <><Sparkles className="w-3.5 h-3.5" /> Enhance prompt</>
+              )}
+            </button>
 
             <button 
               type="button" 
@@ -472,6 +597,49 @@ localStorage.removeItem('lazyme_pending_resume');
 
       {/* Modals for Q&A */}
       <AnimatePresence>
+        {showPromptHelper && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-2xl bg-surface-container rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border border-outline-variant/30"
+            >
+              <div className="p-8 border-b border-outline-variant flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold">AI Suggestions</h3>
+                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mt-1">LazyMe Prompt Library</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowPromptHelper(false)} className="p-2 hover:bg-surface-container-highest rounded-full transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setPrompt(s.text);
+                      setAppendPreview(null);
+                      setAppendNotice(null);
+                      setShowPromptHelper(false);
+                    }}
+                    className="text-left p-5 bg-background border border-outline-variant hover:border-primary/50 rounded-2xl transition-all group"
+                  >
+                    <span className="text-[9px] font-bold text-primary uppercase block mb-2 tracking-widest">{s.category}</span>
+                    <p className="text-sm font-medium text-on-surface-variant group-hover:text-on-surface leading-relaxed">"{s.text}"</p>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {showQNA && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-2xl bg-surface-container rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-outline-variant/30">

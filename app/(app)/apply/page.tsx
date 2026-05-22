@@ -434,17 +434,17 @@ export default function ApplyPage() {
               };
 
               const getScoreBg = (score: number) => {
-                if (score >= 80) return 'bg-green-50 border-green-200';
-                if (score >= 60) return 'bg-blue-50 border-blue-200';
-                if (score >= 40) return 'bg-yellow-50 border-yellow-200';
-                return 'bg-red-50 border-red-200';
+                if (score >= 80) return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
+                if (score >= 60) return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
+                if (score >= 40) return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800';
+                return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
               };
 
               const getScoreText = (score: number) => {
-                if (score >= 80) return 'text-green-700';
-                if (score >= 60) return 'text-blue-700';
-                if (score >= 40) return 'text-yellow-700';
-                return 'text-red-700';
+                if (score >= 80) return 'text-green-700 dark:text-green-400';
+                if (score >= 60) return 'text-blue-700 dark:text-blue-400';
+                if (score >= 40) return 'text-yellow-700 dark:text-yellow-400';
+                return 'text-red-700 dark:text-red-400';
               };
 
               return (
@@ -465,11 +465,11 @@ export default function ApplyPage() {
                         <p className="text-xs text-on-surface-variant mt-0.5">{analysis.recommendation}</p>
                       </div>
                       {analysis.shouldApply ? (
-                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
                           Apply
                         </span>
                       ) : (
-                        <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">
+                        <span className="text-xs px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-medium">
                           Skip
                         </span>
                       )}
@@ -483,13 +483,13 @@ export default function ApplyPage() {
 
                   <div className="flex flex-wrap gap-2 mb-3">
                     {exp && (
-                      <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
                         <Briefcase className="w-3 h-3 inline mr-1" />
                         {escHtml(String(exp))}
                       </span>
                     )}
                     {sal && (
-                      <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
                         <Currency className="w-3 h-3 inline mr-1" />
                         {escHtml(String(sal))}
                       </span>
@@ -505,12 +505,12 @@ export default function ApplyPage() {
                   {analysis && analysis.strengths.length > 0 && (
                     <div className="mb-3 p-3 bg-surface-container-low rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
-                        <TrendingUp className="w-3 h-3 text-green-600" />
-                        <span className="text-xs font-semibold text-green-700">Strengths</span>
+                        <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400" />
+                        <span className="text-xs font-semibold text-green-700 dark:text-green-400">Strengths</span>
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {analysis.strengths.slice(0, 3).map((s, i) => (
-                          <span key={i} className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700 border border-green-200">
+                          <span key={i} className="text-xs px-2 py-0.5 rounded bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
                             {s}
                           </span>
                         ))}
@@ -518,12 +518,12 @@ export default function ApplyPage() {
                       {analysis.missingSkills.length > 0 && (
                         <>
                           <div className="flex items-center gap-2 mb-2 mt-3">
-                            <AlertCircle className="w-3 h-3 text-orange-600" />
-                            <span className="text-xs font-semibold text-orange-700">Missing Skills</span>
+                            <AlertCircle className="w-3 h-3 text-orange-600 dark:text-orange-400" />
+                            <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">Missing Skills</span>
                           </div>
                           <div className="flex flex-wrap gap-1">
                             {analysis.missingSkills.slice(0, 3).map((s, i) => (
-                              <span key={i} className="text-xs px-2 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
+                              <span key={i} className="text-xs px-2 py-0.5 rounded bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
                                 {s}
                               </span>
                             ))}
@@ -559,7 +559,7 @@ export default function ApplyPage() {
                             href={escHtml(jobUrl)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 font-medium hover:bg-blue-100 flex items-center gap-1 transition-colors"
+                            className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 flex items-center gap-1 transition-colors"
                           >
                             <ExternalLink className="w-3 h-3" />
                             Apply now

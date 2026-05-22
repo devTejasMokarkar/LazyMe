@@ -753,37 +753,37 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       <div className="flex-1 flex h-full w-full overflow-hidden bg-background p-6 gap-6 animate-pulse">
         {/* Sidebar Skeleton */}
         <div className="flex-1 max-w-3xl space-y-6">
-          <div className="h-10 bg-white/5 rounded-xl border border-white/10 w-1/3" />
+          <div className="h-10 bg-surface-container-highest rounded-xl border border-outline-variant w-1/3" />
           <div className="glass rounded-xl p-6 space-y-4">
-            <div className="h-8 bg-white/5 rounded-lg w-1/2" />
-            <div className="h-4 bg-white/5 rounded-lg w-1/4" />
+            <div className="h-8 bg-surface-container-highest rounded-lg w-1/2" />
+            <div className="h-4 bg-surface-container-highest rounded-lg w-1/4" />
             <div className="flex gap-4 mt-3">
-              <div className="h-4 bg-white/5 rounded-md w-16" />
-              <div className="h-4 bg-white/5 rounded-md w-16" />
-              <div className="h-4 bg-white/5 rounded-md w-16" />
+              <div className="h-4 bg-surface-container-highest rounded-md w-16" />
+              <div className="h-4 bg-surface-container-highest rounded-md w-16" />
+              <div className="h-4 bg-surface-container-highest rounded-md w-16" />
             </div>
           </div>
           <div className="space-y-3">
-            <div className="h-6 bg-white/5 rounded-lg w-1/4" />
+            <div className="h-6 bg-surface-container-highest rounded-lg w-1/4" />
             <div className="glass rounded-xl p-4 h-24" />
           </div>
           <div className="space-y-3">
-            <div className="h-6 bg-white/5 rounded-lg w-1/4" />
+            <div className="h-6 bg-surface-container-highest rounded-lg w-1/4" />
             <div className="glass rounded-xl p-4 h-32" />
           </div>
         </div>
         {/* Preview Skeleton */}
-        <div className="hidden lg:block w-[600px] bg-background border-l border-white/5 p-6 space-y-6">
-          <div className="h-8 bg-white/5 rounded-lg w-1/2 mx-auto" />
-          <div className="h-4 bg-white/5 rounded-lg w-1/3 mx-auto" />
-          <div className="border-t border-white/10 pt-6 space-y-4">
-            <div className="h-6 bg-white/5 rounded-lg w-1/4" />
-            <div className="h-4 bg-white/5 rounded-lg w-full" />
-            <div className="h-4 bg-white/5 rounded-lg w-5/6" />
+        <div className="hidden lg:block w-[600px] bg-background border-l border-outline-variant p-6 space-y-6">
+          <div className="h-8 bg-surface-container-highest rounded-lg w-1/2 mx-auto" />
+          <div className="h-4 bg-surface-container-highest rounded-lg w-1/3 mx-auto" />
+          <div className="border-t border-outline-variant pt-6 space-y-4">
+            <div className="h-6 bg-surface-container-highest rounded-lg w-1/4" />
+            <div className="h-4 bg-surface-container-highest rounded-lg w-full" />
+            <div className="h-4 bg-surface-container-highest rounded-lg w-5/6" />
           </div>
-          <div className="border-t border-white/10 pt-6 space-y-4">
-            <div className="h-6 bg-white/5 rounded-lg w-1/4" />
-            <div className="h-16 bg-white/5 rounded-lg w-full" />
+          <div className="border-t border-outline-variant pt-6 space-y-4">
+            <div className="h-6 bg-surface-container-highest rounded-lg w-1/4" />
+            <div className="h-16 bg-surface-container-highest rounded-lg w-full" />
           </div>
         </div>
       </div>
@@ -988,7 +988,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].year = e.currentTarget.innerText; setEducation(n); }}>{edu.year}</span>
-                        <button onClick={() => setEducation(education.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => setEducation(education.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
                   </div>
@@ -1011,7 +1011,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].duration = e.currentTarget.innerText; setExperience(n); }}>{exp.duration || exp.period}</span>
-                      <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                   <ul className="list-disc ml-4 text-sm text-on-surface-variant space-y-1.5">
@@ -1026,7 +1026,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Skills & Tools</h3>
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill, i) => (
-                  <div key={i} className="glass rounded-full px-3 py-1.5 flex items-center gap-2 group transition-all hover:bg-white/5">
+                  <div key={i} className="glass rounded-full px-3 py-1.5 flex items-center gap-2 group transition-all hover:bg-surface-container-highest">
                     <span 
                       className="text-xs font-semibold text-on-surface outline-none min-w-[40px] cursor-text"
                       contentEditable
@@ -1050,12 +1050,12 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                     >
                       {skill}
                     </span>
-                    <button 
-                      onClick={() => setSkills(skills.filter((_, idx) => idx !== i))} 
-                      className="text-on-surface-variant hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+                      <button 
+                        onClick={() => setSkills(skills.filter((_, idx) => idx !== i))} 
+                        className="text-on-surface-variant hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                   </div>
                 ))}
                 <button 
@@ -1081,32 +1081,32 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
             className="hidden lg:flex flex-col h-full bg-background border-l border-white/5 overflow-hidden"
           >
             {/* Preview Toolbar */}
-            <div className="h-12 px-4 flex items-center justify-between border-b border-white/5 shrink-0">
+            <div className="h-12 px-4 flex items-center justify-between border-b border-outline-variant shrink-0">
               <div className="flex items-center gap-1">
-                <button onClick={() => setPreviewMode('desktop')} className={cn("p-1.5 rounded-md transition-colors", previewMode === 'desktop' ? "bg-white/10 text-white" : "text-white/50 hover:text-white")}><Monitor className="w-4 h-4" /></button>
-                <button onClick={() => setPreviewMode('mobile')} className={cn("p-1.5 rounded-md transition-colors", previewMode === 'mobile' ? "bg-white/10 text-white" : "text-white/50 hover:text-white")}><Smartphone className="w-4 h-4" /></button>
+                <button onClick={() => setPreviewMode('desktop')} className={cn("p-1.5 rounded-md transition-colors", previewMode === 'desktop' ? "bg-surface-container-high text-on-surface" : "text-on-surface-variant hover:text-on-surface")}><Monitor className="w-4 h-4" /></button>
+                <button onClick={() => setPreviewMode('mobile')} className={cn("p-1.5 rounded-md transition-colors", previewMode === 'mobile' ? "bg-surface-container-high text-on-surface" : "text-on-surface-variant hover:text-on-surface")}><Smartphone className="w-4 h-4" /></button>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center bg-white/5 rounded-lg overflow-hidden">
-                  <button onClick={() => setZoom(Math.max(50, zoom - 10))} className="p-1.5 text-white/50 hover:text-white"><ZoomOut className="w-3.5 h-3.5" /></button>
-                  <span className="text-[10px] font-mono text-white/40 w-10 text-center">{zoom}%</span>
-                  <button onClick={() => setZoom(Math.min(120, zoom + 10))} className="p-1.5 text-white/50 hover:text-white"><ZoomIn className="w-3.5 h-3.5" /></button>
+                <div className="flex items-center bg-surface-container-high rounded-lg overflow-hidden">
+                  <button onClick={() => setZoom(Math.max(50, zoom - 10))} className="p-1.5 text-on-surface-variant hover:text-on-surface"><ZoomOut className="w-3.5 h-3.5" /></button>
+                  <span className="text-[10px] font-mono text-on-surface-variant w-10 text-center">{zoom}%</span>
+                  <button onClick={() => setZoom(Math.min(120, zoom + 10))} className="p-1.5 text-on-surface-variant hover:text-on-surface"><ZoomIn className="w-3.5 h-3.5" /></button>
                 </div>
-                <div className="flex items-center gap-1 bg-white/5 px-1.5 py-1 rounded-lg border border-white/10">
+                <div className="flex items-center gap-1 bg-surface-container-high px-1.5 py-1 rounded-lg border border-outline-variant">
                   {['#000000', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444'].map((color) => (
                     <button
                       key={color}
                       onClick={() => setResumeColor(color)}
                       className={cn(
                         "w-3.5 h-3.5 rounded-full border transition-all hover:scale-110",
-                        resumeColor === color ? "border-white scale-110 shadow-sm" : "border-transparent"
+                        resumeColor === color ? "border-outline scale-110 shadow-sm" : "border-transparent"
                       )}
                       style={{ backgroundColor: color === '#000000' && resumeTheme === 'dark' ? '#ffffff' : color }}
                       title={`Accent Color ${color}`}
                     />
                   ))}
                 </div>
-                <button onClick={() => setResumeTheme(resumeTheme === 'light' ? 'dark' : 'light')} className="text-[10px] font-semibold text-white/40 uppercase hover:text-white/60">{resumeTheme}</button>
+                <button onClick={() => setResumeTheme(resumeTheme === 'light' ? 'dark' : 'light')} className="text-[10px] font-semibold text-on-surface-variant uppercase hover:text-on-surface">{resumeTheme}</button>
               </div>
             </div>
 
@@ -1126,7 +1126,6 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                   color: resumeTheme === 'light' ? '#000000' : '#e2e8f0'
                 }}
               >
-                {/* Resume Content */}
                 <div className="text-center mb-6">
                   <h2 className={cn("text-2xl font-extrabold", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>{userName || 'Your Name'}</h2>
                   <p className={cn("text-sm", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{userRole || 'Your Title'}</p>
@@ -1206,7 +1205,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       <AnimatePresence>
         {showHistory && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowHistory(false)} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowHistory(false)} className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40" />
             <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 bottom-0 w-80 glass-dark z-50 shadow-2xl flex flex-col">
               <div className="p-4 border-b border-outline-variant/30 flex justify-between items-center">
                 <div className="flex items-center gap-2"><History className="w-5 h-5 text-primary" /><h2 className="text-base font-bold">Timeline</h2></div>

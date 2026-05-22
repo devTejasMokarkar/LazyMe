@@ -140,6 +140,11 @@ function normalizeAIData(aiResponse: string): any {
   }
 }
 
+function isGeminiFetchFailure(error: any) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return message.includes("fetch failed") || message.includes("generativelanguage.googleapis.com");
+}
+
 export async function POST(req: NextRequest) {
   const fileRef = { name: "file" }; // Track for error messages
   
@@ -235,6 +240,13 @@ export async function POST(req: NextRequest) {
 
     } catch (aiError: any) {
       console.error("AI parsing failed:", aiError.message);
+
+      if (isGeminiFetchFailure(aiError)) {
+        return NextResponse.json(
+          { error: "AI resume parsing is temporarily unavailable. Please try again in a moment, or continue with the details you typed." },
+          { status: 503 }
+        );
+      }
       
       // If AI also failed, return error
       if (aiError.message?.includes('does not support') || aiError.message?.includes('pdf input')) {

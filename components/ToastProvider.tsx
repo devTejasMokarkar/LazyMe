@@ -37,9 +37,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   };
 
   const iconMap = {
-    success: <CheckCircle className="w-5 h-5 text-green-400" />,
-    error: <AlertCircle className="w-5 h-5 text-red-400" />,
-    info: <Info className="w-5 h-5 text-blue-400" />,
+    success: <CheckCircle className="w-5 h-5 text-green-500" />,
+    error: <AlertCircle className="w-5 h-5 text-red-500" />,
+    info: <Info className="w-5 h-5 text-blue-500" />,
   };
 
   const bgMap = {
@@ -55,8 +55,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map(t => (
           <div key={t.id} className={`toast-enter flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-md ${bgMap[t.type]} min-w-[300px] max-w-[400px]`}>
             {iconMap[t.type]}
-            <span className="text-sm font-medium text-slate-100 flex-1">{t.message}</span>
-            <button onClick={() => removeToast(t.id)} className="text-slate-400 hover:text-slate-200 transition-colors">
+            <span className="text-sm font-medium text-on-surface flex-1">{t.message}</span>
+            <button onClick={() => removeToast(t.id)} className="text-on-surface-variant hover:text-on-surface transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>

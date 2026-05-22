@@ -2,6 +2,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const openAIKey = process.env.OPENROUTER_API_KEY;
+const preferredOllamaModel = process.env.OLLAMA_MODEL;
+const ollamaTimeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS || 120000);
 
 if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
@@ -66,12 +68,17 @@ function handleGeminiError(error: any): never {
   throw new GeminiServiceError(error.message || "An unexpected AI service error occurred.", error.status || 500);
 }
 
+function isGeminiNetworkError(error: any) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return message.includes("fetch failed") || message.includes("generativelanguage.googleapis.com");
+}
+
 async function callOllama(prompt: string, model: string = 'llama3.2'): Promise<string | null> {
-  const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+  const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
   
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
+    const timer = setTimeout(() => controller.abort(), ollamaTimeoutMs);
     
     const r = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
@@ -81,34 +88,78 @@ async function callOllama(prompt: string, model: string = 'llama3.2'): Promise<s
         model,
         prompt,
         stream: false,
+        keep_alive: "10m",
         options: {
           temperature: 0.1,
-          num_predict: 2000
+          num_predict: 700
         }
       })
     });
     
     clearTimeout(timer);
     
-    if (!r.ok) return null;
+    if (!r.ok) {
+      const error = await r.json().catch(() => null);
+      console.warn(`Ollama ${model} unavailable:`, error?.error || `HTTP ${r.status}`);
+      return null;
+    }
     
     const data = await r.json();
     return data.response || null;
-  } catch (error) {
+  } catch (error: any) {
+    console.warn(`Ollama ${model} error:`, error?.message || "request failed");
     return null;
   }
 }
 
-export async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string): Promise<string> {
-  // Try Ollama first (local, free, no rate limits)
-  const ollamaModels = ['deepseek-coder:6.7b', 'llama3.2', 'llama3.1', 'qwen2.5', 'mistral', 'gemma2'];
-  for (const model of ollamaModels) {
-    const result = await callOllama(prompt, model);
+async function getInstalledOllamaModels(): Promise<string[] | null> {
+  const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch(`${ollamaUrl}/api/tags`, { signal: controller.signal });
+    clearTimeout(timer);
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return Array.isArray(data.models)
+      ? data.models.flatMap((item: any) => [item.name, item.model].filter(Boolean))
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function callOllamaFallback(prompt: string): Promise<string | null> {
+  const ollamaModels = [
+    preferredOllamaModel,
+    'llama3.2',
+    'deepseek-coder:6.7b',
+    'gemma4:e4b',
+  ].filter(Boolean) as string[];
+  const installedModels = await getInstalledOllamaModels();
+
+  const triedModels: string[] = [];
+  for (const modelName of ollamaModels) {
+    if (triedModels.includes(modelName)) continue;
+    if (installedModels && !installedModels.includes(modelName) && !installedModels.includes(`${modelName}:latest`)) continue;
+    triedModels.push(modelName);
+
+    const result = await callOllama(prompt, modelName);
     if (result) {
-      console.log(`Ollama ${model} successful`);
+      console.log(`Ollama ${modelName} successful`);
       return result;
     }
   }
+
+  return null;
+}
+
+export async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string): Promise<string> {
+  const localResult = await callOllamaFallback(prompt);
+  if (localResult) return localResult;
 
   if (!openAIKey) throw new Error("OPENROUTER_API_KEY not configured");
 
@@ -133,7 +184,7 @@ export async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?:
       clearTimeout(timer);
       if (!r.ok) {
         const err = await r.json();
-        console.warn(`OpenRouter ${model} failed:`, err?.error?.message?.slice(0, 80));
+        console.warn(`OpenRouter ${model} failed:`, err?.error?.message?.slice(0, 80) || r.status);
         return null;
       }
       const d = await r.json();
@@ -196,26 +247,32 @@ export async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?:
 }
 
 export async function generateText(prompt: string): Promise<string> {
+  const localResult = await callOllamaFallback(prompt);
+  if (localResult) return localResult;
+
   try {
-    console.log("Calling Gemini with prompt length:", prompt.length);
+    console.log("Calling Gemini text model. Prompt length:", prompt.length);
     const result = await model.generateContent(prompt);
     console.log("Gemini result received, checking response...");
     const response = await result.response;
     console.log("Gemini response text length:", response.text().length);
     return response.text();
   } catch (error: any) {
-    console.error("Gemini error:", error.message, error.status, error.stack);
-    // If it's a quota error, try OpenAI fallback
-    if (error.status === 429) {
+    const shouldFallback = error.status === 429 || isGeminiNetworkError(error);
+    console.warn("Gemini text generation failed:", error.status || "network", String(error.message || "").slice(0, 180));
+
+    if (shouldFallback) {
       try {
         console.log("Trying OpenRouter fallback...");
         return await callOpenRouter(prompt);
       } catch (fallbackError: any) {
         console.error("OpenRouter fallback failed:", fallbackError.message);
         const finalError = new GeminiServiceError(
-          "All AI services are currently at capacity. Please try again in a few minutes.",
-          429,
-          { type: "DAILY", message: "All AI services exhausted" }
+          isGeminiNetworkError(error)
+            ? "AI service is temporarily unreachable. Please try again in a moment."
+            : "All AI services are currently at capacity. Please try again in a few minutes.",
+          error.status || 503,
+          { type: "UNKNOWN", message: "All AI services exhausted or unreachable" }
         );
         throw finalError;
       }
@@ -242,16 +299,16 @@ export async function generateTextFromMultiModal(
     const response = await result.response;
     return response.text();
   } catch (error: any) {
-    // Try OpenRouter fallback on quota/rate-limit errors
-    if (error.status === 429 || error instanceof GeminiServiceError) {
+    // Try Ollama/OpenRouter fallback on quota, rate-limit, or Gemini network errors.
+    if (error.status === 429 || error instanceof GeminiServiceError || isGeminiNetworkError(error)) {
       try {
         return await callOpenRouter(prompt, buffer, mimeType);
       } catch (fallbackError: any) {
-        console.error("OpenRouter fallback failed:", fallbackError.message);
+        console.error("Ollama/OpenRouter fallback failed:", fallbackError.message);
         throw new GeminiServiceError(
-          "All AI services are currently at capacity. Please try again in a few minutes.",
-          429,
-          { type: "DAILY", message: "All AI services exhausted" }
+          "All AI services are currently unavailable. Please try again in a few minutes.",
+          error.status || 503,
+          { type: "UNKNOWN", message: "All AI services exhausted or unreachable" }
         );
       }
     }

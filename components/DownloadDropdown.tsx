@@ -7,7 +7,7 @@ import { latexToHtml } from "@/utils/latexFormatter";
 import { Download, FileText, Code, AlignLeft, File as FileIcon, ChevronDown } from "lucide-react";
 
 interface DownloadDropdownProps {
-  resumeData: any; // Using structured data as single source
+  resumeData: any;
   latex: string;
   resumePreviewId?: string;
 }
@@ -47,7 +47,6 @@ export default function DownloadDropdown({ resumeData, latex, resumePreviewId = 
           break;
 
         case "txt":
-          // Plain text from structured data
           const txtContent = `
 ${resumeData.name.toUpperCase()}
 ${resumeData.title}
@@ -84,7 +83,6 @@ ${resumeData.education.map((e: any) => `${e.degree} from ${e.school} (${e.year})
           break;
 
         case "doc":
-          // WORD EXPORT FIX: Use HTML source for consistency
           const htmlContent = latexToHtml(latex);
           const docContent = `
             <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -139,57 +137,57 @@ ${resumeData.education.map((e: any) => `${e.degree} from ${e.school} (${e.year})
       </button>
 
       {open && (
-        <div className="absolute right-0 bottom-full mb-2 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] z-[100] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800 bg-slate-900/50">
+        <div className="absolute right-0 bottom-full mb-2 w-56 bg-surface-container border border-outline-variant rounded-2xl shadow-lg z-[100] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest border-b border-outline-variant bg-surface-container-low">
             Select Export Format
           </div>
           <div className="p-2 space-y-1">
             <button 
               onClick={() => downloadFile("pdf")} 
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-slate-300 hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
             >
               <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
                 <FileIcon className="w-4 h-4" />
               </div>
               <div className="text-left">
-                <p className="font-bold">PDF Document</p>
-                <p className="text-[10px] text-slate-500">Best for printing</p>
+                <p className="font-bold text-on-surface">PDF Document</p>
+                <p className="text-[10px] text-on-surface-variant">Best for printing</p>
               </div>
             </button>
             <button 
               onClick={() => downloadFile("tex")} 
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-slate-300 hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
             >
               <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                 <Code className="w-4 h-4" />
               </div>
               <div className="text-left">
-                <p className="font-bold">LaTeX Source</p>
-                <p className="text-[10px] text-slate-500">For LaTeX editors</p>
+                <p className="font-bold text-on-surface">LaTeX Source</p>
+                <p className="text-[10px] text-on-surface-variant">For LaTeX editors</p>
               </div>
             </button>
             <button 
               onClick={() => downloadFile("doc")} 
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-slate-300 hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
             >
               <div className="w-8 h-8 rounded-lg bg-blue-400/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
                 <FileText className="w-4 h-4" />
               </div>
               <div className="text-left">
-                <p className="font-bold">Word Document</p>
-                <p className="text-[10px] text-slate-500">Editable format</p>
+                <p className="font-bold text-on-surface">Word Document</p>
+                <p className="text-[10px] text-on-surface-variant">Editable format</p>
               </div>
             </button>
             <button 
               onClick={() => downloadFile("txt")} 
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-slate-300 hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
             >
-              <div className="w-8 h-8 rounded-lg bg-slate-500/10 flex items-center justify-center text-slate-500 group-hover:scale-110 transition-transform">
+              <div className="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center text-on-surface-variant group-hover:scale-110 transition-transform">
                 <AlignLeft className="w-4 h-4" />
               </div>
               <div className="text-left">
-                <p className="font-bold">Plain Text</p>
-                <p className="text-[10px] text-slate-500">Simple formatting</p>
+                <p className="font-bold text-on-surface">Plain Text</p>
+                <p className="text-[10px] text-on-surface-variant">Simple formatting</p>
               </div>
             </button>
           </div>

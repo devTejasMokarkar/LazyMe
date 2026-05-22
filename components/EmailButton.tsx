@@ -21,7 +21,6 @@ export function EmailButton({ resumeData, coverLetter, jobTitle, companyEmail }:
   const { showToast } = useToast();
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Close modal on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
@@ -34,15 +33,14 @@ export function EmailButton({ resumeData, coverLetter, jobTitle, companyEmail }:
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showOptions]);
 
-  // Strip markdown formatting from text
   const stripMarkdown = (text: string): string => {
     return text
-      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
-      .replace(/\*(.*?)\*/g, '$1')     // Remove italic markdown
-      .replace(/__(.*?)__/g, '$1')     // Remove bold underscore markdown
-      .replace(/_(.*?)_/g, '$1')       // Remove italic underscore markdown
-      .replace(/`(.*?)`/g, '$1')       // Remove inline code markdown
-      .replace(/~~(.*?)~~/g, '$1');    // Remove strikethrough markdown
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1')
+      .replace(/_(.*?)_/g, '$1')
+      .replace(/`(.*?)`/g, '$1')
+      .replace(/~~(.*?)~~/g, '$1');
   };
 
   const cleanCoverLetter = stripMarkdown(coverLetter);
@@ -96,7 +94,7 @@ Found a job? Just LazyMe it.
     <div className="relative">
       <button 
         onClick={() => setShowOptions(!showOptions)} 
-        className="flex items-center gap-2 px-4 py-1.5 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-md transition-all active:scale-95 shadow-lg shadow-primary/20"
+        className="flex items-center gap-2 px-4 py-1.5 bg-primary hover:bg-primary/90 text-on-primary text-sm font-bold rounded-md transition-all active:scale-95 shadow-lg shadow-primary/20"
       >
         <Send className="w-4 h-4" />
         Apply Now
@@ -109,23 +107,21 @@ Found a job? Just LazyMe it.
 
       {showOptions && (
         <>
-          {/* Overlay */}
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]" />
           
-          {/* Modal */}
           <div className="fixed inset-0 flex items-center justify-center z-[70] p-4">
             <div 
               ref={modalRef}
-              className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+              className="bg-surface-container border border-outline-variant rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
             >
-              <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+              <div className="p-6 border-b border-outline-variant flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-white">Choose How to Apply</h3>
-                  <p className="text-slate-400 text-sm mt-1">Select your preferred method to send the application.</p>
+                  <h3 className="text-xl font-bold text-on-surface">Choose How to Apply</h3>
+                  <p className="text-on-surface-variant text-sm mt-1">Select your preferred method to send the application.</p>
                 </div>
                 <button 
                   onClick={() => setShowOptions(false)}
-                  className="p-2 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors"
+                  className="p-2 hover:bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -134,58 +130,58 @@ Found a job? Just LazyMe it.
               <div className="p-6 space-y-3">
                 <button 
                   onClick={handleMailApp}
-                  className="w-full flex items-center gap-4 p-4 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition-all group"
+                  className="w-full flex items-center gap-4 p-4 bg-surface-container-high hover:bg-surface-container-highest rounded-xl border border-outline-variant transition-all group"
                 >
                   <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                     <Mail className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <p className="font-bold text-white">Default Email App</p>
-                    <p className="text-xs text-slate-400">Outlook, Apple Mail, etc.</p>
+                    <p className="font-bold text-on-surface">Default Email App</p>
+                    <p className="text-xs text-on-surface-variant">Outlook, Apple Mail, etc.</p>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-slate-600 ml-auto" />
+                  <ExternalLink className="w-4 h-4 text-on-surface-variant/50 ml-auto" />
                 </button>
 
                 <button 
                   onClick={handleGmail}
-                  className="w-full flex items-center gap-4 p-4 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition-all group"
+                  className="w-full flex items-center gap-4 p-4 bg-surface-container-high hover:bg-surface-container-highest rounded-xl border border-outline-variant transition-all group"
                 >
                   <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
                     <Mail className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <p className="font-bold text-white">Gmail (Web)</p>
-                    <p className="text-xs text-slate-400">Open in your browser</p>
+                    <p className="font-bold text-on-surface">Gmail (Web)</p>
+                    <p className="text-xs text-on-surface-variant">Open in your browser</p>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-slate-600 ml-auto" />
+                  <ExternalLink className="w-4 h-4 text-on-surface-variant/50 ml-auto" />
                 </button>
 
                 <div className="relative py-2">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-slate-800" />
+                    <span className="w-full border-t border-outline-variant" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#1e293b] px-2 text-slate-500 font-bold">OR</span>
+                    <span className="bg-surface-container px-2 text-on-surface-variant font-bold">OR</span>
                   </div>
                 </div>
 
                 <button 
                   onClick={handleCopy}
-                  className="w-full flex items-center gap-4 p-4 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition-all group"
+                  className="w-full flex items-center gap-4 p-4 bg-surface-container-high hover:bg-surface-container-highest rounded-xl border border-outline-variant transition-all group"
                 >
                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                     <Copy className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <p className="font-bold text-white">Copy to Clipboard</p>
-                    <p className="text-xs text-slate-400">Paste it anywhere manually</p>
+                    <p className="font-bold text-on-surface">Copy to Clipboard</p>
+                    <p className="text-xs text-on-surface-variant">Paste it anywhere manually</p>
                   </div>
-                  <CheckCircleIcon className="w-4 h-4 text-slate-600 ml-auto" />
+                  <CheckCircleIcon className="w-4 h-4 text-on-surface-variant/50 ml-auto" />
                 </button>
               </div>
               
-              <div className="p-4 bg-slate-900/50 text-center">
-                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Powered by LazyMe AI</p>
+              <div className="p-4 bg-surface-container-low text-center">
+                <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Powered by LazyMe AI</p>
                 <p className="text-[10px] font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mt-1">
                   Found a job? Just LazyMe it.
                 </p>

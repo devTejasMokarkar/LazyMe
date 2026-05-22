@@ -97,7 +97,6 @@ export function JobDashboard({
   const getFilteredJobs = () => {
     let filtered = matchedJobs;
     
-    // Filter by match score
     if (filter === "high") {
       filtered = filtered.filter(j => j.matchScore >= 70);
     } else if (filter === "medium") {
@@ -106,7 +105,6 @@ export function JobDashboard({
       filtered = filtered.filter(j => j.matchScore < 50);
     }
     
-    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(j =>
@@ -158,9 +156,9 @@ export function JobDashboard({
   };
 
   const getMatchScoreColor = (score: number) => {
-    if (score >= 70) return "text-emerald-400 bg-emerald-400/10";
-    if (score >= 50) return "text-yellow-400 bg-yellow-400/10";
-    return "text-red-400 bg-red-400/10";
+    if (score >= 70) return "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10";
+    if (score >= 50) return "text-yellow-600 dark:text-yellow-400 bg-yellow-500/10";
+    return "text-red-600 dark:text-red-400 bg-red-500/10";
   };
 
   const getApplyTypeIcon = (type: string) => {
@@ -178,45 +176,42 @@ export function JobDashboard({
 
   if (loading) {
     return (
-      <div className="flex flex-col h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans animate-pulse">
-        {/* Header Skeleton */}
-        <header className="h-16 border-b border-slate-800 bg-[#1e293b] flex items-center justify-between px-6 shrink-0">
+      <div className="flex flex-col h-screen bg-background text-on-surface overflow-hidden font-sans animate-pulse">
+        <header className="h-16 border-b border-outline-variant bg-surface-container flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-4">
-            <div className="h-6 bg-slate-700 rounded-lg w-28" />
-            <div className="h-4 w-[1px] bg-slate-700 mx-2" />
-            <div className="h-4 bg-slate-700 rounded-lg w-36" />
+            <div className="h-6 bg-surface-container-highest rounded-lg w-28" />
+            <div className="h-4 w-[1px] bg-outline-variant mx-2" />
+            <div className="h-4 bg-surface-container-highest rounded-lg w-36" />
           </div>
           <div className="flex items-center gap-3">
-            <div className="h-8 bg-slate-700 rounded-lg w-20" />
-            <div className="h-8 bg-slate-700 rounded-lg w-20" />
-            <div className="h-10 bg-slate-700 rounded-xl w-32" />
+            <div className="h-8 bg-surface-container-highest rounded-lg w-20" />
+            <div className="h-8 bg-surface-container-highest rounded-lg w-20" />
+            <div className="h-10 bg-surface-container-highest rounded-xl w-32" />
           </div>
         </header>
 
-        {/* Filters Bar Skeleton */}
-        <div className="h-14 border-b border-slate-800 bg-[#0f172a] flex items-center px-6 gap-4 shrink-0">
-          <div className="h-9 bg-[#1e293b] rounded-lg w-80" />
-          <div className="h-9 bg-[#1e293b] rounded-lg w-40" />
+        <div className="h-14 border-b border-outline-variant bg-background flex items-center px-6 gap-4 shrink-0">
+          <div className="h-9 bg-surface-container rounded-lg w-80" />
+          <div className="h-9 bg-surface-container rounded-lg w-40" />
         </div>
 
-        {/* Job List Skeleton */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="bg-[#1e293b] border-2 border-slate-800 rounded-xl p-6 space-y-4 max-w-6xl mx-auto">
+            <div key={n} className="bg-surface-container border-2 border-outline-variant/50 rounded-xl p-6 space-y-4 max-w-6xl mx-auto">
               <div className="flex gap-4">
-                <div className="w-5 h-5 bg-slate-700 rounded mt-1" />
+                <div className="w-5 h-5 bg-surface-container-highest rounded mt-1" />
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="h-6 bg-slate-700 rounded-lg w-1/3" />
-                    <div className="h-5 bg-slate-700 rounded-full w-20" />
+                    <div className="h-6 bg-surface-container-highest rounded-lg w-1/3" />
+                    <div className="h-5 bg-surface-container-highest rounded-full w-20" />
                   </div>
-                  <div className="h-4 bg-slate-700 rounded-lg w-1/4" />
+                  <div className="h-4 bg-surface-container-highest rounded-lg w-1/4" />
                 </div>
               </div>
               <div className="flex gap-2 pl-9">
-                <div className="h-6 bg-slate-700 rounded-md w-16" />
-                <div className="h-6 bg-slate-700 rounded-md w-16" />
-                <div className="h-6 bg-slate-700 rounded-md w-16" />
+                <div className="h-6 bg-surface-container-highest rounded-md w-16" />
+                <div className="h-6 bg-surface-container-highest rounded-md w-16" />
+                <div className="h-6 bg-surface-container-highest rounded-md w-16" />
               </div>
             </div>
           ))}
@@ -226,23 +221,22 @@ export function JobDashboard({
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen bg-background text-on-surface overflow-hidden font-sans">
       {applying && <Loader />}
       
-      {/* Header */}
-      <header className="h-16 border-b border-slate-800 bg-[#1e293b] flex items-center justify-between px-6 shrink-0">
+      <header className="h-16 border-b border-outline-variant bg-surface-container flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-4">
           {onBack && (
-            <button onClick={onBack} className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-              <ArrowRight className="w-5 h-5 rotate-180 text-slate-400" />
+            <button onClick={onBack} className="p-2 hover:bg-surface-container-high rounded-lg transition-colors">
+              <ArrowRight className="w-5 h-5 rotate-180 text-on-surface-variant" />
             </button>
           )}
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            <span className="font-bold tracking-tight text-white">Job Discovery</span>
+            <span className="font-bold tracking-tight text-on-surface">Job Discovery</span>
           </div>
-          <div className="h-4 w-[1px] bg-slate-700 mx-2" />
-          <div className="text-sm text-slate-400">
+          <div className="h-4 w-[1px] bg-outline-variant mx-2" />
+          <div className="text-sm text-on-surface-variant">
             {matchedJobs.length} jobs found • {selectedJobs.size} selected
           </div>
         </div>
@@ -253,13 +247,13 @@ export function JobDashboard({
           </p>
           <button
             onClick={selectAll}
-            className="text-xs font-medium text-slate-400 hover:text-white px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+            className="text-xs font-medium text-on-surface-variant hover:text-on-surface px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors"
           >
             Select All
           </button>
           <button
             onClick={deselectAll}
-            className="text-xs font-medium text-slate-400 hover:text-white px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+            className="text-xs font-medium text-on-surface-variant hover:text-on-surface px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors"
           >
             Deselect All
           </button>
@@ -279,25 +273,24 @@ export function JobDashboard({
         </div>
       </header>
 
-      {/* Filters Bar */}
-      <div className="h-14 border-b border-slate-800 bg-[#0f172a] flex items-center px-6 gap-4 shrink-0">
+      <div className="h-14 border-b border-outline-variant bg-background flex items-center px-6 gap-4 shrink-0">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/50" />
           <input
             type="text"
             placeholder="Search companies, roles, locations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#1e293b] border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+            className="w-full bg-surface-container border border-outline-variant rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface placeholder:text-on-surface-variant/50"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-500" />
+          <Filter className="w-4 h-4 text-on-surface-variant/50" />
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as any)}
-            className="bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+            className="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface"
           >
             <option value="all">All Matches</option>
             <option value="high">High Match (70%+)</option>
@@ -307,47 +300,44 @@ export function JobDashboard({
         </div>
       </div>
 
-      {/* Job List */}
       <div className="flex-1 overflow-y-auto p-6">
         {filteredJobs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <Briefcase className="w-16 h-16 text-slate-600 mb-4" />
-            <h3 className="text-lg font-bold text-white mb-2">No jobs found</h3>
-            <p className="text-slate-400 text-sm">Try adjusting your filters or search query</p>
+            <Briefcase className="w-16 h-16 text-on-surface-variant/30 mb-4" />
+            <h3 className="text-lg font-bold text-on-surface mb-2">No jobs found</h3>
+            <p className="text-on-surface-variant text-sm">Try adjusting your filters or search query</p>
           </div>
         ) : (
           <div className="grid gap-4 max-w-6xl mx-auto">
             {filteredJobs.map((job) => (
               <div
                 key={job.id}
-                className={`bg-[#1e293b] border-2 rounded-xl p-6 transition-all cursor-pointer hover:border-slate-600 ${
-                  selectedJobs.has(job.id) ? "border-primary bg-primary/5" : "border-slate-800"
+                className={`bg-surface-container border-2 rounded-xl p-6 transition-all cursor-pointer hover:border-outline-variant ${
+                  selectedJobs.has(job.id) ? "border-primary bg-primary/5" : "border-outline-variant/50"
                 }`}
                 onClick={() => toggleJobSelection(job.id)}
               >
                 <div className="flex items-start gap-4">
-                  {/* Checkbox */}
                   <div className="pt-1">
                     <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
                       selectedJobs.has(job.id) 
                         ? "border-primary bg-primary" 
-                        : "border-slate-600 bg-transparent"
+                        : "border-outline-variant bg-transparent"
                     }`}>
-                      {selectedJobs.has(job.id) && <Check className="w-3 h-3 text-white" />}
+                      {selectedJobs.has(job.id) && <Check className="w-3 h-3 text-on-primary" />}
                     </div>
                   </div>
 
-                  {/* Job Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-bold text-white text-lg truncate">{job.role}</h3>
+                          <h3 className="font-bold text-on-surface text-lg truncate">{job.role}</h3>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${getMatchScoreColor(job.matchScore)}`}>
                             {job.matchScore}% match
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-400">
+                        <div className="flex items-center gap-4 text-sm text-on-surface-variant">
                           <div className="flex items-center gap-1">
                             <Building2 className="w-3.5 h-3.5" />
                             <span>{job.company}</span>
@@ -366,19 +356,18 @@ export function JobDashboard({
                       </div>
                     </div>
 
-                    {/* Skills */}
                     {job.matchedSkills.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-3">
                         {job.matchedSkills.slice(0, 5).map((skill, idx) => (
                           <span
                             key={idx}
-                            className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-md"
+                            className="px-2 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs rounded-md"
                           >
                             {skill}
                           </span>
                         ))}
                         {job.matchedSkills.length > 5 && (
-                          <span className="px-2 py-1 bg-slate-700 text-slate-400 text-xs rounded-md">
+                          <span className="px-2 py-1 bg-surface-container-highest text-on-surface-variant text-xs rounded-md">
                             +{job.matchedSkills.length - 5} more
                           </span>
                         )}
