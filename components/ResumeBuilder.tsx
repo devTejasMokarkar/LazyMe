@@ -1135,7 +1135,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                   {phone && <span>{phone}</span>}
                   <span>{location || 'Location'}</span>
                 </div>
-                <div className="space-y-5 flex-1">
+                <div className="space-y-5">
                   {summary && (
                     <div>
                       <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-2", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>Summary</h3>

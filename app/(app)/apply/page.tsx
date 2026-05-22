@@ -252,66 +252,65 @@ export default function ApplyPage() {
 
           {/* AI Search Card */}
           {searchMode === 'ai' && showAutoSearch && resumeData && (
-            <div className="bg-gradient-to-r from-primary/10 to-tertiary/10 border border-primary/20 rounded-xl p-5 mb-4">
+            <div className="bg-surface-container border border-outline-variant/50 rounded-xl p-5 mb-4 shadow-sm">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary/20 rounded-lg">
-                  <Sparkles className="w-6 h-6 text-primary" />
+                <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                  {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-on-background mb-1">AI-Powered Job Matching</h3>
-                  
-                  {isSearching ? (
-                    <div className="flex items-center gap-3 py-2">
-                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                      <p className="text-sm text-on-surface-variant">
-                        Analyzing your resume and finding the most relevant jobs...
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-on-background">AI-Powered Job Matching</h3>
+                      <p className="text-sm text-on-surface-variant mt-1">
+                        {isSearching
+                          ? 'Scanning your resume, expanding keywords, and ranking jobs by fit.'
+                          : `Ready to match ${resumeData.title || 'your profile'} with relevant roles.`}
                       </p>
+                    </div>
+                    <button onClick={() => setShowAutoSearch(false)} className="p-1.5 hover:bg-surface-container-high rounded-lg shrink-0">
+                      <X className="w-4 h-4 text-on-surface-variant" />
+                    </button>
+                  </div>
+
+                  {isSearching ? (
+                    <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        'Reading resume signals',
+                        'Finding matching jobs',
+                        'Scoring role fit'
+                      ].map((step, index) => (
+                        <div key={step} className="flex items-center gap-2 rounded-lg border border-outline-variant/40 bg-background/50 px-3 py-2.5">
+                          <div className={`w-2 h-2 rounded-full ${index === 0 ? 'bg-primary animate-pulse' : 'bg-on-surface-variant/30'}`} />
+                          <span className="text-xs font-medium text-on-surface-variant">{step}</span>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <>
-                      <p className="text-sm text-on-surface-variant mb-3">
-                        Found your resume with <strong>{resumeData.title || 'Software Developer'}</strong> and 
-                        {resumeData.skills?.length ? ` ${resumeData.skills.slice(0, 5).join(', ')}` : ' relevant skills'}.
-                      </p>
-                      
-                      {resumeData.location && (
-                        <p className="text-sm text-on-surface-variant mb-3">
-                          <MapPin className="w-4 h-4 inline mr-1" />
-                          Location: {resumeData.location}
-                        </p>
-                      )}
-
-                      <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
                         {resumeData.skills?.slice(0, 6).map((skill, i) => (
-                          <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant">
+                          <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-background border border-outline-variant/30 text-on-surface-variant">
                             {skill}
                           </span>
                         ))}
+                        {resumeData.location && (
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-background border border-outline-variant/30 text-on-surface-variant">
+                            <MapPin className="w-3 h-3 inline mr-1" />
+                            {resumeData.location}
+                          </span>
+                        )}
                       </div>
-                    </>
-                  )}
-
-                  <button
-                    onClick={autoSearch}
-                    disabled={isSearching}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                  >
-                    {isSearching ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Finding most relevant jobs for your resume...
-                      </>
-                    ) : (
-                      <>
+                      <button
+                        onClick={autoSearch}
+                        disabled={isSearching}
+                        className="mt-5 flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                      >
                         <Sparkles className="w-4 h-4" />
                         Find Relevant Jobs
-                      </>
-                    )}
-                  </button>
+                      </button>
+                    </>
+                  )}
                 </div>
-                <button onClick={() => setShowAutoSearch(false)} className="p-1 hover:bg-surface-container rounded">
-                  <X className="w-4 h-4 text-on-surface-variant" />
-                </button>
               </div>
             </div>
           )}
@@ -377,7 +376,7 @@ export default function ApplyPage() {
           )}
 
           {/* Status */}
-          {status && (
+          {status && !isSearching && (
             <div className="mb-4">
               <p className={`text-sm ${isError ? 'text-red-500' : 'text-on-surface-variant'}`}>
                 {status}
@@ -399,9 +398,23 @@ export default function ApplyPage() {
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         <div className="max-w-4xl mx-auto">
           {isSearching && (
-            <div className="flex flex-col items-center justify-center py-12 text-on-surface-variant">
-              <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary" />
-              <p className="text-sm">Searching and analyzing jobs...</p>
+            <div className="space-y-3">
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="bg-surface-container border border-outline-variant/40 rounded-xl p-4 animate-pulse">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-3 flex-1">
+                      <div className="h-4 w-1/3 rounded bg-surface-container-high" />
+                      <div className="h-3 w-1/2 rounded bg-surface-container-high" />
+                      <div className="flex gap-2">
+                        <div className="h-6 w-20 rounded-full bg-surface-container-high" />
+                        <div className="h-6 w-24 rounded-full bg-surface-container-high" />
+                        <div className="h-6 w-16 rounded-full bg-surface-container-high" />
+                      </div>
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-surface-container-high" />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
           
