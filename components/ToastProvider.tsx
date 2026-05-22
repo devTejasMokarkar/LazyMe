@@ -37,15 +37,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   };
 
   const iconMap = {
-    success: <CheckCircle className="w-5 h-5 text-green-500" />,
-    error: <AlertCircle className="w-5 h-5 text-red-500" />,
-    info: <Info className="w-5 h-5 text-blue-500" />,
+    success: <CheckCircle className="w-5 h-5 text-success" />,
+    error: <AlertCircle className="w-5 h-5 text-error" />,
+    info: <Info className="w-5 h-5 text-info" />,
   };
 
   const bgMap = {
-    success: "bg-green-500/10 border-green-500/30",
-    error: "bg-red-500/10 border-red-500/30",
-    info: "bg-blue-500/10 border-blue-500/30",
+    success: "bg-success/10 border-success/30",
+    error: "bg-error/10 border-error/30",
+    info: "bg-info/10 border-info/30",
   };
 
   return (

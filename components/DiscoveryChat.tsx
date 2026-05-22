@@ -139,7 +139,7 @@ export default function DiscoveryChat() {
     { 
       label: 'Interview Q&A', 
       icon: MessageSquareQuote, 
-      color: 'text-orange-400',
+      color: 'text-tertiary', 
       onClick: () => setShowQNA(true)
     },
   ];
@@ -169,7 +169,7 @@ export default function DiscoveryChat() {
             </motion.div>
           </div>
           
-          <h2 className="text-6xl font-bold text-on-surface leading-tight mb-6 tracking-tighter">
+          <h2 className="text-6xl font-bold text-primary leading-tight mb-6 tracking-tighter">
             {isMatching ? "AI Analysing Match..." : "Welcome to LazyMe AI"}
           </h2>
           <p className="text-on-surface-variant text-xl font-medium max-w-lg mb-12 leading-relaxed">
@@ -185,7 +185,7 @@ export default function DiscoveryChat() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 + i * 0.1 }}
                   onClick={action.onClick}
-                  className="px-8 py-3.5 bg-surface-container border border-outline-variant rounded-full text-on-surface hover:bg-surface-container-high transition-all flex items-center gap-3 group shadow-xl hover:scale-105 active:scale-95"
+                  className="px-8 py-3.5 bg-surface-container border border-outline-variant rounded-full text-primary hover:bg-surface-container-high transition-all flex items-center gap-3 group shadow-xl hover:scale-105 active:scale-95"
                 >
                   <action.icon className={`w-5 h-5 ${action.color}`} />
                   <span className="text-[11px] font-bold uppercase tracking-widest">{action.label}</span>
@@ -274,7 +274,7 @@ export default function DiscoveryChat() {
                 <div 
                   contentEditable
                   onInput={(e) => setJdText(e.currentTarget.innerHTML)}
-                  className="w-full h-48 bg-background border border-outline-variant rounded-xl p-4 text-on-surface placeholder:text-on-surface-variant/50 focus:ring-1 focus:ring-primary outline-none transition-all font-mono text-xs overflow-y-auto"
+                  className="w-full h-48 bg-background border border-outline-variant rounded-xl p-4 text-primary placeholder:text-on-surface-variant/50 focus:ring-1 focus:ring-primary outline-none transition-all font-mono text-xs overflow-y-auto"
                   dangerouslySetInnerHTML={{ __html: jdText }}
                 />
                 <div className="flex justify-end mt-4">
@@ -294,15 +294,15 @@ export default function DiscoveryChat() {
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface hover:bg-surface-bright transition-all shadow-lg active:scale-90"
+                className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary hover:bg-surface-container-highest transition-all shadow-lg active:scale-90"
               >
-                {isMatching ? <Loader2 className="w-5 h-5 animate-spin text-primary" /> : <Plus className="w-6 h-6 border-outline text-on-surface" />}
+                {isMatching ? <Loader2 className="w-5 h-5 animate-spin text-primary" /> : <Plus className="w-6 h-6 border-outline text-on-background" />}
               </button>
               <button 
                 onClick={() => setShowJDModal(!showJDModal)}
                 className={cn(
                   "w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-lg active:scale-90",
-                  showJDModal ? "bg-primary text-on-primary" : "bg-surface-container-highest text-on-surface hover:bg-surface-bright"
+                  showJDModal ? "bg-primary text-on-primary" : "bg-surface-container-highest text-primary hover:bg-surface-container-highest"
                 )}
               >
                 <Code className="w-6 h-6" />
@@ -325,7 +325,7 @@ export default function DiscoveryChat() {
                   </div>
                 )}
                 {uploadError && (
-                  <span className="text-[11px] text-red-400 font-medium px-1">{uploadError}</span>
+                  <span                   className="text-[11px] text-error font-medium px-1">{uploadError}</span>
                 )}
                 <input 
                   value={prompt}
@@ -344,7 +344,7 @@ export default function DiscoveryChat() {
   alert("LazyMe AI is processing your request...");
 }
                   }}
-                  className="bg-transparent border-none focus:ring-0 text-on-surface w-full font-medium text-lg placeholder:text-on-surface-variant"
+                  className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-lg placeholder:text-on-surface-variant"
                   placeholder={uploadedResume ? "Add a message or click Send to view your resume..." : "Tell LazyMe what to find next..."}
                 />
               </div>
@@ -385,7 +385,7 @@ export default function DiscoveryChat() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowQNA(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              className="absolute inset-0 bg-on-background/60 backdrop-blur-md"
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -413,7 +413,7 @@ export default function DiscoveryChat() {
                   <div key={idx} className="space-y-4">
                     <div className="flex gap-4 items-start">
                       <span className="text-2xl font-black text-[rgba(0,107,80,0.2)] font-mono">0{idx + 1}</span>
-                      <h4 className="text-lg font-bold text-on-surface leading-tight pt-1">{item.q}</h4>
+                       <h4 className="text-lg font-bold text-primary leading-tight pt-1">{item.q}</h4>
                     </div>
                     <div className="ml-12 p-6 bg-background rounded-[1.5rem] border border-outline-variant shadow-inner relative overflow-hidden">
                        <div className="absolute top-0 left-0 w-1 h-full bg-tertiary" style={{ opacity: 0.3 }} />

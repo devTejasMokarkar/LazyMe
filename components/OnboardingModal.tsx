@@ -84,7 +84,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
               )} />
             ))}
           </div>
-          <h1 className="text-3xl font-bold text-on-surface tracking-tight">
+          <h1 className="text-3xl font-bold text-primary tracking-tight">
             {step === 1 ? "Welcome to LazyMe AI" : "AI Profile Analysis"}
           </h1>
           <p className="text-on-surface-variant font-medium">
@@ -124,11 +124,11 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
                         <span className="font-bold text-primary uppercase tracking-widest text-xs">Parsing Resume...</span>
                       </div>
                     ) : (
-                      <>
-                        <Upload className="w-12 h-12 text-on-surface-variant mb-4 group-hover:text-primary transition-colors" />
-                        <span className="font-bold text-on-surface uppercase tracking-widest text-xs mb-2">Upload Resume</span>
-                        <span className="text-on-surface-variant text-sm">PDF or DOCX (Max 5MB)</span>
-                      </>
+                        <>
+                          <Upload className="w-12 h-12 text-on-surface-variant mb-4 group-hover:text-primary transition-colors" />
+                          <span className="font-bold text-primary uppercase tracking-widest text-xs mb-2">Upload Resume</span>
+                          <span className="text-on-surface-variant text-sm">PDF or DOCX (Max 5MB)</span>
+                        </>
                     )}
                   </label>
                 </div>
@@ -155,7 +155,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
                     {getTopSkills().map((skill: any) => (
                       <div key={skill.name} className="bg-surface-container border border-outline-variant p-5 rounded-2xl flex flex-col gap-3 shadow-inner">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-bold text-on-surface">{skill.name}</span>
+                          <span className="text-sm font-bold text-primary">{skill.name}</span>
                           <span className="font-mono text-primary font-bold">{skill.strength}%</span>
                         </div>
                         <div className="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
@@ -179,7 +179,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
                   <div>
                     <h3 className="text-sm font-bold text-primary mb-2 uppercase tracking-widest">AI Recommendation</h3>
                     <p className="text-sm text-on-surface-variant leading-relaxed font-medium">
-                      Based on your <span className="text-on-surface font-bold">{parsedData?.title || 'profile'}</span> experience, we've optimized your dashboard to highlight high-match engineering roles at tier-1 startups.
+                      Based on your <span className="text-primary font-bold">{parsedData?.title || 'profile'}</span> experience, we've optimized your dashboard to highlight high-match engineering roles at tier-1 startups.
                     </p>
                   </div>
                 </section>

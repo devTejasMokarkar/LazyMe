@@ -156,9 +156,9 @@ export function JobDashboard({
   };
 
   const getMatchScoreColor = (score: number) => {
-    if (score >= 70) return "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10";
-    if (score >= 50) return "text-yellow-600 dark:text-yellow-400 bg-yellow-500/10";
-    return "text-red-600 dark:text-red-400 bg-red-500/10";
+    if (score >= 70) return "text-success bg-success/10";
+    if (score >= 50) return "text-secondary bg-secondary/10";
+    return "text-error bg-error/10";
   };
 
   const getApplyTypeIcon = (type: string) => {
@@ -176,7 +176,8 @@ export function JobDashboard({
 
   if (loading) {
     return (
-      <div className="flex flex-col h-screen bg-background text-on-surface overflow-hidden font-sans animate-pulse">
+      <div className="flex flex-col h-screen bg-background text-primary overflow-hidden font-sans animate-pulse">
+
         <header className="h-16 border-b border-outline-variant bg-surface-container flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-4">
             <div className="h-6 bg-surface-container-highest rounded-lg w-28" />
@@ -221,7 +222,7 @@ export function JobDashboard({
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background text-on-surface overflow-hidden font-sans">
+    <div className="flex flex-col h-screen bg-background text-primary overflow-hidden font-sans">
       {applying && <Loader />}
       
       <header className="h-16 border-b border-outline-variant bg-surface-container flex items-center justify-between px-6 shrink-0">
@@ -233,7 +234,7 @@ export function JobDashboard({
           )}
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            <span className="font-bold tracking-tight text-on-surface">Job Discovery</span>
+            <span className="font-bold tracking-tight text-on-background">Job Discovery</span>
           </div>
           <div className="h-4 w-[1px] bg-outline-variant mx-2" />
           <div className="text-sm text-on-surface-variant">
@@ -247,26 +248,26 @@ export function JobDashboard({
           </p>
           <button
             onClick={selectAll}
-            className="text-xs font-medium text-on-surface-variant hover:text-on-surface px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors"
+            className="text-xs font-medium text-on-surface-variant hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors"
           >
             Select All
           </button>
           <button
             onClick={deselectAll}
-            className="text-xs font-medium text-on-surface-variant hover:text-on-surface px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors"
+            className="text-xs font-medium text-on-surface-variant hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors"
           >
             Deselect All
           </button>
           <button
             onClick={handleBatchApply}
             disabled={selectedJobs.size === 0}
-            className="flex flex-col items-center gap-1 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex flex-col items-center gap-1 px-6 py-2 bg-primary hover:bg-primary/90 text-on-primary text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4" />
               Apply to {selectedJobs.size} Job{selectedJobs.size !== 1 ? "s" : ""}
             </div>
-            <span className="text-[10px] font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+            <span className="text-[10px] font-semibold text-primary">
               Found a job? Just LazyMe it.
             </span>
           </button>
@@ -281,7 +282,7 @@ export function JobDashboard({
             placeholder="Search companies, roles, locations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface-container border border-outline-variant rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface placeholder:text-on-surface-variant/50"
+            className="w-full bg-surface-container border border-outline-variant rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-primary placeholder:text-on-surface-variant/50"
           />
         </div>
 
@@ -290,7 +291,7 @@ export function JobDashboard({
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as any)}
-            className="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface"
+            className="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-primary"
           >
             <option value="all">All Matches</option>
             <option value="high">High Match (70%+)</option>
@@ -302,9 +303,9 @@ export function JobDashboard({
 
       <div className="flex-1 overflow-y-auto p-6">
         {filteredJobs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <Briefcase className="w-16 h-16 text-on-surface-variant/30 mb-4" />
-            <h3 className="text-lg font-bold text-on-surface mb-2">No jobs found</h3>
+        <div className="flex flex-col items-center justify-center h-full text-center">
+              <Briefcase className="w-16 h-16 text-on-surface-variant/30 mb-4" />
+              <h3 className="text-lg font-bold text-primary mb-2">No jobs found</h3>
             <p className="text-on-surface-variant text-sm">Try adjusting your filters or search query</p>
           </div>
         ) : (
@@ -332,7 +333,7 @@ export function JobDashboard({
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-bold text-on-surface text-lg truncate">{job.role}</h3>
+                           <h3 className="font-bold text-primary text-lg truncate">{job.role}</h3>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${getMatchScoreColor(job.matchScore)}`}>
                             {job.matchScore}% match
                           </span>
@@ -361,7 +362,7 @@ export function JobDashboard({
                         {job.matchedSkills.slice(0, 5).map((skill, idx) => (
                           <span
                             key={idx}
-                            className="px-2 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs rounded-md"
+                            className="px-2 py-1 bg-success/10 text-success text-xs rounded-md"
                           >
                             {skill}
                           </span>

@@ -136,25 +136,25 @@ export default function Dashboard() {
       <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-8 animate-pulse">
         {/* Discovery Chat Hero Skeleton */}
         <div className="bg-surface-container-low border border-outline-variant/30 rounded-3xl p-8 h-40 flex flex-col justify-end space-y-4">
-          <div className="h-8 bg-white/5 rounded-lg w-1/3" />
-          <div className="h-12 bg-white/5 rounded-xl w-full" />
+          <div className="h-8 bg-surface-container-high rounded-lg w-1/3" />
+          <div className="h-12 bg-surface-container-high rounded-xl w-full" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Sidebar Filters Skeleton */}
           <div className="lg:col-span-3 space-y-6">
             <div className="bg-surface-container-low border border-outline-variant/50 rounded-2xl p-5 space-y-6">
-              <div className="h-5 bg-white/5 rounded-lg w-1/2" />
+              <div className="h-5 bg-surface-bright/30 rounded-lg w-1/2" />
               <div className="space-y-3">
-                <div className="h-4 bg-white/5 rounded-lg w-1/3" />
+                <div className="h-4 bg-surface-bright/30 rounded-lg w-1/3" />
                 <div className="flex gap-2">
-                  <div className="h-8 bg-white/5 rounded-lg w-16" />
-                  <div className="h-8 bg-white/5 rounded-lg w-16" />
+                  <div className="h-8 bg-surface-bright/30 rounded-lg w-16" />
+                  <div className="h-8 bg-surface-bright/30 rounded-lg w-16" />
                 </div>
               </div>
               <div className="space-y-2">
-                <div className="h-4 bg-white/5 rounded-lg w-1/2" />
-                <div className="h-2 bg-white/5 rounded-full w-full" />
+                <div className="h-4 bg-surface-bright/30 rounded-lg w-1/2" />
+                <div className="h-2 bg-surface-bright/30 rounded-full w-full" />
               </div>
             </div>
           </div>
@@ -164,19 +164,19 @@ export default function Dashboard() {
             {[1, 2, 3].map((n) => (
               <div key={n} className="bg-surface-container-low border border-outline-variant/50 rounded-2xl p-6 space-y-4">
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-white/5 rounded-xl shrink-0" />
+                  <div className="w-12 h-12 bg-surface-bright/30 rounded-xl shrink-0" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-6 bg-white/5 rounded-lg w-1/3" />
-                    <div className="h-4 bg-white/5 rounded-lg w-1/4" />
+                    <div className="h-6 bg-surface-bright/30 rounded-lg w-1/3" />
+                    <div className="h-4 bg-surface-bright/30 rounded-lg w-1/4" />
                   </div>
-                  <div className="w-16 h-8 bg-white/5 rounded-lg" />
+                  <div className="w-16 h-8 bg-surface-bright/30 rounded-lg" />
                 </div>
-                <div className="h-2 bg-white/5 rounded-full w-full" />
+                <div className="h-2 bg-surface-bright/30 rounded-full w-full" />
                 <div className="flex justify-between items-center pt-4 border-t border-outline-variant/30">
-                  <div className="h-6 bg-white/5 rounded-lg w-20" />
+                  <div className="h-6 bg-surface-bright/30 rounded-lg w-20" />
                   <div className="flex gap-3">
-                    <div className="h-9 bg-white/5 rounded-xl w-24" />
-                    <div className="h-9 bg-white/5 rounded-xl w-24" />
+                    <div className="h-9 bg-surface-bright/30 rounded-xl w-24" />
+                    <div className="h-9 bg-surface-bright/30 rounded-xl w-24" />
                   </div>
                 </div>
               </div>
@@ -238,7 +238,7 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              <button className="w-full py-2.5 bg-surface-container-high text-on-surface text-[10px] font-semibold uppercase tracking-wider rounded-lg hover:bg-surface-container-highest transition-all">
+                <button className="w-full py-2.5 bg-surface-container-high text-on-background text-[10px] font-semibold uppercase tracking-wider rounded-lg hover:bg-surface-container-highest transition-all">
                 Reset
               </button>
             </div>
@@ -253,7 +253,7 @@ export default function Dashboard() {
               <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Autopilot</h3>
             </div>
             <div className="space-y-4 relative z-10">
-              <p className="text-sm text-on-surface">Scanning <span className="text-primary font-bold">Fortune 500</span> for matches.</p>
+              <p className="text-sm text-on-background">Scanning <span className="text-primary font-bold">Fortune 500</span> for matches.</p>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] font-semibold uppercase tracking-wider text-on-surface-variant">Progress</span>
@@ -346,7 +346,7 @@ export default function Dashboard() {
                                 className="h-full bg-tertiary rounded-full"
                               />
                             </div>
-                            <span className="text-[10px] font-mono font-bold text-on-surface">{factor.score}%</span>
+                            <span className="text-[10px] font-mono font-bold text-primary">{factor.score}%</span>
                           </div>
                         </div>
                       ))}

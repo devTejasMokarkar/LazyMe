@@ -25,10 +25,13 @@ const config = {
         primary: {
           DEFAULT: "var(--primary)",
           foreground: "var(--on-primary)",
+          container: "var(--primary-container)",
+          "on-container": "var(--on-primary-container)",
         },
         secondary: {
           DEFAULT: "var(--secondary)",
           foreground: "var(--on-surface-variant)",
+          container: "var(--secondary-container)",
         },
         tertiary: {
           DEFAULT: "var(--tertiary)",
@@ -50,6 +53,21 @@ const config = {
             highest: "var(--surface-container-highest)",
             lowest: "var(--surface-container-lowest)",
           },
+          bright: "var(--surface-bright)",
+        },
+        "text-success": "var(--text-success)",
+        "on-primary-container": "var(--on-primary-container)",
+        "on-surface": "var(--text-primary)",
+        error: "var(--text-error)",
+        warning: "var(--text-warning)",
+        info: "var(--text-info)",
+        toast: {
+          success: "var(--text-success)",
+          error: "var(--text-error)",
+          info: "var(--text-info)",
+        },
+        success: {
+          DEFAULT: "var(--text-success)",
         },
         outline: {
           DEFAULT: "var(--outline)",

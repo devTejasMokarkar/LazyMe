@@ -97,7 +97,7 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
         <div
           onDrop={onDrop}
           onDragOver={(e) => e.preventDefault()}
-          className="border-2 border-dashed border-slate-600 rounded-2xl p-8 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
+          className="border-2 border-dashed border-outline-variant rounded-2xl p-8 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
         >
           <input
             type="file"
@@ -107,26 +107,26 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
             id="resume-upload"
           />
           <label htmlFor="resume-upload" className="cursor-pointer block">
-            <Upload className="w-10 h-10 mx-auto mb-3 text-slate-400" />
-            <p className="text-slate-200 font-medium mb-1">Drop your resume here</p>
-            <p className="text-slate-500 text-sm">PDF, DOCX, TXT, or TEX (max 5MB)</p>
+            <Upload className="w-10 h-10 mx-auto mb-3 text-on-surface-variant" />
+            <p className="text-on-background font-medium mb-1">Drop your resume here</p>
+            <p className="text-on-surface-variant text-sm">PDF, DOCX, TXT, or TEX (max 5MB)</p>
           </label>
         </div>
       ) : (
-        <div className="flex items-center gap-3 bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+        <div className="flex items-center gap-3 bg-surface-container-high/50 border border-outline-variant rounded-xl p-4">
           <File className="w-8 h-8 text-primary" />
           <div className="flex-1 min-w-0">
-            <p className="text-slate-200 font-medium truncate">{file.name}</p>
-            <p className="text-slate-500 text-sm">
+            <p className="text-on-background font-medium truncate">{file.name}</p>
+            <p className="text-on-surface-variant text-sm">
               {parsing ? "Parsing with AI..." : "Ready"}
             </p>
           </div>
           {parsing && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
           <button
             onClick={() => { setFile(null); }}
-            className="p-1 hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-1 hover:bg-surface-container-highest rounded-lg transition-colors"
           >
-            <X className="w-4 h-4 text-slate-400" />
+            <X className="w-4 h-4 text-on-surface-variant" />
           </button>
         </div>
       )}

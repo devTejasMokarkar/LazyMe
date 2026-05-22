@@ -54,7 +54,7 @@ export default function LandingPage() {
     { 
       label: 'Interview Q&A', 
       icon: MessageSquareQuote, 
-      color: 'text-orange-400',
+      color: 'text-tertiary',
       onClick: () => setShowQNA(true),
       disabled: false
     },
@@ -350,7 +350,7 @@ export default function LandingPage() {
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full mb-8 backdrop-blur-md"
+          className="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high/30 border border-outline-variant rounded-full mb-8 backdrop-blur-md"
         >
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -359,18 +359,18 @@ export default function LandingPage() {
           <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Beta Access Open</span>
         </motion.div>
 
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-4xl w-full flex flex-col items-center text-center relative z-10"
-        >
-          <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-8 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-4xl w-full flex flex-col items-center text-center relative z-10"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-surface-container-high/40 flex items-center justify-center mb-8 border border-surface-container-highest/40 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
             <motion.div animate={{ rotate: isMatching ? 360 : 0 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
               <Wand2 className="w-8 h-8 text-primary fill-primary/20" />
             </motion.div>
           </div>
           
-          <h1 className="text-4xl md:text-6xl font-bold text-on-surface leading-tight mb-4 tracking-tighter max-w-3xl">
+          <h1 className="text-4xl md:text-6xl font-bold text-primary leading-tight mb-4 tracking-tighter max-w-3xl">
             {isMatching ? "Analyzing Profile..." : matchResult ? "High Match Detected!" : "Welcome to LazyMe AI"}
           </h1>
           <p className="text-on-surface-variant text-base md:text-lg font-medium max-w-2xl mb-8 leading-relaxed">
@@ -391,10 +391,10 @@ export default function LandingPage() {
                   disabled={action.disabled}
                   title={action.tooltip}
                   className={cn(
-                    "px-5 py-2.5 glass rounded-full text-on-surface transition-all flex items-center gap-2 group shadow-lg",
+                    "px-5 py-2.5 glass rounded-full text-primary transition-all flex items-center gap-2 group shadow-lg",
                     action.disabled 
                       ? "opacity-40 cursor-not-allowed" 
-                      : "hover:bg-white/5 hover:scale-102 active:scale-98"
+                      : "hover:bg-surface-container-high/40 hover:scale-102 active:scale-98"
                   )}
                 >
                   <action.icon className={cn("w-4 h-4 transition-transform", !action.disabled && "group-hover:scale-110", action.color)} />
@@ -424,9 +424,9 @@ export default function LandingPage() {
                 className="mb-3 flex justify-center"
               >
                 <div className="flex items-center gap-3 px-4 py-2 bg-surface-container-high border border-outline-variant rounded-xl shadow-lg backdrop-blur-md">
-                  <div className="w-8 h-8 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-center text-[9px] font-bold text-red-400">PDF</div>
+                  <div className="w-8 h-8 bg-error/20 border border-error/30 rounded-lg flex items-center justify-center text-[9px] font-bold text-error">PDF</div>
                   <div className="text-left max-w-[180px]">
-                    <p className="text-xs font-bold truncate text-on-surface">{uploadedFile.name}</p>
+                    <p className="text-xs font-bold truncate text-primary">{uploadedFile.name}</p>
                     <p className="text-[9px] text-on-surface-variant uppercase font-semibold">Ready to parse</p>
                   </div>
                   <button 
@@ -437,7 +437,7 @@ export default function LandingPage() {
                       setAppendPreview(null);
                       setAppendNotice(null);
                     }}
-                    className="ml-2 p-1 hover:bg-surface-container-highest rounded-full text-on-surface-variant hover:text-on-surface transition-colors"
+                    className="ml-2 p-1 hover:bg-surface-container-highest rounded-full text-on-surface-variant hover:text-primary transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -467,7 +467,7 @@ export default function LandingPage() {
             )}
 
             {showJDModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-on-background/60 backdrop-blur-sm">
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -475,8 +475,8 @@ export default function LandingPage() {
                   className="w-full max-w-xl glass rounded-2xl p-6 shadow-2xl text-left"
                 >
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-bold text-on-surface">Paste Job Description</h3>
-                    <button onClick={() => setShowJDModal(false)} className="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high p-1 rounded-md transition-colors"><X className="w-4 h-4" /></button>
+                    <h3 className="text-sm font-bold text-primary">Paste Job Description</h3>
+                    <button onClick={() => setShowJDModal(false)} className="text-on-surface-variant hover:text-primary hover:bg-surface-container-high p-1 rounded-md transition-colors"><X className="w-4 h-4" /></button>
                   </div>
                    <textarea 
                     value={jdText}
@@ -485,15 +485,15 @@ export default function LandingPage() {
                       if (jdError) setJdError(null);
                     }}
                     placeholder="Paste Job Description here..."
-                    className="w-full h-48 bg-background border border-outline-variant rounded-xl p-4 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary mb-4 resize-none"
+                    className="w-full h-48 bg-background border border-outline-variant rounded-xl p-4 text-sm text-primary outline-none focus:ring-2 focus:ring-primary mb-4 resize-none"
                   />
                   {jdError && (
-                    <div className="mb-4 text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-3.5 py-2 rounded-lg">
+                    <div className="mb-4 text-xs font-semibold text-error bg-error/10 border border-error/20 px-3.5 py-2 rounded-lg">
                       {jdError}
                     </div>
                   )}
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => setShowJDModal(false)} className="px-4 py-2 text-xs font-bold text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all">Cancel</button>
+                    <button onClick={() => setShowJDModal(false)} className="px-4 py-2 text-xs font-bold text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all">Cancel</button>
                     <button onClick={handleMatchPreview} disabled={isMatching} className="btn-primary px-6 py-2 text-xs font-bold shadow-lg disabled:opacity-50">
                       {isMatching ? "Analyzing..." : "Analyze Match"}
                     </button>
@@ -514,7 +514,7 @@ export default function LandingPage() {
               <button 
                 type="button" 
                 onClick={() => fileInputRef.current?.click()} 
-                className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-all active:scale-95"
+                className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
                 title="Upload Resume"
               >
                 <Plus className="w-5 h-5" />
@@ -522,7 +522,7 @@ export default function LandingPage() {
               <button 
                 type="button" 
                 onClick={() => setShowJDModal(true)} 
-                className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-all active:scale-95"
+                className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
                 title="Paste Job Description"
               >
                 <Code className="w-5 h-5" />
@@ -545,7 +545,7 @@ export default function LandingPage() {
                 setAppendNotice(null);
               }}
               rows={appendPreview ? 4 : 1}
-              className="bg-transparent border-none focus:ring-0 text-on-surface w-full font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
+              className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
               placeholder="Tell LazyMe what to find next..."
             />
 
@@ -586,7 +586,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ delay: 0.3 + i * 0.05 }} 
-              className="bg-white/2 flex flex-col items-center justify-center p-4 rounded-2xl border border-white/5 hover:border-white/10 transition-all"
+              className="bg-surface-container-high/20 flex flex-col items-center justify-center p-4 rounded-2xl border border-outline-variant/30 hover:border-outline-variant transition-all"
             >
               <span className="text-xl md:text-2xl font-mono text-primary font-bold mb-1">{stat.value}</span>
               <span className="text-[8px] md:text-[9px] uppercase tracking-wider text-on-surface-variant font-bold">{stat.label}</span>
@@ -598,7 +598,7 @@ export default function LandingPage() {
       {/* Modals for Q&A */}
       <AnimatePresence>
         {showPromptHelper && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-on-background/60 backdrop-blur-md">
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -632,7 +632,7 @@ export default function LandingPage() {
                     className="text-left p-5 bg-background border border-outline-variant hover:border-primary/50 rounded-2xl transition-all group"
                   >
                     <span className="text-[9px] font-bold text-primary uppercase block mb-2 tracking-widest">{s.category}</span>
-                    <p className="text-sm font-medium text-on-surface-variant group-hover:text-on-surface leading-relaxed">"{s.text}"</p>
+                    <p className="text-sm font-medium text-on-surface-variant group-hover:text-primary leading-relaxed">"{s.text}"</p>
                   </button>
                 ))}
               </div>
@@ -641,7 +641,7 @@ export default function LandingPage() {
         )}
 
         {showQNA && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-on-background/60 backdrop-blur-md">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-2xl bg-surface-container rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-outline-variant/30">
               <div className="p-8 border-b border-outline-variant flex justify-between items-center">
                 <h3 className="text-2xl font-bold">Interview Mastery</h3>
@@ -705,11 +705,11 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-on-background/80 backdrop-blur-md"
           >
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="w-12 h-12 text-primary animate-spin" />
-              <p className="text-sm font-semibold text-on-surface tracking-wider">
+              <p className="text-sm font-semibold text-on-background tracking-wider">
                 {isParsing ? "Parsing Resume & Preparing Session..." : "Initializing Session..."}
               </p>
             </div>

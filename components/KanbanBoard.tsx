@@ -82,7 +82,7 @@ const JobCard = ({ id, title, company, location, time, next, logo, color, onClic
         </div>
         <span className="font-mono text-[9px] font-bold text-on-surface-variant bg-surface-container-highest px-3 py-1.5 rounded-lg uppercase tracking-widest">{time}</span>
       </div>
-      <h4 className="text-xl font-bold text-on-surface group-hover:text-primary transition-colors tracking-tight leading-snug">{title}</h4>
+      <h4 className="text-xl font-bold text-primary group-hover:text-primary transition-colors tracking-tight leading-snug">{title}</h4>
       <p className="text-sm font-bold text-on-surface-variant mt-1.5">{company} • {location}</p>
       
       <div className="mt-6 flex items-center gap-2.5 bg-primary-container/10 px-4 py-2 rounded-2xl border border-primary/20 w-fit">
@@ -245,26 +245,26 @@ export default function KanbanBoard() {
         <header className="h-28 px-10 border-b border-outline-variant flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-40">
           <div className="flex items-center gap-12">
             <div className="space-y-2">
-              <div className="h-8 bg-white/5 rounded-lg w-28" />
-              <div className="h-4 bg-white/5 rounded-lg w-36" />
+              <div className="h-8 bg-surface-container-high rounded-lg w-28" />
+              <div className="h-4 bg-surface-container-high rounded-lg w-36" />
             </div>
-            <div className="h-12 bg-white/5 rounded-2xl w-[420px]" />
+            <div className="h-12 bg-surface-container-high rounded-2xl w-[420px]" />
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/5 rounded-2xl" />
-            <div className="w-12 h-12 bg-white/5 rounded-2xl" />
-            <div className="h-12 bg-white/5 rounded-2xl w-40" />
+            <div className="w-12 h-12 bg-surface-container-high rounded-2xl" />
+            <div className="w-12 h-12 bg-surface-container-high rounded-2xl" />
+            <div className="h-12 bg-surface-container-high rounded-2xl w-40" />
           </div>
         </header>
 
         {/* Stats Bar Skeleton */}
         <div className="px-10 py-10 flex gap-8">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="flex-1 bg-surface border border-outline-variant rounded-3xl p-8 flex items-center gap-6">
-              <div className="w-14 h-14 bg-white/5 rounded-2xl shrink-0" />
+            <div key={n} className="flex-1 bg-surface-container-high/50 border border-outline-variant rounded-3xl p-8 flex items-center gap-6">
+              <div className="w-14 h-14 bg-surface-container-high rounded-2xl shrink-0" />
               <div className="space-y-2 flex-1">
-                <div className="h-3 bg-white/5 rounded-lg w-1/2" />
-                <div className="h-6 bg-white/5 rounded-lg w-1/4" />
+                <div className="h-3 bg-surface-container-high rounded-lg w-1/2" />
+                <div className="h-6 bg-surface-container-high rounded-lg w-1/4" />
               </div>
             </div>
           ))}
@@ -275,18 +275,18 @@ export default function KanbanBoard() {
           {[1, 2, 3].map((colIndex) => (
             <div key={colIndex} className="w-[380px] flex flex-col gap-8">
               <div className="flex justify-between items-center px-3">
-                <div className="h-5 bg-white/5 rounded-lg w-24" />
-                <div className="w-5 h-5 bg-white/5 rounded-full" />
+                <div className="h-5 bg-surface-container-high rounded-lg w-24" />
+                <div className="w-5 h-5 bg-surface-container-high rounded-full" />
               </div>
-              <div className="flex-1 bg-surface-container-low/10 p-3 rounded-[2.5rem] space-y-6">
+              <div className="flex-1 bg-surface-container-high/30 p-3 rounded-[2.5rem] space-y-6">
                 {[1, 2].map((cardIndex) => (
-                  <div key={cardIndex} className="bg-surface border border-outline-variant rounded-[2rem] p-6 space-y-4">
+                  <div key={cardIndex} className="bg-surface-container border border-outline-variant rounded-[2rem] p-6 space-y-4">
                     <div className="flex justify-between">
-                      <div className="w-12 h-12 bg-white/5 rounded-2xl" />
-                      <div className="w-16 h-6 bg-white/5 rounded-lg" />
+                      <div className="w-12 h-12 bg-surface-container-high rounded-2xl" />
+                      <div className="w-16 h-6 bg-surface-container-high rounded-lg" />
                     </div>
-                    <div className="h-6 bg-white/5 rounded-lg w-3/4" />
-                    <div className="h-4 bg-white/5 rounded-lg w-1/2" />
+                    <div className="h-6 bg-surface-container-high rounded-lg w-3/4" />
+                    <div className="h-4 bg-surface-container-high rounded-lg w-1/2" />
                   </div>
                 ))}
               </div>
@@ -353,7 +353,7 @@ export default function KanbanBoard() {
             </div>
             <div>
               <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]">{stat.label}</div>
-              <div className="text-3xl font-mono font-bold text-on-surface mt-1.5 tracking-tight">{stat.value}</div>
+              <div className="text-3xl font-mono font-bold text-primary mt-1.5 tracking-tight">{stat.value}</div>
             </div>
           </div>
         ))}
@@ -381,7 +381,7 @@ export default function KanbanBoard() {
                         "w-2 h-2 rounded-full",
                         col.id === 'Interview' ? 'bg-tertiary animate-pulse' : (col.id === 'Offer' ? 'bg-primary' : 'bg-on-surface-variant/30')
                       )} />
-                      <h3 className="text-[11px] font-black text-on-surface uppercase tracking-[0.25em] flex items-center gap-3">
+                      <h3 className="text-[11px] font-black text-primary uppercase tracking-[0.25em] flex items-center gap-3">
                         {col.title} <span className="text-on-surface-variant bg-surface-container-highest px-3 py-1 rounded-full font-mono text-[10px]">{colCards.length}</span>
                       </h3>
                     </div>
@@ -440,7 +440,7 @@ export default function KanbanBoard() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedJob(null)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60]"
+              className="fixed inset-0 bg-on-background/80 backdrop-blur-md z-[60]"
             />
             <motion.aside 
               initial={{ x: '100%' }}
@@ -483,7 +483,7 @@ export default function KanbanBoard() {
                         <div key={i} className="relative pl-12 group/step">
                           <div className="absolute left-0 top-1.5 w-[20px] h-[20px] rounded-full ring-8 ring-surface-container-low bg-primary shadow-[0_0_20px_rgba(255,178,186,0.6)] transition-transform group-hover/step:scale-125" />
                           <div className="font-mono text-[10px] font-bold text-primary/60 mb-2 uppercase tracking-widest">{new Date(step.timestamp).toLocaleString()}</div>
-                          <div className="text-xl font-bold text-on-surface tracking-tight">{step.status}</div>
+                          <div className="text-xl font-bold text-primary tracking-tight">{step.status}</div>
                           <div className="text-sm font-medium text-on-surface-variant mt-2 leading-relaxed opacity-80">{step.note}</div>
                         </div>
                       ))}
@@ -502,7 +502,7 @@ export default function KanbanBoard() {
                          </div>
                          <h3 className="text-sm font-black text-primary uppercase tracking-[0.25em]">Copilot Strategy</h3>
                       </div>
-                      <p className="text-lg font-medium text-on-surface leading-relaxed italic opacity-90">
+                       <p className="text-lg font-medium text-primary leading-relaxed italic opacity-90">
                         "{selectedJob.raw.aiInsights || "LazyMe is generating a custom interview strategy for this role. We are currently analyzing their tech stack vs your profile graph."}"
                       </p>
                     </div>
@@ -513,14 +513,14 @@ export default function KanbanBoard() {
                     <h3 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.4em] mb-8">Matching Skills</h3>
                     <div className="flex flex-wrap gap-3">
                        {selectedJob.tags?.map((tag: string) => (
-                         <span key={tag} className="px-5 py-2 bg-surface-container-highest border border-outline-variant rounded-2xl text-[11px] font-bold uppercase tracking-widest text-on-surface transition-all hover:bg-primary hover:text-on-primary cursor-default">{tag}</span>
+                         <span key={tag} className="px-5 py-2 bg-surface-container-highest border border-outline-variant rounded-2xl text-[11px] font-bold uppercase tracking-widest text-primary transition-all hover:bg-primary hover:text-on-primary cursor-default">{tag}</span>
                        ))}
                     </div>
                   </section>
                 </div>
 
                 <div className="p-10 border-t border-outline-variant bg-surface-container-low/95 backdrop-blur-xl flex gap-6 shadow-[0_-20px_50px_rgba(0,0,0,0.3)]">
-                  <button className="flex-1 bg-surface-container-high border border-outline-variant text-on-surface py-5 rounded-2xl font-bold text-[11px] uppercase tracking-[0.3em] hover:bg-surface-container-highest transition-all flex items-center justify-center gap-3 active:scale-95">
+                  <button className="flex-1 bg-surface-container-high border border-outline-variant text-primary py-5 rounded-2xl font-bold text-[11px] uppercase tracking-[0.3em] hover:bg-surface-container-highest transition-all flex items-center justify-center gap-3 active:scale-95">
                     <ExternalLink className="w-5 h-5" /> Portal
                   </button>
                   <button className="flex-1 bg-primary text-on-primary py-5 rounded-2xl font-bold text-[11px] uppercase tracking-[0.3em] hover:brightness-110 shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95">

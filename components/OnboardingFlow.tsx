@@ -97,7 +97,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   const renderJobInputToggle = () => (
-    <div className="grid grid-cols-2 gap-1 rounded-xl border border-slate-700 bg-slate-900/60 p-1">
+    <div className="grid grid-cols-2 gap-1 rounded-xl border border-outline-variant bg-surface-container-high/50 p-1">
       {[
         { id: "jd" as const, label: "Paste JD" },
         { id: "details" as const, label: "Add details" },
@@ -108,8 +108,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           onClick={() => setJobInputMode(option.id)}
           className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
             jobInputMode === option.id
-              ? "bg-primary text-white shadow-lg shadow-primary/20"
-              : "text-slate-400 hover:text-slate-200"
+              ? "bg-primary text-on-primary shadow-lg shadow-primary/20"
+              : "text-on-surface-variant hover:text-primary"
           }`}
         >
           {option.label}
@@ -124,7 +124,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {jobInputMode === "jd" ? (
         <textarea
           placeholder="Paste the full job description. AI will infer the role, company context, skills, and cover letter angle."
-          className="input-field min-h-[220px] resize-none"
+          className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all min-h-[220px] resize-none"
           value={jobDescription}
           onChange={e => setJobDescription(e.target.value)}
         />
@@ -133,27 +133,27 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <input
             type="text"
             placeholder="Job Title *"
-            className="input-field"
+            className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             value={jobTitle}
             onChange={e => setJobTitle(e.target.value)}
           />
           <input
             type="text"
             placeholder="Company Name"
-            className="input-field"
+            className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             value={companyName}
             onChange={e => setCompanyName(e.target.value)}
           />
           <input
             type="email"
             placeholder="Recruiter Email (optional)"
-            className="input-field"
+            className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             value={companyEmail}
             onChange={e => setCompanyEmail(e.target.value)}
           />
           <textarea
             placeholder="Job Description (optional)"
-            className="input-field min-h-[120px] resize-none"
+            className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all min-h-[120px] resize-none"
             value={jobDescription}
             onChange={e => setJobDescription(e.target.value)}
           />
@@ -163,20 +163,20 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10">
+        <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-2xl">
       {/* Progress */}
       <div className="mx-auto mb-10 flex w-full max-w-xl items-center justify-center">
         {steps.map(i => (
           <div key={i} className="flex items-center">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-              step >= i ? "bg-primary text-white" : "bg-slate-800 text-slate-500"
+              step >= i ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant"
             }`}>
               {i + 1}
             </div>
             {i < steps.length - 1 && (
               <div className={`mx-4 h-1 w-28 rounded-full transition-all sm:w-48 md:w-64 ${
-                step > i ? "bg-primary" : "bg-slate-800"
+                step > i ? "bg-primary" : "bg-outline-variant"
               }`} />
             )}
           </div>
@@ -187,7 +187,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {step === 0 && (
         <div className="animate-slide-up">
           <h1 className="text-3xl font-bold mb-2 gradient-text">LazyMe AI</h1>
-          <p className="text-slate-400 mb-2">Apply to jobs in under 2 minutes</p>
+          <p className="text-on-surface-variant mb-2">Apply to jobs in under 2 minutes</p>
           <p className="text-sm font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mb-8">
             Found a job? Just LazyMe it.
           </p>
@@ -204,17 +204,17 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all text-left ${
                   mode === m.id
                     ? "border-primary bg-primary/5"
-                    : "border-slate-700 hover:border-slate-500 bg-slate-800/30"
+                    : "border-outline-variant hover:border-primary/50 bg-surface-container-high/30"
                 }`}
               >
-                <div className={`p-3 rounded-xl ${mode === m.id ? "bg-primary/20 text-primary" : "bg-slate-700 text-slate-400"}`}>
+                <div className={`p-3 rounded-xl ${mode === m.id ? "bg-primary/20 text-primary" : "bg-surface-container-high text-on-surface-variant"}`}>
                   {m.icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-slate-100">{m.title}</h3>
-                  <p className="text-sm text-slate-400">{m.desc}</p>
+                  <h3 className="font-semibold text-primary">{m.title}</h3>
+                  <p className="text-sm text-on-surface-variant">{m.desc}</p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-500" />
+                <ChevronRight className="w-5 h-5 text-on-surface-variant" />
               </button>
             ))}
           </div>
@@ -253,9 +253,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     type="checkbox"
                     checked={generateCover}
                     onChange={e => setGenerateCover(e.target.checked)}
-                    className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-primary focus:ring-primary"
+                    className="w-5 h-5 rounded border-outline-variant bg-surface-container-high text-primary focus:ring-primary"
                   />
-                  <span className="text-slate-300">Generate cover letter too</span>
+                  <span className="text-on-surface-variant">Generate cover letter too</span>
                 </label>
                 <button onClick={handleFinish} className="btn-primary w-full text-lg py-4">
                   Generate & Apply <Zap className="w-5 h-5 inline ml-2" />
@@ -271,7 +271,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
       {step === 1 && mode !== "upload" && (
         <div className="animate-slide-up">
-          <button onClick={() => setStep(0)} className="text-slate-400 hover:text-slate-200 text-sm mb-4 flex items-center gap-1">
+          <button onClick={() => setStep(0)} className="text-on-surface-variant hover:text-primary text-sm mb-4 flex items-center gap-1">
             <ArrowRight className="w-4 h-4 rotate-180" /> Back
           </button>
           <h2 className="text-2xl font-bold mb-6">
@@ -283,14 +283,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 <input
                   type="text"
                   placeholder="Full Name"
-                  className="input-field"
+                  className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   value={parsedData?.name || ""}
                   onChange={e => setParsedData({ ...parsedData, name: e.target.value })}
                 />
                 <input
                   type="email"
                   placeholder="Email"
-                  className="input-field"
+                  className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   value={parsedData?.email || ""}
                   onChange={e => setParsedData({ ...parsedData, email: e.target.value })}
                 />
@@ -302,9 +302,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 type="checkbox"
                 checked={generateCover}
                 onChange={e => setGenerateCover(e.target.checked)}
-                className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-primary focus:ring-primary"
+                className="w-5 h-5 rounded border-outline-variant bg-surface-container-high text-primary focus:ring-primary"
               />
-              <span className="text-slate-300">Generate cover letter too</span>
+              <span className="text-on-surface-variant">Generate cover letter too</span>
             </label>
             <button onClick={handleFinish} className="btn-primary w-full text-lg py-4">
               Generate & Apply <Zap className="w-5 h-5 inline ml-2" />

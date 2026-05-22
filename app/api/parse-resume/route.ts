@@ -15,6 +15,12 @@ const SUPPORTED_TYPES = [
   "application/pdf",
   "text/plain",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  // Image types — sent to Gemini 2.0 Flash as inline image data for OCR-based resume parsing
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+  "image/gif",
 ] as const;
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -212,6 +218,10 @@ export async function POST(req: NextRequest) {
           }, { status: 400 });
         }
       }
+
+      // Image files (PNG, JPG, WebP, GIF) are handled by generateTextFromMultiModal
+      // which passes them as inlineData to Gemini 2.0 Flash (which natively supports image OCR).
+      // No conversion needed — just pass the raw buffer and MIME type through.
       
       const aiResponse = await generateTextFromMultiModal(
         RESUME_PARSE_PROMPT,
@@ -266,11 +276,18 @@ export async function POST(req: NextRequest) {
     console.error("Parsing error:", error);
     
     const errorMessage = error?.message || '';
+    const lowerMessage = errorMessage.toLowerCase();
     
-    if (errorMessage.toLowerCase().includes('does not support') || 
-        errorMessage.toLowerCase().includes('pdf input')) {
+    if (lowerMessage.includes('does not support') || lowerMessage.includes('image input')) {
+      // Identify the format from the file extension or MIME type to give a specific message
+      let unsupportedLabel = 'this file format';
+      if (fileRef.name.match(/\.(png|jpe?g|webp|gif)$/i)) {
+        unsupportedLabel = 'image input directly';
+      } else if (fileRef.name.match(/\.docx?$/i)) {
+        unsupportedLabel = 'DOCX input directly';
+      }
       return NextResponse.json(
-        { error: `Cannot read "${fileRef.name}" (this model does not support PDF input). Please convert to DOCX or TXT and try again.` },
+        { error: `Cannot read "${fileRef.name}" (the model does not support ${unsupportedLabel}). Please use a PDF or TXT file instead.` },
         { status: 400 }
       );
     }

@@ -50,9 +50,9 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
           <button 
             onClick={onImprove}
             disabled={improving}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-on-primary text-xs font-bold rounded-lg transition-all disabled:cursor-not-allowed"
           >
-            {improving ? "Improving..." : "⚡ Improve Resume"}
+            {improving ? "Improving..." : "Improve Resume"}
           </button>
         )}
       </div>
@@ -62,12 +62,12 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
         <div className="space-y-1">
           <div className="text-sm font-medium text-on-surface-variant">Match with job description</div>
           {previousScore != null && (
-            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+            <div className="text-xs text-success font-medium flex items-center gap-1">
               Improved from {previousScore}%
             </div>
           )}
           {score < 70 && !previousScore && (
-            <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+            <div className="text-xs text-warning font-medium">
               Your resume can be improved. Click "Improve Resume".
             </div>
           )}
@@ -101,12 +101,12 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
       {changes && changes.length > 0 && (
         <div className="pt-4 border-t border-outline-variant/50 space-y-3">
           <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-500" /> Changes Made
+            <CheckCircle className="w-4 h-4 text-success" /> Changes Made
           </h4>
           <ul className="space-y-2">
             {changes.map((c, i) => (
               <li key={i} className="text-sm text-on-surface-variant flex items-start gap-2">
-                <span className="text-emerald-500 mt-0.5">•</span> {c}
+                <span className="text-success mt-0.5">•</span> {c}
               </li>
             ))}
           </ul>
@@ -126,7 +126,7 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
           <ul className="space-y-2">
             {analysis.actionableImprovements.slice(0, 5).map((improvement, i) => (
               <li key={i} className="text-sm text-on-surface-variant flex items-start gap-2">
-                <span className="text-indigo-500 mt-0.5">→</span> {improvement}
+                 <span className="text-tertiary mt-0.5">→</span> {improvement}
               </li>
             ))}
           </ul>
@@ -136,11 +136,11 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
       {missingKeywords && missingKeywords.length > 0 && (
         <div className="pt-4 border-t border-outline-variant/50">
           <h4 className="text-xs font-bold text-on-surface-variant mb-3 uppercase tracking-wider flex items-center gap-2">
-            <XCircle className="w-4 h-4 text-red-500" /> Missing Keywords
+            <XCircle className="w-4 h-4 text-error" /> Missing Keywords
           </h4>
           <div className="flex flex-wrap gap-2">
             {missingKeywords.slice(0, 12).map((w, i) => (
-              <span key={i} className="px-2 py-1 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded border border-red-500/20">{w}</span>
+              <span key={i} className="px-2 py-1 bg-error/10 text-error text-xs rounded border border-error/20">{w}</span>
             ))}
             {missingKeywords.length > 12 && (
               <span className="px-2 py-1 text-on-surface-variant/50 text-xs rounded border border-outline-variant">+{missingKeywords.length - 12} more</span>
@@ -152,11 +152,11 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
       {strongSkills && strongSkills.length > 0 && (
         <div className="pt-4 border-t border-outline-variant/50">
           <h4 className="text-xs font-bold text-on-surface-variant mb-3 uppercase tracking-wider flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-500" /> Strong Matches
+            <CheckCircle className="w-4 h-4 text-success" /> Strong Matches
           </h4>
           <div className="flex flex-wrap gap-2">
             {strongSkills.slice(0, 8).map((w, i) => (
-              <span key={i} className="px-2 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs rounded border border-emerald-500/20">{w}</span>
+              <span key={i} className="px-2 py-1 bg-success/10 text-success text-xs rounded border border-success/20">{w}</span>
             ))}
             {strongSkills.length > 8 && (
               <span className="px-2 py-1 text-on-surface-variant/50 text-xs rounded border border-outline-variant">+{strongSkills.length - 8} more</span>
