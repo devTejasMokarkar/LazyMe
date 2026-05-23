@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
       userName,
     });
    } catch (error: any) {
-     logger.error("Auto-apply processing error:", error);
+      logger.error({ error: error?.message || error }, "Auto-apply processing error:");
     if (error.name === "GeminiServiceError") {
       return NextResponse.json(
         { error: error.message, quota: error.quota },

@@ -141,8 +141,8 @@ function normalizeAIData(aiResponse: string): any {
     }
     
     return JSON.parse(jsonStr);
-   } catch (error) {
-     logger.error("Failed to parse AI response as JSON:", { error: error.message });
+    } catch (error: any) {
+      logger.error({ error: error.message }, "Failed to parse AI response as JSON:");
      return null;
    }
 }
@@ -250,7 +250,7 @@ export async function POST(req: NextRequest) {
        return buildSuccessResponse(aiData, result.text || aiResponse, 'ai-parser', file, buffer, startTime, session);
 
      } catch (aiError: any) {
-       logger.error("AI parsing failed:", { message: aiError.message });
+        logger.error({ message: aiError.message }, "AI parsing failed:");
 
       if (isGeminiFetchFailure(aiError)) {
         return NextResponse.json(
@@ -280,7 +280,7 @@ export async function POST(req: NextRequest) {
     }
     
    } catch (error: any) {
-     logger.error("Parsing error:", { error: error.message });
+      logger.error({ error: error.message }, "Parsing error:");
      
      const errorMessage = error?.message || '';
      const lowerMessage = errorMessage.toLowerCase();
@@ -376,8 +376,8 @@ async function buildSuccessResponse(
         },
       });
       savedResumeId = resume.id;
-     } catch (dbError) {
-       logger.error("Auto-save failed:", { error: dbError.message });
+     } catch (dbError: any) {
+        logger.error({ error: dbError.message }, "Auto-save failed:");
      }
   }
   

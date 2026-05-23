@@ -34,18 +34,21 @@ export async function POST(request: Request) {
       searchKeyword = jobTitle;
       searchLocation = userLocation;
 
-      // AI-powered keyword expansion for better job search
-      if (useAI) {
-        try {
-          expandedKeywords = await expandSearchKeywords(resumeData);
-         if (expandedKeywords.length > 0) {
-             logger.info('AI expanded keywords:', { keywords: expandedKeywords.slice(0, 3).join(', ') });
-           }
-        } catch (error) {
-          // Silently use fallback
-          expandedKeywords = [];
-        }
-      }
+       // AI-powered keyword expansion for better job search
+       if (useAI) {
+         try {
+           expandedKeywords = await expandSearchKeywords(resumeData);
+          if (expandedKeywords.length > 0) {
+              logger.info({ 
+                message: 'AI expanded keywords', 
+                keywords: expandedKeywords.slice(0, 3).join(', ') 
+              });
+            }
+         } catch (error) {
+           // Silently use fallback
+           expandedKeywords = [];
+         }
+       }
     }
 
     if (!searchKeyword) {
@@ -61,11 +64,11 @@ export async function POST(request: Request) {
       jobs: [],
       suggestion: 'manual'
     }, { status: 501 });
-  } catch (error: any) {
-    logger.error('Job search error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Internal server error', code: 'INTERNAL_ERROR' },
-      { status: 500 }
-    );
-  }
+   } catch (error: any) {
+     logger.error({ message: 'Job search error', error: error });
+     return NextResponse.json(
+       { error: error.message || 'Internal server error', code: 'INTERNAL_ERROR' },
+       { status: 500 }
+     );
+   }
 }

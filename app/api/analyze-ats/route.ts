@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       atsScore: analysis.atsScore
     });
    } catch (error: any) {
-     logger.error("ATS analysis error:", error);
+     logger.error({ error: error?.message || error }, "ATS analysis error:");
     if (error.name === "GeminiServiceError") {
       return NextResponse.json(
         { error: error.message, quota: error.quota },

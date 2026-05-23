@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       ats
     });
    } catch (error: any) {
-     logger.error("Generate-all error:", error);
+     logger.error({ error }, "Generate-all error:");
     if (error.name === "GeminiServiceError") {
       return NextResponse.json(
         { error: error.message, quota: error.quota },

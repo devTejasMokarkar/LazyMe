@@ -91,10 +91,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(application);
-   } catch (error) {
-     logger.error("Failed to create application:", error);
-     return NextResponse.json({ error: "Failed to create application" }, { status: 500 });
-  }
+  } catch (error: any) {
+     logger.error({ error: error?.message || error }, "Failed to create application:");
+      return NextResponse.json({ error: "Failed to create application" }, { status: 500 });
+   }
 }
 
 export async function PATCH(req: NextRequest) {

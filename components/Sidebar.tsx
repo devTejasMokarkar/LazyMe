@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
+  Search,
   MessageSquare,
   HelpCircle,
   LogOut,
@@ -25,6 +26,7 @@ export default function Sidebar() {
 
   const navItems = [
     { id: 'resume', label: 'Resume Builder', icon: FileText, href: '/resume' },
+    { id: 'jobs', label: 'Job Search', icon: Search, href: '/apply' },
   ];
 
   const bottomItems = [

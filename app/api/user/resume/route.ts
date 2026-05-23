@@ -30,8 +30,8 @@ export async function GET() {
       location: content.location || '',
       experience: content.experience || []
     });
-   } catch (error) {
-     logger.error('Error fetching resume:', error);
+   } catch (error: any) {
+     logger.error({ error: error?.message || error }, 'Error fetching resume:');
      return NextResponse.json({ title: '', skills: [], location: '' });
    }
 }

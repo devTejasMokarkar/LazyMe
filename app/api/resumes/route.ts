@@ -16,10 +16,10 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(resumes);
-   } catch (error) {
-     logger.error("GET /api/resumes error:", error);
-     return NextResponse.json({ error: "Failed to fetch resumes" }, { status: 500 });
-   }
+   } catch (error: any) {
+     logger.error({ error: error?.message || error }, "GET /api/resumes error:");
+      return NextResponse.json({ error: "Failed to fetch resumes" }, { status: 500 });
+    }
 }
 
 export async function POST(req: NextRequest) {
@@ -56,8 +56,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(resume);
-   } catch (error) {
-     logger.error("Failed to save resume:", error);
+   } catch (error: any) {
+     logger.error({ error: error?.message || error }, "Failed to save resume:");
      return NextResponse.json({ error: "Failed to save resume" }, { status: 500 });
    }
 }

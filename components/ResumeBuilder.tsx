@@ -6,7 +6,7 @@ import {
   Cloud, Undo2, Redo2, Mail, Phone, MapPin, Sparkles, PlusCircle, X,
   Download, ZoomIn, ZoomOut, Upload, FileType, CheckCircle2, History,
   RotateCcw, Save, Trash2, Eye, Loader2, PanelLeftClose, PanelRightClose,
-  Monitor, Smartphone, Briefcase, Palette
+  Monitor, Smartphone, Briefcase, Palette, Code, Send
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn, validateParsedResume, calculateResumeCompleteness } from '@/lib/utils';
@@ -86,14 +86,50 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const [parsingFeedback, setParsingFeedback] = useState<ParsedSection[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(false);
-
+  const [chatInput, setChatInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingResumeApplied = useRef(false);
+  const promptProcessedRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const enhanceAndAppend = async (promptText: string, resumeContent: any) => {
+    showToast("AI is optimizing and appending your new project/experience...", "info");
+    try {
+      const res = await fetch('/api/enhance-resume-append', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptText, resume: resumeContent })
+      });
+      const resData = await res.json();
+      if (res.ok && resData.enhanced) {
+        const entry = resData.enhanced;
+        setExperience(prev => [
+          ...prev,
+          {
+            company: entry.company || 'Current Company',
+            role: entry.role || 'New Project',
+            duration: entry.duration || 'Current',
+            bullets: Array.isArray(entry.bullets) && entry.bullets.length ? entry.bullets : []
+          }
+        ]);
+        showToast("AI successfully optimized and added the project to your experience list!", "success");
+        if (typeof window !== 'undefined') {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      } else {
+        showToast(resData.message || "Failed to enhance project entry.", "error");
+      }
+    } catch (err) {
+      console.error("Failed to enhance resume:", err);
+      showToast("Failed to enhance project entry.", "error");
+    }
+  };
+
   useEffect(() => {
-    if (initialPrompt !== undefined) setNeedsUpload(true);
-  }, [initialPrompt]);
+    if (initialPrompt !== undefined && !loading && versions.length === 0) {
+      setNeedsUpload(true);
+    }
+  }, [initialPrompt, loading, versions]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -291,12 +327,17 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         if (cancelled) return;
         if (Array.isArray(data) && data.length > 0) {
           const primary = data.find((r: any) => r.isDefault) || data[0];
-          if (initialPrompt === undefined) {
-            loadResume(primary);
-          }
+          loadResume(primary);
           setVersions(data.map((r: any) => ({
             id: r.id, name: r.name, timestamp: new Date(r.updatedAt).toLocaleString(), content: r.content
           })));
+
+          if (initialPrompt && !promptProcessedRef.current) {
+            promptProcessedRef.current = true;
+            enhanceAndAppend(initialPrompt, primary.content);
+          }
+        } else {
+          setNeedsUpload(true);
         }
       } catch (error) {
         console.error("Failed to fetch resumes:", error);
@@ -882,41 +923,58 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         {/* Editor Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6">
           <div className="max-w-3xl mx-auto space-y-6">
-            {/* Upload Card */}
-            <div className="relative group">
-              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif,image/*" />
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={cn(
-                  "glass rounded-xl p-6 text-center cursor-pointer transition-all hover:border-primary hover:shadow-[0_0_15px_rgba(112,145,230,0.3)]",
-                  isParsing && "pointer-events-none opacity-50",
-                  parseError && "border-error/30 bg-error/5"
-                )}
-              >
-                <AnimatePresence mode="wait">
-                  {isParsing ? (
-                    <motion.div key="parsing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-3">
-                      <div className="relative">
-                        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }} className="w-10 h-10 rounded-full border-2 border-primary/20 border-t-primary" />
-                        <Sparkles className="absolute inset-0 m-auto w-5 h-5 text-primary" />
-                      </div>
-                      <div><h3 className="text-sm font-bold">AI Parsing...</h3><p className="text-xs text-on-surface-variant">Extracting experience</p></div>
-                    </motion.div>
-                  ) : uploadSuccess ? (
-                    <motion.div key="success" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center gap-3">
-                      <div className="flex items-center gap-2 text-tertiary"><CheckCircle2 className="w-5 h-5" /><span className="text-sm font-bold">Resume Parsed</span></div>
-                      <div className="flex gap-1.5">{parsingFeedback.map(s => (<span key={s.name} className="px-2 py-0.5 bg-surface-container-high rounded text-[9px] font-semibold">{s.name}</span>))}</div>
-                    </motion.div>
-                  ) : (
-                    <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-2">
-                      <div className="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center"><Upload className="w-5 h-5 text-on-surface-variant" /></div>
-                      <div><h3 className="text-sm font-bold">Import Resume</h3><p className="text-xs text-on-surface-variant">PDF, DOCX, TXT, or image (PNG, JPG)</p></div>
-                      <div className="flex gap-2 mt-1"><span className="text-[8px] font-semibold text-outline uppercase bg-background px-2 py-0.5 rounded border border-outline-variant">PDF</span><span className="text-[8px] font-semibold text-outline uppercase bg-background px-2 py-0.5 rounded border border-outline-variant">DOCX</span><span className="text-[8px] font-semibold text-outline uppercase bg-background px-2 py-0.5 rounded border border-outline-variant">TXT</span><span className="text-[8px] font-semibold text-outline uppercase bg-background px-2 py-0.5 rounded border border-outline-variant">IMAGE</span></div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+            {/* Chat Input Bar */}
+            <div className="glass rounded-xl p-2 flex items-center gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
+                  title="Upload Resume"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
+                  title="Paste Job Description"
+                >
+                  <Code className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
+                  title="AI Suggestions"
+                >
+                  <Palette className="w-5 h-5" />
+                </button>
               </div>
+              <textarea
+                rows={1}
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
+                placeholder="Tell LazyMe what to find next..."
+              />
+              <button
+                type="button"
+                disabled={!chatInput.trim()}
+                className="h-10 px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-2 font-bold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                title="Preview the optimized resume entry before appending"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Enhance prompt
+              </button>
+              <button
+                type="button"
+                className="h-10 px-5 btn-primary rounded-lg flex items-center gap-2 font-bold text-xs shadow-lg disabled:opacity-50 shrink-0"
+                disabled={!chatInput.trim()}
+              >
+                <span>Send</span>
+                <Send className="w-3 h-3 fill-white" />
+              </button>
             </div>
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif,image/*" />
 
             {/* Parse Error Alert */}
             {parseError && (
