@@ -109,7 +109,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
                     onChange={handleFileUpload}
                     className="hidden" 
                     id="onboarding-upload"
-                    accept=".pdf,.docx"
+                    accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif,image/*"
                   />
                   <label 
                     htmlFor="onboarding-upload"
@@ -127,12 +127,12 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
                         <>
                           <Upload className="w-12 h-12 text-on-surface-variant mb-4 group-hover:text-primary transition-colors" />
                           <span className="font-bold text-primary uppercase tracking-widest text-xs mb-2">Upload Resume</span>
-                          <span className="text-on-surface-variant text-sm">PDF or DOCX (Max 5MB)</span>
+                          <span className="text-on-surface-variant text-sm">PDF, DOCX, TXT, or image (PNG, JPG) — Max 5MB</span>
                         </>
-                    )}
+                      )}
                   </label>
                 </div>
-                {error && <p className="text-red-400 text-sm font-bold">{error}</p>}
+                {error && <p className="text-error text-sm font-bold">{error}</p>}
                 
                 <div className="flex gap-4">
                   <span className="flex items-center gap-2 text-[10px] font-bold text-outline-variant uppercase tracking-widest bg-background/50 px-3 py-1.5 rounded-lg border border-outline-variant"><FileType className="w-3 h-3" /> ATS Friendly</span>

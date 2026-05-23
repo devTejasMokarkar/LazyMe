@@ -146,7 +146,7 @@ ${resumeData.education.map((e: any) => `${e.degree} from ${e.school} (${e.year})
               onClick={() => downloadFile("pdf")} 
               className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
             >
-              <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
+              <div className="w-8 h-8 rounded-lg bg-error/10 flex items-center justify-center text-error group-hover:scale-110 transition-transform">
                 <FileIcon className="w-4 h-4" />
               </div>
               <div className="text-left">

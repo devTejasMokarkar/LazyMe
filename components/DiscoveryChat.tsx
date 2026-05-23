@@ -159,7 +159,7 @@ export default function DiscoveryChat() {
               ref={fileInputRef}
               onChange={handleFileUpload}
               className="hidden" 
-              accept=".pdf,.docx"
+              accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif,image/*"
             />
             <motion.div
               animate={isMatching ? { rotate: 360 } : { rotate: [0, 10, -10, 0] }}
@@ -268,7 +268,7 @@ export default function DiscoveryChat() {
                   <span className="text-[11px] font-bold text-primary uppercase tracking-widest flex items-center gap-2">
                     <Code className="w-4 h-4" /> Paste Job Description
                   </span>
-                  <button onClick={() => setShowJDModal(false)} className="text-on-surface-variant hover:text-red-400"><X className="w-4 h-4" /></button>
+                  <button onClick={() => setShowJDModal(false)} className="text-on-surface-variant hover:text-error"><X className="w-4 h-4" /></button>
                 </div>
                 
                 <div 

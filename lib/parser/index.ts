@@ -110,6 +110,13 @@ export async function parseDocument(
         break;
       }
       
+      case 'image': {
+        // Local parser cannot extract structured data from an image file.
+        // Return success: false immediately so the route handler passes the
+        // raw image buffer straight through to Gemini / OpenRouter for OCR.
+        return { success: false, error: 'Local parser cannot extract text from image files.', parseMethod: 'image' };
+      }
+      
       default:
         return { success: false, error: 'Unsupported file type', parseMethod: 'unknown' };
     }

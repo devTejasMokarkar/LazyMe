@@ -146,7 +146,7 @@ Found a job? Just LazyMe it.
                   onClick={handleGmail}
                   className="w-full flex items-center gap-4 p-4 bg-surface-container-high hover:bg-surface-container-highest rounded-xl border border-outline-variant transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 rounded-full bg-error/20 flex items-center justify-center text-error group-hover:scale-110 transition-transform">
                     <Mail className="w-5 h-5" />
                   </div>
                   <div className="text-left">

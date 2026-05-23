@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "@/utils/gemini";
 import { calculateWeightedATS } from "@/utils/ats";
 import { buildATSOptimizationPrompt, ATSAnalysisResult } from "@/utils/promptBuilder";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,8 +30,8 @@ export async function POST(req: NextRequest) {
       // Use the AI's score as primary, but include weighted for reference
       atsScore: analysis.atsScore
     });
-  } catch (error: any) {
-    console.error("ATS analysis error:", error);
+   } catch (error: any) {
+     logger.error("ATS analysis error:", error);
     if (error.name === "GeminiServiceError") {
       return NextResponse.json(
         { error: error.message, quota: error.quota },

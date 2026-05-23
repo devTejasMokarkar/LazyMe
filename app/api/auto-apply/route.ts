@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "@/utils/gemini";
 import { buildResumePrompt, buildCoverLetterPrompt } from "@/utils/promptBuilder";
 import { calculateATS } from "@/utils/ats";
+import { logger } from "@/lib/logger";
 
 export interface Job {
   id: string;
@@ -170,8 +171,8 @@ export async function POST(req: NextRequest) {
       userEmail,
       userName,
     });
-  } catch (error: any) {
-    console.error("Auto-apply processing error:", error);
+   } catch (error: any) {
+     logger.error("Auto-apply processing error:", error);
     if (error.name === "GeminiServiceError") {
       return NextResponse.json(
         { error: error.message, quota: error.quota },

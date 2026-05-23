@@ -180,7 +180,7 @@ export default function Sidebar() {
           <form action={signOutAction}>
             <button
               type="submit"
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-error/10 hover:text-error transition-all duration-200 group"
             >
               <div className="shrink-0 w-5 h-5 flex items-center justify-center">
                 <LogOut className="w-5 h-5" />
@@ -271,7 +271,7 @@ export default function Sidebar() {
                 <span className="text-sm font-semibold">Support</span>
               </button>
               <form action={signOutAction}>
-                <button type="submit" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-red-500/10 hover:text-red-400">
+                <button type="submit" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-error/10 hover:text-error">
                   <LogOut className="w-5 h-5" />
                   <span className="text-sm font-semibold">Logout</span>
                 </button>

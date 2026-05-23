@@ -10,6 +10,7 @@ import {
 } from "@/lib/parser";
 import { parserLogger, createLogEntry } from "@/lib/parser/logger";
 import { generateTextFromMultiModal } from "@/utils/gemini";
+import { logger } from "@/lib/logger";
 
 const SUPPORTED_TYPES = [
   "application/pdf",
@@ -140,10 +141,10 @@ function normalizeAIData(aiResponse: string): any {
     }
     
     return JSON.parse(jsonStr);
-  } catch (error) {
-    console.error("Failed to parse AI response as JSON:", error);
-    return null;
-  }
+   } catch (error) {
+     logger.error("Failed to parse AI response as JSON:", { error: error.message });
+     return null;
+   }
 }
 
 function isGeminiFetchFailure(error: any) {
@@ -185,21 +186,21 @@ export async function POST(req: NextRequest) {
     // Step 1: Try local parser first
     const result = await parseDocument(file.name, file.type, buffer);
     
-    if (!result.success) {
-      // Local parser failed, try AI parsing
-      console.log("Local parser failed, trying AI parsing...");
-    } else {
-      // Step 2: Check if local parser extracted enough data
-      const completeness = calculateCompleteness(result.data);
-      
-      if (completeness >= 70) {
-        // Local parser did well enough, use it
-        console.log(`Local parser completeness: ${completeness}%, using local results`);
-        return buildSuccessResponse(result.data, result.text, result.parseMethod, file, buffer, startTime, session);
-      }
-      
-      console.log(`Local parser completeness: ${completeness}%, trying AI parsing...`);
-    }
+     if (!result.success) {
+       // Local parser failed, try AI parsing
+       logger.info("Local parser failed, trying AI parsing...");
+     } else {
+       // Step 2: Check if local parser extracted enough data
+       const completeness = calculateCompleteness(result.data);
+       
+       if (completeness >= 70) {
+         // Local parser did well enough, use it
+         logger.info(`Local parser completeness: ${completeness}%, using local results`);
+         return buildSuccessResponse(result.data, result.text, result.parseMethod, file, buffer, startTime, session);
+       }
+       
+       logger.info(`Local parser completeness: ${completeness}%, trying AI parsing...`);
+     }
 
     // Step 3: Use AI to parse the resume
     try {
@@ -245,11 +246,11 @@ export async function POST(req: NextRequest) {
         sectionsFound: Object.keys(aiData).filter(k => !k.startsWith('_'))
       };
 
-      console.log("AI parsing successful");
-      return buildSuccessResponse(aiData, result.text || aiResponse, 'ai-parser', file, buffer, startTime, session);
+       logger.info("AI parsing successful");
+       return buildSuccessResponse(aiData, result.text || aiResponse, 'ai-parser', file, buffer, startTime, session);
 
-    } catch (aiError: any) {
-      console.error("AI parsing failed:", aiError.message);
+     } catch (aiError: any) {
+       logger.error("AI parsing failed:", { message: aiError.message });
 
       if (isGeminiFetchFailure(aiError)) {
         return NextResponse.json(
@@ -258,13 +259,19 @@ export async function POST(req: NextRequest) {
         );
       }
       
-      // If AI also failed, return error
-      if (aiError.message?.includes('does not support') || aiError.message?.includes('pdf input')) {
-        return NextResponse.json(
-          { error: `Cannot read "${file.name}" (this model does not support PDF input). Please convert to DOCX or TXT and try again.` },
-          { status: 400 }
-        );
-      }
+       // If AI also failed, return error
+       if (aiError.message?.includes('does not support') || aiError.message?.includes('pdf input')) {
+         let unsupportedType = 'this file format';
+         if (file.name.match(/\.(png|jpe?g|webp|gif)$/i)) {
+           unsupportedType = 'image input directly';
+         } else if (file.name.match(/\.docx?$/i)) {
+           unsupportedType = 'DOCX input directly';
+         }
+         return NextResponse.json(
+           { error: `Cannot read "${file.name}" (the AI model does not support ${unsupportedType}). Please use a PDF or TXT file instead.` },
+           { status: 400 }
+         );
+       }
       
       return NextResponse.json(
         { error: `Failed to parse resume with AI: ${aiError.message || 'Unknown error'}. Please try a different file format.` },
@@ -272,11 +279,11 @@ export async function POST(req: NextRequest) {
       );
     }
     
-  } catch (error: any) {
-    console.error("Parsing error:", error);
-    
-    const errorMessage = error?.message || '';
-    const lowerMessage = errorMessage.toLowerCase();
+   } catch (error: any) {
+     logger.error("Parsing error:", { error: error.message });
+     
+     const errorMessage = error?.message || '';
+     const lowerMessage = errorMessage.toLowerCase();
     
     if (lowerMessage.includes('does not support') || lowerMessage.includes('image input')) {
       // Identify the format from the file extension or MIME type to give a specific message
@@ -369,9 +376,9 @@ async function buildSuccessResponse(
         },
       });
       savedResumeId = resume.id;
-    } catch (dbError) {
-      console.error("Auto-save failed:", dbError);
-    }
+     } catch (dbError) {
+       logger.error("Auto-save failed:", { error: dbError.message });
+     }
   }
   
   return NextResponse.json({

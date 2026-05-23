@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "@/utils/gemini";
 import { buildResumePrompt, buildCoverLetterPrompt } from "@/utils/promptBuilder";
 import { calculateWeightedATS } from "@/utils/ats";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,8 +36,8 @@ export async function POST(req: NextRequest) {
       coverLetter,
       ats
     });
-  } catch (error: any) {
-    console.error("Generate-all error:", error);
+   } catch (error: any) {
+     logger.error("Generate-all error:", error);
     if (error.name === "GeminiServiceError") {
       return NextResponse.json(
         { error: error.message, quota: error.quota },

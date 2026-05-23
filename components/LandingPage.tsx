@@ -337,7 +337,7 @@ export default function LandingPage() {
         type="file" 
         ref={fileInputRef} 
         className="hidden" 
-        accept=".pdf,.docx"
+        accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif,image/*"
         onChange={handleFileSelect} 
       />
       

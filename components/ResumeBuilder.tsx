@@ -884,13 +884,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           <div className="max-w-3xl mx-auto space-y-6">
             {/* Upload Card */}
             <div className="relative group">
-              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.docx" />
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif,image/*" />
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
                   "glass rounded-xl p-6 text-center cursor-pointer transition-all hover:border-primary hover:shadow-[0_0_15px_rgba(112,145,230,0.3)]",
                   isParsing && "pointer-events-none opacity-50",
-                  parseError && "border-red-500/30 bg-red-500/5"
+                  parseError && "border-error/30 bg-error/5"
                 )}
               >
                 <AnimatePresence mode="wait">
@@ -910,8 +910,8 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                   ) : (
                     <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-2">
                       <div className="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center"><Upload className="w-5 h-5 text-on-surface-variant" /></div>
-                      <div><h3 className="text-sm font-bold">Import Resume</h3><p className="text-xs text-on-surface-variant">PDF or DOCX</p></div>
-                      <div className="flex gap-2 mt-1"><span className="text-[8px] font-semibold text-outline uppercase bg-background px-2 py-0.5 rounded border border-outline-variant">PDF</span><span className="text-[8px] font-semibold text-outline uppercase bg-background px-2 py-0.5 rounded border border-outline-variant">DOCX</span></div>
+                      <div><h3 className="text-sm font-bold">Import Resume</h3><p className="text-xs text-on-surface-variant">PDF, DOCX, TXT, or image (PNG, JPG)</p></div>
+                      <div className="flex gap-2 mt-1"><span className="text-[8px] font-semibold text-outline uppercase bg-background px-2 py-0.5 rounded border border-outline-variant">PDF</span><span className="text-[8px] font-semibold text-outline uppercase bg-background px-2 py-0.5 rounded border border-outline-variant">DOCX</span><span className="text-[8px] font-semibold text-outline uppercase bg-background px-2 py-0.5 rounded border border-outline-variant">TXT</span><span className="text-[8px] font-semibold text-outline uppercase bg-background px-2 py-0.5 rounded border border-outline-variant">IMAGE</span></div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -920,13 +920,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
 
             {/* Parse Error Alert */}
             {parseError && (
-              <div className="glass rounded-xl p-4 border border-red-500/30 bg-red-500/5">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
-                    <X className="w-4 h-4 text-red-400" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-red-400">Failed to Parse Resume</h4>
+               <div className="glass rounded-xl p-4 border border-error/30 bg-error/5">
+                 <div className="flex items-start gap-3">
+                   <div className="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center shrink-0">
+                     <X className="w-4 h-4 text-error" />
+                   </div>
+                   <div className="flex-1">
+                     <h4 className="text-sm font-bold text-error">Failed to Parse Resume</h4>
                     <p className="text-xs text-on-surface-variant mt-1">{parseError}</p>
                     <button 
                       onClick={() => { setParseError(null); setNeedsUpload(true); }}
@@ -988,7 +988,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].year = e.currentTarget.innerText; setEducation(n); }}>{edu.year}</span>
-                        <button onClick={() => setEducation(education.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => setEducation(education.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
                   </div>
@@ -1011,7 +1011,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].duration = e.currentTarget.innerText; setExperience(n); }}>{exp.duration || exp.period}</span>
-                        <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                   <ul className="list-disc ml-4 text-sm text-on-surface-variant space-y-1.5">
@@ -1052,7 +1052,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                     </span>
                       <button 
                         onClick={() => setSkills(skills.filter((_, idx) => idx !== i))} 
-                        className="text-on-surface-variant hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -1214,7 +1214,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
                 {versions.length === 0 ? <div className="text-center text-on-surface-variant text-sm py-10 opacity-50">No versions</div> : versions.map(v => (
                   <div key={v.id} className="glass rounded-lg p-3 group">
-                    <div className="flex justify-between"><div><h4 className="text-sm font-semibold">{v.name}</h4><p className="text-[9px] text-on-surface-variant mt-0.5">{v.timestamp}</p></div><button onClick={async () => { await fetch(`/api/resumes?id=${v.id}`, { method: 'DELETE' }); setVersions(versions.filter(x => x.id !== v.id)); }} className="p-1 opacity-0 group-hover:opacity-100 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button></div>
+                    <div className="flex justify-between"><div><h4 className="text-sm font-semibold">{v.name}</h4><p className="text-[9px] text-on-surface-variant mt-0.5">{v.timestamp}</p></div>                      <button onClick={async () => { await fetch(`/api/resumes?id=${v.id}`, { method: 'DELETE' }); setVersions(versions.filter(x => x.id !== v.id)); }} className="p-1 opacity-0 group-hover:opacity-100 text-error"><Trash2 className="w-3.5 h-3.5" /></button></div>
                     <button onClick={() => revertToVersion(v)} className="w-full mt-2 bg-primary/10 text-primary text-[10px] font-semibold py-1.5 rounded hover:bg-primary/20 transition-all">Revert</button>
                   </div>
                 ))}

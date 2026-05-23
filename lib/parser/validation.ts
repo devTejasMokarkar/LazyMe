@@ -2,7 +2,7 @@
 // FILE VALIDATION UTILITIES
 // ============================================
 
-export type DocumentType = 'pdf' | 'docx' | 'doc' | 'txt' | 'unknown';
+export type DocumentType = 'pdf' | 'docx' | 'doc' | 'txt' | 'image' | 'unknown';
 
 export interface ValidationResult {
   valid: boolean;
@@ -34,6 +34,11 @@ const SUPPORTED_FORMATS: Record<string, { type: DocumentType; mime: string[]; ex
     type: 'txt',
     mime: ['text/plain', 'text/csv', 'text/markdown'],
     extensions: ['.txt', '.csv', '.md', '.text']
+  },
+  image: {
+    type: 'image',
+    mime: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'],
+    extensions: ['.png', '.jpg', '.jpeg', '.webp', '.gif']
   }
 };
 

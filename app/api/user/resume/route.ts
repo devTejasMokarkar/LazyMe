@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -29,8 +30,8 @@ export async function GET() {
       location: content.location || '',
       experience: content.experience || []
     });
-  } catch (error) {
-    console.error('Error fetching resume:', error);
-    return NextResponse.json({ title: '', skills: [], location: '' });
-  }
+   } catch (error) {
+     logger.error('Error fetching resume:', error);
+     return NextResponse.json({ title: '', skills: [], location: '' });
+   }
 }

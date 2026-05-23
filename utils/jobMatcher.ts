@@ -1,4 +1,5 @@
 import { callOpenRouter } from "./gemini";
+import { logger } from "../lib/logger";
 
 const JOB_MATCH_PROMPT = `You are an expert job matching assistant. Given a resume and a job description, analyze the match and return a JSON response with:
 
@@ -126,7 +127,7 @@ function parseJobMatchResponse(response: string): JobMatchResult | null {
       shouldApply: parsed.shouldApply === true || parsed.matchScore >= 60
     };
   } catch (error) {
-    console.error("Failed to parse job match response:", error);
+    logger.error("Failed to parse job match response:", { error: error.message });
     return null;
   }
 }
@@ -142,7 +143,7 @@ function parseKeywordsResponse(response: string): string[] | null {
     const parsed = JSON.parse(jsonMatch[0]);
     return Array.isArray(parsed) ? parsed.filter((k: any) => typeof k === 'string' && k.trim()) : null;
   } catch (error) {
-    console.error("Failed to parse keywords response:", error);
+    logger.error("Failed to parse keywords response:", { error: error.message });
     return null;
   }
 }
@@ -188,7 +189,7 @@ function basicKeywordExtraction(resumeData: any): string[] {
 
 async function callOllama(prompt: string, model: string = 'llama3.2'): Promise<string | null> {
   const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-  
+   
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 30000); // 30s timeout for local models
@@ -216,20 +217,22 @@ async function callOllama(prompt: string, model: string = 'llama3.2'): Promise<s
     return data.response || null;
   } catch (error) {
     // Ollama not available or model not pulled
+    logger.warn(`Ollama ${model} error:`, { message: error?.message || "request failed" });
     return null;
   }
 }
 
 async function callOpenRouterForKeywordExpand(prompt: string): Promise<string | null> {
   // Try Ollama first (local, free, no rate limits)
-  const ollamaModels = ['deepseek-coder:6.7b', 'llama3.2', 'llama3.1', 'qwen2.5', 'mistral', 'gemma2'];
-  for (const model of ollamaModels) {
-    const result = await callOllama(prompt, model);
-    if (result) {
-      console.log(`Ollama ${model} successful`);
-      return result;
+  const preferredModel = process.env.OLLAMA_MODEL || 'llama3.2';
+  const ollamaModels = [preferredModel, 'llama3.2', 'llama3.1', 'qwen2.5', 'mistral', 'gemma2'];
+    for (const model of ollamaModels) {
+      const result = await callOllama(prompt, model);
+      if (result) {
+        logger.info(`Ollama ${model} successful`);
+        return result;
+      }
     }
-  }
   
   // Fall back to OpenRouter
   const openAIKey = process.env.OPENROUTER_API_KEY;

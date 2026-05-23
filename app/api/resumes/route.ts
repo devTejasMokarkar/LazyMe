@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,10 +16,10 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(resumes);
-  } catch (error) {
-    console.error("GET /api/resumes error:", error);
-    return NextResponse.json({ error: "Failed to fetch resumes" }, { status: 500 });
-  }
+   } catch (error) {
+     logger.error("GET /api/resumes error:", error);
+     return NextResponse.json({ error: "Failed to fetch resumes" }, { status: 500 });
+   }
 }
 
 export async function POST(req: NextRequest) {
@@ -55,10 +56,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(resume);
-  } catch (error) {
-    console.error("Failed to save resume:", error);
-    return NextResponse.json({ error: "Failed to save resume" }, { status: 500 });
-  }
+   } catch (error) {
+     logger.error("Failed to save resume:", error);
+     return NextResponse.json({ error: "Failed to save resume" }, { status: 500 });
+   }
 }
 
 export async function PATCH(req: NextRequest) {

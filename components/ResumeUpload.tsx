@@ -23,18 +23,23 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
   const { showToast } = useToast();
 
   const handleFile = useCallback(async (selectedFile: File) => {
-    // Supported MIME types
+    // Supported MIME types (PDF, DOCX, TXT, TEX, images)
     const supportedTypes = [
       "application/pdf",
       "text/plain",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "text/x-tex",
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/webp",
+      "image/gif",
     ];
 
     // Validate file type
     if (!supportedTypes.includes(selectedFile.type)) {
       showToast(
-        "We couldn't read your resume.\n\n✔ Please upload:\n• PDF, DOCX, TXT, or TEX files\n• OR paste your resume manually",
+        "We couldn't read your resume.\n\n✔ Please upload:\n• PDF, DOCX, TXT, TEX, or an image (PNG/JPG)\n• OR paste your resume manually",
         "error"
       );
       return;
@@ -101,7 +106,7 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
         >
           <input
             type="file"
-            accept=".pdf,.docx,.txt,.tex"
+            accept=".pdf,.docx,.txt,.tex,.png,.jpg,.jpeg,.webp,.gif,image/*"
             onChange={onInput}
             className="hidden"
             id="resume-upload"
@@ -109,7 +114,7 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
           <label htmlFor="resume-upload" className="cursor-pointer block">
             <Upload className="w-10 h-10 mx-auto mb-3 text-on-surface-variant" />
             <p className="text-on-background font-medium mb-1">Drop your resume here</p>
-            <p className="text-on-surface-variant text-sm">PDF, DOCX, TXT, or TEX (max 5MB)</p>
+            <p className="text-on-surface-variant text-sm">PDF, DOCX, TXT, TEX, PNG, JPG (max 5MB)</p>
           </label>
         </div>
       ) : (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -90,9 +91,9 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(application);
-  } catch (error) {
-    console.error("Failed to create application:", error);
-    return NextResponse.json({ error: "Failed to create application" }, { status: 500 });
+   } catch (error) {
+     logger.error("Failed to create application:", error);
+     return NextResponse.json({ error: "Failed to create application" }, { status: 500 });
   }
 }
 
