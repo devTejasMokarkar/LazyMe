@@ -702,7 +702,7 @@ export default function ApplyPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-on-surface-variant mb-1">
-            Job title or keyword <span className="text-red-500">*</span>
+            Job title or keyword <span className="text-red-500 dark:text-red-400">*</span>
           </label>
           <select
             value={indeedKeyword}
@@ -1115,7 +1115,7 @@ export default function ApplyPage() {
 
             {status && (
               <div className="mb-4">
-                <p className={`text-sm ${isError ? 'text-red-500' : 'text-on-surface-variant'}`}>{status}</p>
+                <p className={`text-sm ${isError ? 'text-red-500 dark:text-red-400' : 'text-on-surface-variant'}`}>{status}</p>
                 {isError && status.includes('upgrade') && (
                   <button
                     onClick={openUpgrade}
@@ -1220,7 +1220,7 @@ export default function ApplyPage() {
 
             {status && (
               <div className="mb-4">
-                <p className={`text-sm ${isError ? 'text-red-500' : 'text-on-surface-variant'}`}>{status}</p>
+                <p className={`text-sm ${isError ? 'text-red-500 dark:text-red-400' : 'text-on-surface-variant'}`}>{status}</p>
                 {isError && status.includes('upgrade') && (
                   <button
                     onClick={openUpgrade}

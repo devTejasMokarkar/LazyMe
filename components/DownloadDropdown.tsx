@@ -158,7 +158,7 @@ ${resumeData.education.map((e: any) => `${e.degree} from ${e.school} (${e.year})
               onClick={() => downloadFile("tex")} 
               className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
             >
-              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 dark:bg-blue-400/10 flex items-center justify-center text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform">
                 <Code className="w-4 h-4" />
               </div>
               <div className="text-left">
@@ -170,7 +170,7 @@ ${resumeData.education.map((e: any) => `${e.degree} from ${e.school} (${e.year})
               onClick={() => downloadFile("doc")} 
               className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
             >
-              <div className="w-8 h-8 rounded-lg bg-blue-400/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+              <div className="w-8 h-8 rounded-lg bg-blue-400/10 dark:bg-blue-300/10 flex items-center justify-center text-blue-400 dark:text-blue-300 group-hover:scale-110 transition-transform">
                 <FileText className="w-4 h-4" />
               </div>
               <div className="text-left">

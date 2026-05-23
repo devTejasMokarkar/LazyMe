@@ -62,7 +62,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const [resumeTheme, setResumeTheme] = useState<'light' | 'dark'>('light');
   const [resumeColor, setResumeColor] = useState('#000000');
   const [zoom, setZoom] = useState(85);
-  
+
   const ACCENT_COLORS = ['#000000', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1'];
 
   const { showToast } = useToast();
@@ -70,7 +70,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const isUndoRedoActionRef = useRef<boolean>(false);
   const [history, setHistory] = useState<any[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
-  
+
   const [resumeId, setResumeId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
@@ -87,6 +87,9 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const [parseError, setParseError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [enhancedPrompt, setEnhancedPrompt] = useState('');
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingResumeApplied = useRef(false);
   const promptProcessedRef = useRef(false);
@@ -133,13 +136,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    
+
     // Clear all cached resume data
     localStorage.removeItem('lazyme_pending_resume');
     sessionStorage.removeItem('pendingResume');
     sessionStorage.removeItem('lazyme_pending_resume');
     pendingResumeApplied.current = false;
-    
+
     // Reset state
     setResumeId(null);
     setUserName('');
@@ -158,7 +161,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     setParseError(null);
     setUploadSuccess(false);
     lastSavedContent.current = '';
-    
+
     // Fetch fresh data from database
     try {
       const res = await fetch('/api/resumes?_t=' + Date.now());
@@ -196,18 +199,18 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     async function initResume() {
       // Step 1: Check localStorage/sessionStorage for pending resume data
       const pending = localStorage.getItem('lazyme_pending_resume') || sessionStorage.getItem('pendingResume');
-      
+
       if (pending) {
         // IMMEDIATELY clear storage so no other mount/call can re-read stale data
         sessionStorage.removeItem('pendingResume');
         localStorage.removeItem('lazyme_pending_resume');
-        
+
         // Mark that this component instance consumed pending data
         pendingResumeApplied.current = true;
 
         try {
           const parsed = JSON.parse(pending);
-          
+
           // Apply parsed data to state
           setUserName(parsed.name || 'Your Name');
           setUserRole(parsed.title || 'Your Role');
@@ -226,7 +229,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
             { name: 'Skills', status: 'success', confidence: 91 },
             { name: 'Education', status: 'success', confidence: 88 }
           ]);
-          
+
           lastSavedContent.current = JSON.stringify({
             name: parsed.name || 'Your Name',
             title: parsed.title || 'Your Role',
@@ -277,16 +280,16 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   name: `Resume ${new Date().toLocaleDateString()}`,
-                  content: { 
-                    name: parsed.name, 
-                    title: parsed.title, 
-                    experience: parsed.experience, 
-                    skills: parsed.skills, 
-                    email: parsed.email, 
-                    phone: parsed.phone, 
-                    location: parsed.location, 
-                    summary: parsed.summary, 
-                    education: parsed.education 
+                  content: {
+                    name: parsed.name,
+                    title: parsed.title,
+                    experience: parsed.experience,
+                    skills: parsed.skills,
+                    email: parsed.email,
+                    phone: parsed.phone,
+                    location: parsed.location,
+                    summary: parsed.summary,
+                    education: parsed.education
                   },
                   isDefault: true
                 })
@@ -425,7 +428,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         if (res.ok) {
           lastSavedContent.current = currentSerialized;
           showToast("saved successfully", "success");
-          
+
           // Update versions list
           setVersions(prev => prev.map(v => v.id === resumeId ? {
             ...v,
@@ -703,7 +706,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         summary,
         education
       };
-      
+
       const currentSerialized = JSON.stringify(content);
       if (currentSerialized === lastSavedContent.current) return;
 
@@ -754,7 +757,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       isUndoRedoActionRef.current = true;
       const prevIndex = historyIndex - 1;
       const prevState = history[prevIndex];
-      
+
       setUserName(prevState.userName);
       setUserRole(prevState.userRole);
       setExperience(JSON.parse(JSON.stringify(prevState.experience)));
@@ -764,7 +767,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       setLocation(prevState.location);
       setSummary(prevState.summary);
       setEducation(JSON.parse(JSON.stringify(prevState.education)));
-      
+
       setHistoryIndex(prevIndex);
     }
   };
@@ -774,7 +777,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       isUndoRedoActionRef.current = true;
       const nextIndex = historyIndex + 1;
       const nextState = history[nextIndex];
-      
+
       setUserName(nextState.userName);
       setUserRole(nextState.userRole);
       setExperience(JSON.parse(JSON.stringify(nextState.experience)));
@@ -784,7 +787,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       setLocation(nextState.location);
       setSummary(nextState.summary);
       setEducation(JSON.parse(JSON.stringify(nextState.education)));
-      
+
       setHistoryIndex(nextIndex);
     }
   };
@@ -844,6 +847,66 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   };
   const latex = resumeToLatex(resumeData);
 
+  const handleEnhancePrompt = async () => {
+    if (!chatInput.trim() || isEnhancing) return;
+    setIsEnhancing(true);
+    try {
+      const res = await fetch('/api/ollama/enhance-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: chatInput.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setEnhancedPrompt(data.enhancedPrompt);
+      } else {
+        console.error('Enhance error:', data.error);
+      }
+    } catch (e: any) {
+      console.error('Enhance error:', e.message);
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleUpdateResume = async () => {
+    if (!enhancedPrompt.trim() || isUpdating) return;
+    setIsUpdating(true);
+    try {
+      const res = await fetch('/api/ollama/update-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enhancedPrompt: enhancedPrompt.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.changes) {
+        const { summary: newSummary, experience: newExperience, skills: newSkills } = data.changes;
+        if (newSummary) setSummary(newSummary);
+        if (newExperience) {
+          setExperience((prev: any[]) => {
+            const merged = [...prev];
+            for (const entry of newExperience) {
+              const idx = merged.findIndex((e: any) => e.company === entry.company);
+              if (idx >= 0) {
+                merged[idx] = { ...merged[idx], ...entry };
+              } else {
+                merged.push(entry);
+              }
+            }
+            return merged;
+          });
+        }
+        if (newSkills) setSkills(newSkills);
+        setChatInput('');
+        setEnhancedPrompt('');
+      }
+    } catch (e: any) {
+      console.error('Update resume error:', e.message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* Main Editor - Takes remaining space */}
@@ -865,13 +928,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               </button>
             </div>
             <div className="flex items-center gap-1">
-              <button 
-                onClick={handleRefresh} 
+              <button
+                onClick={handleRefresh}
                 disabled={isRefreshing}
                 className={cn(
                   "p-2 rounded-md transition-colors",
                   isRefreshing ? "text-on-surface-variant/30 cursor-not-allowed" : "hover:bg-surface-container text-on-surface-variant hover:text-primary"
-                )} 
+                )}
                 title="Refresh Resume"
               >
                 <RotateCcw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
@@ -879,8 +942,8 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <button onClick={() => saveCurrentVersion()} className="p-2 hover:bg-surface-container rounded-md text-on-surface-variant hover:text-primary transition-colors" title="Save">
                 <Save className="w-4 h-4" />
               </button>
-               <button 
-                onClick={handleUndo} 
+              <button
+                onClick={handleUndo}
                 disabled={historyIndex <= 0}
                 className={cn(
                   "p-2 rounded-md transition-colors",
@@ -890,8 +953,8 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               >
                 <Undo2 className="w-4 h-4" />
               </button>
-              <button 
-                onClick={handleRedo} 
+              <button
+                onClick={handleRedo}
                 disabled={historyIndex >= history.length - 1}
                 className={cn(
                   "p-2 rounded-md transition-colors",
@@ -902,8 +965,8 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 <Redo2 className="w-4 h-4" />
               </button>
               <div className="w-px h-5 bg-outline-variant/30 mx-1" />
-              <Link 
-                href={parseError ? "#" : "/apply"} 
+              <Link
+                href={parseError ? "#" : "/apply"}
                 className={cn(
                   "btn-primary py-1.5 text-sm font-medium",
                   parseError && "opacity-50 pointer-events-none cursor-not-allowed"
@@ -924,69 +987,72 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6">
           <div className="max-w-3xl mx-auto space-y-6">
             {/* Chat Input Bar */}
-            <div className="glass rounded-xl p-2 flex items-center gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-              <div className="flex items-center gap-1">
+            <div className="space-y-2">
+              <div className="glass rounded-xl p-2 flex items-center gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                <textarea
+                  rows={1}
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
+                  placeholder="Tell LazyMe what to find next..."
+                />
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
-                  title="Upload Resume"
+                  onClick={handleEnhancePrompt}
+                  disabled={!chatInput.trim() || isEnhancing}
+                  className="h-10 px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-2 font-bold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                  title="Preview the optimized resume entry before appending"
                 >
-                  <PlusCircle className="w-5 h-5" />
+                  {isEnhancing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  {isEnhancing ? 'Enhancing...' : 'Enhance prompt'}
                 </button>
                 <button
                   type="button"
-                  className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
-                  title="Paste Job Description"
+                  onClick={handleUpdateResume}
+                  className="h-10 px-5 btn-primary rounded-lg flex items-center gap-2 font-bold text-xs shadow-lg disabled:opacity-50 shrink-0"
+                  disabled={!enhancedPrompt.trim() || isUpdating}
                 >
-                  <Code className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
-                  title="AI Suggestions"
-                >
-                  <Palette className="w-5 h-5" />
+                  {isUpdating ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3 h-3 fill-white" />
+                  )}
+                  <span>{isUpdating ? 'Updating...' : 'Update Resume'}</span>
                 </button>
               </div>
-              <textarea
-                rows={1}
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
-                placeholder="Tell LazyMe what to find next..."
-              />
-              <button
-                type="button"
-                disabled={!chatInput.trim()}
-                className="h-10 px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-2 font-bold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                title="Preview the optimized resume entry before appending"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Enhance prompt
-              </button>
-              <button
-                type="button"
-                className="h-10 px-5 btn-primary rounded-lg flex items-center gap-2 font-bold text-xs shadow-lg disabled:opacity-50 shrink-0"
-                disabled={!chatInput.trim()}
-              >
-                <span>Send</span>
-                <Send className="w-3 h-3 fill-white" />
-              </button>
+              {enhancedPrompt && (
+                <div className="glass rounded-xl p-3 border border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-primary tracking-wider uppercase">Enhanced Prompt</span>
+                    <button
+                      type="button"
+                      onClick={() => setEnhancedPrompt('')}
+                      className="p-1 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-on-background leading-relaxed whitespace-pre-wrap">{enhancedPrompt}</p>
+                </div>
+              )}
             </div>
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif,image/*" />
 
             {/* Parse Error Alert */}
             {parseError && (
-               <div className="glass rounded-xl p-4 border border-error/30 bg-error/5">
-                 <div className="flex items-start gap-3">
-                   <div className="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center shrink-0">
-                     <X className="w-4 h-4 text-error" />
-                   </div>
-                   <div className="flex-1">
-                     <h4 className="text-sm font-bold text-error">Failed to Parse Resume</h4>
+              <div className="glass rounded-xl p-4 border border-error/30 bg-error/5">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center shrink-0">
+                    <X className="w-4 h-4 text-error" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-bold text-error">Failed to Parse Resume</h4>
                     <p className="text-xs text-on-surface-variant mt-1">{parseError}</p>
-                    <button 
+                    <button
                       onClick={() => { setParseError(null); setNeedsUpload(true); }}
                       className="mt-2 text-xs text-primary hover:underline"
                     >
@@ -1069,7 +1135,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].duration = e.currentTarget.innerText; setExperience(n); }}>{exp.duration || exp.period}</span>
-                        <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                   <ul className="list-disc ml-4 text-sm text-on-surface-variant space-y-1.5">
@@ -1085,7 +1151,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill, i) => (
                   <div key={i} className="glass rounded-full px-3 py-1.5 flex items-center gap-2 group transition-all hover:bg-surface-container-highest">
-                    <span 
+                    <span
                       className="text-xs font-semibold text-on-surface outline-none min-w-[40px] cursor-text"
                       contentEditable
                       suppressContentEditableWarning
@@ -1108,16 +1174,16 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                     >
                       {skill}
                     </span>
-                      <button 
-                        onClick={() => setSkills(skills.filter((_, idx) => idx !== i))} 
-                        className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+                    <button
+                      onClick={() => setSkills(skills.filter((_, idx) => idx !== i))}
+                      className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
                 ))}
-                <button 
-                  onClick={() => setSkills([...skills, 'New Skill'])} 
+                <button
+                  onClick={() => setSkills([...skills, 'New Skill'])}
                   className="bg-primary/10 border border-primary/30 text-primary rounded-full px-3 py-1.5 text-xs font-semibold hover:bg-primary/15 transition-all"
                 >
                   + Add

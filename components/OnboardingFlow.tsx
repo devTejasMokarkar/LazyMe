@@ -224,7 +224,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {/* Step 1: Details */}
       {step === 1 && mode === "upload" && (
         <div className="animate-slide-up">
-          <button onClick={() => setStep(0)} className="text-slate-400 hover:text-slate-200 text-sm mb-4 flex items-center gap-1">
+          <button onClick={() => setStep(0)} className="text-slate-400 dark:text-slate-500 hover:text-slate-200 dark:hover:text-slate-300 text-sm mb-4 flex items-center gap-1">
             <ArrowRight className="w-4 h-4 rotate-180" /> Back
           </button>
           <h2 className="text-2xl font-bold mb-6">Upload Resume & Job Details</h2>

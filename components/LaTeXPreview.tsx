@@ -30,9 +30,9 @@ export default function LaTeXPreview({ resumeData, className = "" }: LaTeXPrevie
       <div className="bg-surface-container-high border-b border-outline-variant px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-500/50" />
-            <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-            <div className="w-3 h-3 rounded-full bg-green-500/50" />
+            <div className="w-3 h-3 rounded-full bg-red-500/50 dark:bg-red-800/50" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500/50 dark:bg-yellow-800/50" />
+            <div className="w-3 h-3 rounded-full bg-green-500/50 dark:bg-green-800/50" />
           </div>
           <div className="h-4 w-[1px] bg-outline-variant" />
           <div className="flex items-center gap-2 text-on-surface-variant text-xs font-mono">
@@ -60,7 +60,7 @@ export default function LaTeXPreview({ resumeData, className = "" }: LaTeXPrevie
                 {line.startsWith('%') ? (
                   <span className="text-on-surface-variant/50">{line}</span>
                 ) : line.startsWith('\\') ? (
-                  <span className="text-pink-500">{line}</span>
+                  <span className="text-pink-500 dark:text-pink-400">{line}</span>
                 ) : (
                   line
                 )}

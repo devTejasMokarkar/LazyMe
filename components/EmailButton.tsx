@@ -107,7 +107,7 @@ Found a job? Just LazyMe it.
 
       {showOptions && (
         <>
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]" />
+          <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-[60]" />
           
           <div className="fixed inset-0 flex items-center justify-center z-[70] p-4">
             <div 
@@ -132,7 +132,7 @@ Found a job? Just LazyMe it.
                   onClick={handleMailApp}
                   className="w-full flex items-center gap-4 p-4 bg-surface-container-high hover:bg-surface-container-highest rounded-xl border border-outline-variant transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/20 dark:bg-blue-400/20 flex items-center justify-center text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform">
                     <Mail className="w-5 h-5" />
                   </div>
                   <div className="text-left">
@@ -169,7 +169,7 @@ Found a job? Just LazyMe it.
                   onClick={handleCopy}
                   className="w-full flex items-center gap-4 p-4 bg-surface-container-high hover:bg-surface-container-highest rounded-xl border border-outline-variant transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 dark:bg-emerald-400/20 flex items-center justify-center text-emerald-500 dark:text-emerald-400 group-hover:scale-110 transition-transform">
                     <Copy className="w-5 h-5" />
                   </div>
                   <div className="text-left">
