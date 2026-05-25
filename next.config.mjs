@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: { unoptimized: true },
-  transpilePackages: ['framer-motion', 'next-auth'],
+  transpilePackages: ['framer-motion', 'next-auth', '@auth/core'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

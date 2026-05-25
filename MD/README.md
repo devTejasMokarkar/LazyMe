@@ -202,3 +202,5 @@ AUTH_GOOGLE_SECRET	Google Cloud Console	OAuth 2.0 client secret
 SMTP_HOST/PORT/USER/PASS	Your email provider	For sending applications
 NEXT_PUBLIC_APP_URL	https://your-app.vercel.app	Public URL
 Do NOT set OLLAMA_BASE_URL or OLLAMA_MODEL — they default, fail silently, and the cloud chain handles everything.
+
+ <!-- https://lazymeai.vercel.app -->
