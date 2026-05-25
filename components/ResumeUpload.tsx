@@ -102,7 +102,7 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
         <div
           onDrop={onDrop}
           onDragOver={(e) => e.preventDefault()}
-          className="border-2 border-dashed border-outline-variant rounded-2xl p-8 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
+          className="border-2 border-dashed border-outline-variant rounded-xl sm:rounded-2xl p-6 sm:p-8 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer active:scale-[0.99]"
         >
           <input
             type="file"
@@ -111,27 +111,27 @@ export function ResumeUpload({ onParsed }: ResumeUploadProps) {
             className="hidden"
             id="resume-upload"
           />
-          <label htmlFor="resume-upload" className="cursor-pointer block">
-            <Upload className="w-10 h-10 mx-auto mb-3 text-on-surface-variant" />
-            <p className="text-on-background font-medium mb-1">Drop your resume here</p>
-            <p className="text-on-surface-variant text-sm">PDF, DOCX, TXT, TEX, PNG, JPG (max 5MB)</p>
+          <label htmlFor="resume-upload" className="cursor-pointer block touch-manipulation">
+            <Upload className="w-8 sm:w-10 h-8 sm:h-10 mx-auto mb-2 sm:mb-3 text-on-surface-variant" />
+            <p className="text-sm sm:text-base text-on-background font-medium mb-1">Drop your resume here</p>
+            <p className="text-[11px] sm:text-sm text-on-surface-variant">PDF, DOCX, TXT, TEX, PNG, JPG (max 5MB)</p>
           </label>
         </div>
       ) : (
-        <div className="flex items-center gap-3 bg-surface-container-high/50 border border-outline-variant rounded-xl p-4">
-          <File className="w-8 h-8 text-primary" />
+        <div className="flex items-center gap-2 sm:gap-3 bg-surface-container-high/50 border border-outline-variant rounded-lg sm:rounded-xl p-3 sm:p-4">
+          <File className="w-6 sm:w-8 h-6 sm:h-8 text-primary shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-on-background font-medium truncate">{file.name}</p>
-            <p className="text-on-surface-variant text-sm">
+            <p className="text-xs sm:text-base text-on-background font-medium truncate">{file.name}</p>
+            <p className="text-[10px] sm:text-sm text-on-surface-variant">
               {parsing ? "Parsing with AI..." : "Ready"}
             </p>
           </div>
-          {parsing && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
+          {parsing && <Loader2 className="w-4 sm:w-5 h-4 sm:h-5 text-primary animate-spin shrink-0" />}
           <button
             onClick={() => { setFile(null); }}
-            className="p-1 hover:bg-surface-container-highest rounded-lg transition-colors"
+            className="p-1.5 sm:p-1 hover:bg-surface-container-highest rounded-lg transition-colors"
           >
-            <X className="w-4 h-4 text-on-surface-variant" />
+            <X className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-on-surface-variant" />
           </button>
         </div>
       )}

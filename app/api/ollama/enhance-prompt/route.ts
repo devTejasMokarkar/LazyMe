@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { generateText } from "@/utils/gemini";
 
-const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-const MODEL = process.env.OLLAMA_MODEL || "llama3.2";
+const ENHANCE_SYSTEM_PROMPT = `You are a resume improvement assistant. Enhance the following short user request into a detailed, well-structured prompt for updating a resume section. Return only the enhanced prompt text, no extra explanation, no greetings.`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,34 +11,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
     }
 
-    const res = await fetch(`${OLLAMA_BASE}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        stream: false,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a resume improvement assistant. Enhance the following short user request into a detailed, well-structured prompt for updating a resume section. Return only the enhanced prompt text, no extra explanation, no greetings.",
-          },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("[ollama/enhance-prompt] Ollama error:", res.status, text);
-      return NextResponse.json(
-        { error: `Ollama returned status ${res.status}` },
-        { status: 502 }
-      );
-    }
-
-    const data = await res.json();
-    const enhancedPrompt = data.message?.content || "";
+    const fullPrompt = `${ENHANCE_SYSTEM_PROMPT}\n\nUser request: ${prompt}`;
+    const enhancedPrompt = await generateText(fullPrompt);
 
     return NextResponse.json({ enhancedPrompt });
   } catch (e: any) {

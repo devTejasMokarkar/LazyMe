@@ -2,39 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Search, Briefcase, MapPin, ExternalLink, Eye, Loader2, Sparkles, X, Zap,
-  Target, TrendingUp, AlertCircle, DollarSign, Clock, ChevronDown, Filter, Inbox, RefreshCw, Linkedin
+  Search, Briefcase, MapPin, ExternalLink, Loader2,
+  AlertCircle, DollarSign, Clock, ChevronDown, Inbox, RefreshCw, Linkedin
 } from 'lucide-react';
 
-// ── Old search types ──────────────────────────────────────────────
-interface Job {
-  title: string;
-  company: string;
-  location: string;
-  experience: string;
-  salary: string;
-  skills: string[];
-  postedOn: string;
-  url: string;
-  matchScore?: number;
-  matchAnalysis?: {
-    strengths: string[];
-    gaps: string[];
-    missingSkills: string[];
-    recommendation: string;
-    shouldApply: boolean;
-  };
-  [key: string]: any;
-}
-
-interface ResumeData {
-  title?: string;
-  skills?: string[];
-  location?: string;
-  experience?: Array<{ role?: string; company?: string }>;
-}
-
-// ── Indeed/Remotive types ─────────────────────────────────────────
 interface IndeedJob {
   id: string;
   title: string;
@@ -81,7 +52,7 @@ const EXPERIENCE_OPTIONS = [
 ];
 
 const SOURCE_OPTIONS = ["Indeed", "Remotive", "Both"] as const;
-type TabMode = 'manual' | 'ai' | 'linkedin' | 'indeed';
+type TabMode = 'linkedin' | 'indeed';
 
 const JOB_TITLES = [
   "Software Developer",
@@ -173,18 +144,6 @@ function getSourceBadgeClass(source: string): string {
   return "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-700";
 }
 
-function readUrlParams() {
-  if (typeof window === "undefined") return null;
-  const params = new URLSearchParams(window.location.search);
-  return {
-    q: params.get("q") || "",
-    l: params.get("l") || "Nagpur, India",
-    jobType: params.get("jobType") || "any",
-    experience: params.get("experience") || "any",
-    sources: params.get("sources") || "both",
-  };
-}
-
 function buildIndeedUrl(params: { q: string; l: string; jobType: string; experience: string; sources: string; page: number }): string {
   const p = new URLSearchParams();
   if (params.q) p.set("q", params.q);
@@ -230,28 +189,24 @@ function SkeletonCard() {
   );
 }
 
-export default function ApplyPage() {
-  const [tab, setTab] = useState<TabMode>('ai');
+function SkeletonGrid() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+    </div>
+  );
+}
 
-  // ── Old search state ────────────────────────────────────────────
-  const [keyword, setKeyword] = useState('');
-  const [location, setLocation] = useState('');
-  const [minSalary, setMinSalary] = useState('');
-  const [maxSalary, setMaxSalary] = useState('');
-  const [expFilter, setExpFilter] = useState('');
-  const [status, setStatus] = useState('');
-  const [isError, setIsError] = useState(false);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [debugJob, setDebugJob] = useState<number | null>(null);
-  const [resumeData, setResumeData] = useState<ResumeData | null>(null);
-  const [showAutoSearch, setShowAutoSearch] = useState(true);
+export default function ApplyPage() {
+  const [tab, setTab] = useState<TabMode>('indeed');
+
+  // ── Common filter state (shared across both tabs) ──────────────
+  const [keyword, setKeyword] = useState("");
+  const [location, setLocation] = useState("Nagpur, India");
+  const [experience, setExperience] = useState("any");
+  const [jobType, setJobType] = useState("any");
 
   // ── Indeed/Remotive state ───────────────────────────────────────
-  const [indeedKeyword, setIndeedKeyword] = useState("");
-  const [indeedLocation, setIndeedLocation] = useState("Nagpur, India");
-  const [indeedJobType, setIndeedJobType] = useState("any");
-  const [indeedExperience, setIndeedExperience] = useState("any");
   const [indeedSources, setIndeedSources] = useState<string[]>(["both"]);
   const [indeedJobs, setIndeedJobs] = useState<IndeedJob[]>([]);
   const [isIndeedSearching, setIsIndeedSearching] = useState(false);
@@ -262,188 +217,18 @@ export default function ApplyPage() {
   const [indeedErrorMsg, setIndeedErrorMsg] = useState("");
   const [indeedBlocked, setIndeedBlocked] = useState(false);
   const [indeedAllFailed, setIndeedAllFailed] = useState(false);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const initialized = useRef(false);
 
   const locationDisabled = isLocationDisabled(indeedSources);
-  const hasSearched = indeedJobs.length > 0 || isIndeedSearching || indeedErrorMsg || (indeedSourceStatus && !indeedSourceStatus.indeed.status?.startsWith("skipped") && !indeedSourceStatus.remotive.status?.startsWith("skipped"));
-
-  useEffect(() => {
-    if (tab === 'ai' || tab === 'manual') fetchResumeData();
-  }, [tab]);
-
-  const fetchResumeData = async () => {
-    try {
-      const res = await fetch('/api/user/resume');
-      if (res.ok) {
-        const data = await res.json();
-        setResumeData(data);
-      }
-    } catch (e) {
-      console.log('No resume data found');
-    }
-  };
-
-  // ── Old search: autoSearch (AI) ─────────────────────────────────
-  const autoSearch = async () => {
-    if (!resumeData?.title && !resumeData?.skills?.length) {
-      setStatus('No resume data found. Please fill in your resume first.');
-      setIsError(true);
-      setShowAutoSearch(false);
-      return;
-    }
-
-    setIsSearching(true);
-    setStatus('Analyzing your resume and finding the most relevant jobs...');
-
-    try {
-      const response = await fetch('/api/search-jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resumeData,
-          minSalary: minSalary || undefined,
-          maxSalary: maxSalary || undefined,
-          expFilter: expFilter || undefined,
-          useAI: true
-        })
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        if (result.code === 'UPGRADE_REQUIRED') {
-          if (result.jobs && result.jobs.length > 0) {
-            setJobs(result.jobs);
-            setStatus(`Found ${result.jobs.length} jobs. Note: ${result.message || 'Search limit reached, showing available results.'}`);
-            setIsError(false);
-            return;
-          }
-          if (result.suggestion === 'manual') {
-            setStatus('Apify free tier limit reached. Try manual search below with the same keywords.');
-            setTab('manual');
-            setKeyword(result.searchKeyword || '');
-            setIsError(false);
-            return;
-          }
-          setStatus('Apify search limit reached. Try manual search below or wait a few minutes before retrying.');
-          setIsError(true);
-          return;
-        }
-        throw new Error(result.error || 'Search failed');
-      }
-
-      setJobs(result.jobs);
-      const aiMsg = result.expandedKeywords?.length > 0
-        ? `Found ${result.jobs.length} jobs using AI-enhanced search`
-        : `Found ${result.jobs.length} relevant jobs for your profile!`;
-      setStatus(aiMsg);
-    } catch (e: any) {
-      setStatus('Error: ' + e.message);
-      setIsError(true);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // ── Old search: manualSearch ────────────────────────────────────
-  const manualSearch = async () => {
-    if (!keyword.trim()) {
-      setStatus('Please enter a job title or keyword.');
-      setIsError(true);
-      return;
-    }
-
-    setIsSearching(true);
-    setStatus('Searching for jobs...');
-
-    try {
-      const response = await fetch('/api/search-jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keyword: keyword.trim(),
-          location: location.trim(),
-          minSalary: minSalary || undefined,
-          maxSalary: maxSalary || undefined,
-          expFilter: expFilter || undefined
-        })
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        if (result.code === 'UPGRADE_REQUIRED') {
-          if (result.jobs && result.jobs.length > 0) {
-            setJobs(result.jobs);
-            setStatus(`Found ${result.jobs.length} jobs. Note: Search limit reached.`);
-            setIsError(false);
-            return;
-          }
-          setStatus('Job search limit reached. Please try again in a few minutes.');
-          setIsError(true);
-          return;
-        }
-        throw new Error(result.error || 'Search failed');
-      }
-
-      setJobs(result.jobs);
-      setStatus(`Found ${result.jobs.length} jobs.`);
-      setIsError(false);
-    } catch (e: any) {
-      setStatus('Error: ' + e.message);
-      setIsError(true);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const escHtml = (str: string) => {
-    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  };
-
-  const extractUrl = (job: Job) => {
-    const candidates = [
-      job.url, job.jobUrl, job.link, job.applyUrl, job.applyLink,
-      job.jobLink, job.detailUrl, job.pageUrl, job.href,
-      job.externalApplyLink, job.applyNowLink, job.redirectUrl
-    ];
-    for (const c of candidates) {
-      if (c && typeof c === 'string' && c.startsWith('http')) return c;
-    }
-    if (job.jdURL) return job.jdURL;
-    if (job.jobId) return `https://www.naukri.com/job-listings-${job.jobId}`;
-    return null;
-  };
-
-  const toggleDebug = (idx: number) => {
-    setDebugJob(debugJob === idx ? null : idx);
-  };
-
-  const getDebugInfo = (job: Job) => {
-    return JSON.stringify(
-      Object.keys(job).reduce((acc: any, k) => {
-        const v = job[k];
-        if (typeof v === 'string' && v.startsWith('http')) acc[k] = v;
-        else if (k.toLowerCase().includes('url') || k.toLowerCase().includes('link') || k.toLowerCase().includes('id')) acc[k] = v;
-        return acc;
-      }, {}),
-      null,
-      2
-    );
-  };
-
-  const openUpgrade = () => {
-    window.open('https://console.apify.com/billing/subscription', '_blank');
-  };
+  const hasIndeedSearched = indeedJobs.length > 0 || isIndeedSearching || indeedErrorMsg || (indeedSourceStatus && !indeedSourceStatus.indeed.status?.startsWith("skipped") && !indeedSourceStatus.remotive.status?.startsWith("skipped"));
 
   // ── Indeed/Remotive fetch ───────────────────────────────────────
   const doIndeedFetch = useCallback(async (pg: number, append: boolean) => {
     const url = buildIndeedUrl({
-      q: indeedKeyword,
-      l: indeedLocation,
-      jobType: indeedJobType,
-      experience: indeedExperience,
+      q: keyword,
+      l: location,
+      jobType: jobType,
+      experience: experience,
       sources: sourcesToParam(indeedSources),
       page: pg,
     });
@@ -477,12 +262,12 @@ export default function ApplyPage() {
       setIndeedErrorMsg("");
     }
     return data;
-  }, [indeedKeyword, indeedLocation, indeedJobType, indeedExperience, indeedSources]);
+  }, [keyword, location, jobType, experience, indeedSources]);
 
   const handleIndeedSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      if (!indeedKeyword.trim()) return;
+      if (!keyword.trim()) return;
       setIsIndeedSearching(true);
       setIndeedJobs([]);
       setIndeedCount(0);
@@ -490,10 +275,9 @@ export default function ApplyPage() {
       setIndeedBlocked(false);
       setIndeedAllFailed(false);
       setIndeedSourceStatus(null);
-
       doIndeedFetch(0, false).finally(() => setIsIndeedSearching(false));
     },
-    [indeedKeyword, indeedLocation, indeedJobType, indeedExperience, indeedSources, doIndeedFetch]
+    [keyword, doIndeedFetch]
   );
 
   const handleIndeedLoadMore = useCallback(() => {
@@ -512,15 +296,7 @@ export default function ApplyPage() {
     doIndeedFetch(0, false).finally(() => setIsIndeedSearching(false));
   }, [doIndeedFetch]);
 
-  const handleSourceClick = (val: string) => {
-    setIndeedSources([val]);
-  };
-
   // ── LinkedIn state ──────────────────────────────────────────────
-  const [liKeyword, setLiKeyword] = useState("");
-  const [liLocation, setLiLocation] = useState("Nagpur, India");
-  const [liExperience, setLiExperience] = useState("any");
-  const [liJobType, setLiJobType] = useState("any");
   const [liPage, setLiPage] = useState(0);
   const [liJobs, setLiJobs] = useState<IndeedJob[]>([]);
   const [liCount, setLiCount] = useState(0);
@@ -543,9 +319,9 @@ export default function ApplyPage() {
   };
 
   const doLiSearch = useCallback(async (reset: boolean, pg: number) => {
-    if (!liKeyword.trim()) return;
+    if (!keyword.trim()) return;
 
-    const url = `/api/linkedin-jobs?q=${encodeURIComponent(liKeyword.trim())}&l=${encodeURIComponent(liLocation.trim())}&experience=${liExperience}&jobType=${liJobType}&page=${pg}`;
+    const url = `/api/linkedin-jobs?q=${encodeURIComponent(keyword.trim())}&l=${encodeURIComponent(location.trim())}&experience=${experience}&jobType=${jobType}&page=${pg}`;
 
     try {
       const isAppend = !reset;
@@ -576,7 +352,7 @@ export default function ApplyPage() {
       setLiIsSearching(false);
       setLiIsLoadingMore(false);
     }
-  }, [liKeyword, liLocation, liExperience, liJobType]);
+  }, [keyword, location, experience, jobType]);
 
   const handleLiSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -595,24 +371,24 @@ export default function ApplyPage() {
     setLiCount(0);
   };
 
-  // ── URL sync for Indeed/Remotive ────────────────────────────────
+  // ── URL sync ────────────────────────────────────────────────────
   useEffect(() => {
     if (tab !== 'indeed') return;
     if (!indeedCount && !isIndeedSearching) return;
 
     const params = new URLSearchParams();
-    if (indeedKeyword.trim()) params.set("q", indeedKeyword.trim());
-    if (indeedLocation.trim()) params.set("l", indeedLocation.trim());
-    if (indeedJobType !== "any") params.set("jobType", indeedJobType);
-    if (indeedExperience !== "any") params.set("experience", indeedExperience);
+    if (keyword.trim()) params.set("q", keyword.trim());
+    if (location.trim()) params.set("l", location.trim());
+    if (jobType !== "any") params.set("jobType", jobType);
+    if (experience !== "any") params.set("experience", experience);
     const sp = sourcesToParam(indeedSources);
     if (sp !== "both") params.set("sources", sp);
 
     const newUrl = params.toString() ? `/apply?tab=indeed&${params.toString()}` : "/apply?tab=indeed";
     window.history.replaceState(null, "", newUrl);
-  }, [indeedKeyword, indeedLocation, indeedJobType, indeedExperience, indeedSources, indeedCount, isIndeedSearching, tab]);
+  }, [keyword, location, jobType, experience, indeedSources, indeedCount, isIndeedSearching, tab]);
 
-  // ── Auto-run Indeed from URL params on mount ────────────────────
+  // ── Auto-run from URL params on mount ───────────────────────────
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -626,22 +402,34 @@ export default function ApplyPage() {
     const exp = params.get("experience") || "";
     const src = params.get("sources") || "";
 
+    if (q) setKeyword(q);
+    if (l) setLocation(l);
+    if (jt) setJobType(jt);
+    if (exp) setExperience(exp);
+
     if (tabParam === 'indeed' && q) {
       setTab('indeed');
-      setIndeedKeyword(q);
-      if (l) setIndeedLocation(l);
-      if (jt) setIndeedJobType(jt);
-      if (exp) setIndeedExperience(exp);
       if (src) setIndeedSources(parseSourcesParam(src));
       setIsIndeedSearching(true);
       doIndeedFetch(0, false).finally(() => setIsIndeedSearching(false));
       return;
     }
 
-    if (tabParam === 'ai' || tabParam === 'manual') {
-      setTab(tabParam);
+    if (tabParam === 'linkedin') {
+      setTab('linkedin');
     }
   }, []);
+
+  // ── Common search handler ───────────────────────────────────────
+  const handleSearch = (e: React.FormEvent) => {
+    if (tab === 'linkedin') {
+      handleLiSubmit(e);
+    } else {
+      handleIndeedSubmit(e);
+    }
+  };
+
+  const isSearching = tab === 'linkedin' ? liIsSearching : isIndeedSearching;
 
   // ── Render: Indeed job card ─────────────────────────────────────
   const renderIndeedJobCard = (job: IndeedJob, idx: number) => (
@@ -696,118 +484,7 @@ export default function ApplyPage() {
     </div>
   );
 
-  // ── Render: Indeed/Remotive search form ─────────────────────────
-  const renderIndeedForm = () => (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-on-surface-variant mb-1">
-            Job title or keyword <span className="text-red-500 dark:text-red-400">*</span>
-          </label>
-          <select
-            value={indeedKeyword}
-            onChange={(e) => setIndeedKeyword(e.target.value)}
-            required
-            className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
-          >
-            <option value="">Select job title</option>
-            {JOB_TITLES.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-on-surface-variant mb-1">
-            Location
-          </label>
-          <select
-            value={indeedLocation}
-            onChange={(e) => setIndeedLocation(e.target.value)}
-            disabled={locationDisabled}
-            title={locationDisabled ? "Location is disabled because Indeed or Remotive is selected (remote-only sources)" : ""}
-            className={`w-full h-10 px-3 rounded-lg border text-sm cursor-pointer appearance-none ${
-              locationDisabled
-                ? "bg-surface-container-high/50 text-on-surface-variant/50 cursor-not-allowed"
-                : "bg-background text-on-background"
-            } border-outline-variant`}
-          >
-            <option value="">Select city</option>
-            {INDIAN_CITIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          {locationDisabled && (
-            <p className="text-[10px] text-on-surface-variant/60 mt-0.5">Remote only — location disabled</p>
-          )}
-        </div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-on-surface-variant mb-1">Job Type</label>
-          <div className="relative">
-            <select
-              value={indeedJobType}
-              onChange={(e) => setIndeedJobType(e.target.value)}
-              className="w-full h-10 px-3 pr-8 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
-            >
-              {JOB_TYPE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-on-surface-variant mb-1">Experience</label>
-          <div className="relative">
-            <select
-              value={indeedExperience}
-              onChange={(e) => setIndeedExperience(e.target.value)}
-              className="w-full h-10 px-3 pr-8 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
-            >
-              {EXPERIENCE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
-        <div className="flex items-center gap-1 bg-surface-container-high/60 border border-outline-variant rounded-lg p-1">
-          {SOURCE_OPTIONS.map((opt) => {
-            const active = indeedSources.includes(opt.toLowerCase());
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => handleSourceClick(opt.toLowerCase())}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                  active
-                    ? "bg-primary text-on-primary shadow-sm"
-                    : "text-on-surface-variant hover:text-on-background hover:bg-surface-container/60"
-                }`}
-              >
-                {active ? "\u2713 " : ""}{opt}
-              </button>
-            );
-          })}
-        </div>
-        <button
-          type="submit"
-          disabled={isIndeedSearching || !indeedKeyword.trim()}
-          className="sm:ml-auto flex items-center justify-center gap-2 h-10 px-6 rounded-lg bg-primary text-on-primary font-medium text-sm hover:bg-primary/90 disabled:opacity-50 transition-all whitespace-nowrap shadow-[0_4px_14px_rgba(61,82,160,0.35)]"
-        >
-          {isIndeedSearching ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
-          ) : (
-            <><Search className="w-4 h-4" /> Search Jobs</>
-          )}
-        </button>
-      </div>
-    </>
-  );
-
+  // ── Render: Indeed source status pills ──────────────────────────
   const renderIndeedSourcePills = () => {
     if (!indeedSourceStatus) return null;
     const { indeed, remotive } = indeedSourceStatus;
@@ -852,183 +529,111 @@ export default function ApplyPage() {
     );
   };
 
-  // ── Render: Old job card ────────────────────────────────────────
-  const renderOldJobCard = (job: Job, idx: number) => {
-    const title = job.title || job.jobTitle || job.designation || 'Untitled';
-    const company = job.company || job.companyName || job.employer || '';
-    const loc = Array.isArray(job.location) ? job.location.join(', ') : (job.location || job.jobLocation || job.city || '');
-    const exp = job.experience || job.minExp || job.experienceRange || '';
-    const sal = job.salary || job.salaryRange || job.ctc || '';
-    const posted = job.postedOn || job.postedDate || job.postedAt || '';
-    const skills = Array.isArray(job.skills) ? job.skills.slice(0, 4) : (Array.isArray(job.keySkills) ? job.keySkills.slice(0, 4) : []);
-    const jobUrl = extractUrl(job);
-    const matchScore = job.matchScore || 0;
-    const analysis = job.matchAnalysis;
-
-    const getScoreColor = (score: number) => {
-      if (score >= 80) return 'from-green-500 to-emerald-600';
-      if (score >= 60) return 'from-blue-500 to-cyan-600';
-      if (score >= 40) return 'from-yellow-500 to-orange-600';
-      return 'from-red-500 to-rose-600';
-    };
-
-    const getScoreBg = (score: number) => {
-      if (score >= 80) return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
-      if (score >= 60) return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
-      if (score >= 40) return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800';
-      return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
-    };
-
-    const getScoreText = (score: number) => {
-      if (score >= 80) return 'text-green-700 dark:text-green-400';
-      if (score >= 60) return 'text-blue-700 dark:text-blue-400';
-      if (score >= 40) return 'text-yellow-700 dark:text-yellow-400';
-      return 'text-red-700 dark:text-red-400';
-    };
-
-    return (
-      <div key={idx} className="bg-surface-container border border-outline-variant/50 rounded-xl p-4 hover:border-outline-variant transition-colors">
-        {matchScore > 0 && analysis && (
-          <div className={`flex items-center gap-3 mb-3 p-3 rounded-lg border ${getScoreBg(matchScore)}`}>
-            <div className={`flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br ${getScoreColor(matchScore)} text-white font-bold text-sm`}>
-              {matchScore}%
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <Target className={`w-4 h-4 ${getScoreText(matchScore)}`} />
-                <span className={`text-sm font-semibold ${getScoreText(matchScore)}`}>
-                  {matchScore >= 80 ? 'Excellent Match' : matchScore >= 60 ? 'Good Match' : matchScore >= 40 ? 'Moderate Match' : 'Poor Match'}
-                </span>
-              </div>
-              <p className="text-xs text-on-surface-variant mt-0.5">{analysis.recommendation}</p>
-            </div>
-            {analysis.shouldApply ? (
-              <span className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">Apply</span>
-            ) : (
-              <span className="text-xs px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-medium">Skip</span>
-            )}
-          </div>
-        )}
-
-        <h3 className="text-base font-medium text-on-background mb-1">{escHtml(title)}</h3>
-        <p className="text-sm text-on-surface-variant mb-3">
-          {escHtml(company)}{loc ? ` · ${escHtml(loc)}` : ''}
-        </p>
-
-        <div className="flex flex-wrap gap-2 mb-3">
-          {exp && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-              <Briefcase className="w-3 h-3 inline mr-1" />
-              {escHtml(String(exp))}
-            </span>
-          )}
-          {sal && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
-              <DollarSign className="w-3 h-3 inline mr-1" />
-              {escHtml(String(sal))}
-            </span>
-          )}
-          {skills.map((s: string, i: number) => (
-            <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant border border-outline-variant/30">
-              {escHtml(s)}
-            </span>
-          ))}
-        </div>
-
-        {analysis && analysis.strengths.length > 0 && (
-          <div className="mb-3 p-3 bg-surface-container-low rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400" />
-              <span className="text-xs font-semibold text-green-700 dark:text-green-400">Strengths</span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {analysis.strengths.slice(0, 3).map((s, i) => (
-                <span key={i} className="text-xs px-2 py-0.5 rounded bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
-                  {s}
-                </span>
-              ))}
-            </div>
-            {analysis.missingSkills.length > 0 && (
-              <>
-                <div className="flex items-center gap-2 mb-2 mt-3">
-                  <AlertCircle className="w-3 h-3 text-orange-600 dark:text-orange-400" />
-                  <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">Missing Skills</span>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {analysis.missingSkills.slice(0, 3).map((s, i) => (
-                    <span key={i} className="text-xs px-2 py-0.5 rounded bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-on-surface-variant">
-            {posted ? `Posted: ${escHtml(String(posted))}` : ''}
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => toggleDebug(idx)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-outline-variant/30 bg-transparent text-on-surface-variant hover:bg-surface-container-high transition-colors"
-            >
-              Debug
-            </button>
-            {jobUrl ? (
-              <>
-                <a
-                  href={escHtml(jobUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest flex items-center gap-1 transition-colors"
-                >
-                  <Eye className="w-3 h-3" /> View
-                </a>
-                <a
-                  href={escHtml(jobUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 flex items-center gap-1 transition-colors"
-                >
-                  <ExternalLink className="w-3 h-3" /> Apply now
-                </a>
-              </>
-            ) : (
-              <span className="text-xs px-3 py-1.5 rounded-lg border border-outline-variant/30 text-on-surface-variant opacity-40">No link found</span>
-            )}
-          </div>
-        </div>
-
-        {debugJob === idx && (
-          <pre className="mt-3 p-3 bg-surface-container-low rounded-lg text-xs font-mono text-on-surface-variant overflow-x-auto max-h-40">
-            {getDebugInfo(job)}
-          </pre>
-        )}
-      </div>
-    );
-  };
-
   const TABS: { key: TabMode; label: string; icon: any }[] = [
-    { key: 'manual', label: 'Manual', icon: Search },
-    { key: 'ai', label: 'AI Match', icon: Zap },
     { key: 'linkedin', label: 'LinkedIn', icon: Linkedin },
     { key: 'indeed', label: 'Indeed/Remotive', icon: Search },
   ];
 
   return (
-    <div className="min-h-screen bg-background py-6 px-4 sm:px-6">
+    <div className="scrollable-page bg-background py-6 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-5">
           <h1 className="text-3xl font-semibold text-on-background">Job Search</h1>
           <p className="text-sm text-on-surface-variant mt-1">Find and apply to relevant jobs</p>
         </div>
 
+        {/* ── COMMON FILTERS ─────────────────────────────────────── */}
+        <form onSubmit={handleSearch} className="bg-surface-container border border-outline-variant/50 rounded-xl p-4 mb-5 shadow-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">
+                Job Title <span className="text-red-500 dark:text-red-400">*</span>
+              </label>
+              <select
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                required
+                className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
+              >
+                <option value="">Select</option>
+                {JOB_TITLES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Location</label>
+              <select
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                disabled={tab === 'indeed' && locationDisabled}
+                title={tab === 'indeed' && locationDisabled ? "Disabled when Indeed/Remotive is selected (remote-only)" : ""}
+                className={`w-full h-10 px-3 rounded-lg border text-sm cursor-pointer appearance-none ${
+                  tab === 'indeed' && locationDisabled
+                    ? "bg-surface-container-high/50 text-on-surface-variant/50 cursor-not-allowed"
+                    : "bg-background text-on-background"
+                } border-outline-variant`}
+              >
+                <option value="">Select city</option>
+                {INDIAN_CITIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Experience</label>
+              <div className="relative">
+                <select
+                  value={experience}
+                  onChange={(e) => setExperience(e.target.value)}
+                  className="w-full h-10 px-3 pr-8 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
+                >
+                  {EXPERIENCE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Job Type</label>
+              <div className="relative">
+                <select
+                  value={jobType}
+                  onChange={(e) => setJobType(e.target.value)}
+                  className="w-full h-10 px-3 pr-8 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
+                >
+                  {JOB_TYPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 mt-3">
+            <button
+              type="submit"
+              disabled={isSearching || !keyword.trim()}
+              className="flex items-center justify-center gap-2 h-10 px-7 rounded-lg bg-primary text-on-primary font-medium text-sm hover:bg-primary/90 disabled:opacity-50 transition-all whitespace-nowrap shadow-[0_4px_14px_rgba(61,82,160,0.35)]"
+            >
+              {isSearching ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
+              ) : (
+                <><Search className="w-4 h-4" /> Search Jobs</>
+              )}
+            </button>
+            {tab === 'indeed' && (
+              <span className="text-[11px] text-on-surface-variant/60">
+                {locationDisabled ? "Remote only — location disabled" : "Results from Indeed & Remotive"}
+              </span>
+            )}
+          </div>
+        </form>
+
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto">
+        <div className="flex items-center gap-2 mb-5">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
@@ -1048,278 +653,9 @@ export default function ApplyPage() {
           })}
         </div>
 
-        {/* ── MANUAL TAB ─────────────────────────────────────────── */}
-        {tab === 'manual' && (
-          <>
-            <div className="bg-surface-container rounded-xl p-4 mb-4 border border-outline-variant/50">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                <select
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  className="h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
-                >
-                  <option value="">Select job title</option>
-                  {JOB_TITLES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-                <select
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
-                >
-                  <option value="">Select city</option>
-                  {INDIAN_CITIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={manualSearch}
-                  disabled={isSearching}
-                  className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-primary text-on-primary font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                >
-                  {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  {isSearching ? 'Searching...' : 'Search'}
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input
-                  type="text"
-                  value={minSalary}
-                  onChange={(e) => setMinSalary(e.target.value)}
-                  placeholder="Min salary (e.g. 5)"
-                  className="h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm"
-                />
-                <input
-                  type="text"
-                  value={maxSalary}
-                  onChange={(e) => setMaxSalary(e.target.value)}
-                  placeholder="Max salary (e.g. 20)"
-                  className="h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm"
-                />
-                <select
-                  value={expFilter}
-                  onChange={(e) => setExpFilter(e.target.value)}
-                  className="h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer"
-                >
-                  <option value="">Any experience</option>
-                  <option value="0">Fresher (0 yrs)</option>
-                  <option value="1">1+ year</option>
-                  <option value="2">2+ years</option>
-                  <option value="3">3+ years</option>
-                  <option value="5">5+ years</option>
-                  <option value="8">8+ years</option>
-                </select>
-              </div>
-            </div>
-
-            {status && (
-              <div className="mb-4">
-                <p className={`text-sm ${isError ? 'text-red-500 dark:text-red-400' : 'text-on-surface-variant'}`}>{status}</p>
-                {isError && status.includes('upgrade') && (
-                  <button
-                    onClick={openUpgrade}
-                    className="mt-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
-                  >
-                    Upgrade Apify Plan
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Manual search results */}
-            <div className="space-y-3">
-              {isSearching && (
-                <div className="flex flex-col items-center justify-center py-12 text-on-surface-variant">
-                  <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary" />
-                  <p className="text-sm">Searching and analyzing jobs...</p>
-                </div>
-              )}
-              {!isSearching && jobs.length === 0 && !status && (
-                <div className="text-center py-12 text-on-surface-variant">
-                  <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p>Search for jobs using manual search or AI matching</p>
-                </div>
-              )}
-              {!isSearching && jobs.map((job, idx) => renderOldJobCard(job, idx))}
-            </div>
-          </>
-        )}
-
-        {/* ── AI MATCH TAB ────────────────────────────────────────── */}
-        {tab === 'ai' && (
-          <>
-            {showAutoSearch && resumeData && (
-              <div className="bg-gradient-to-r from-primary/10 to-tertiary/10 border border-primary/20 rounded-xl p-5 mb-4">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-primary/20 rounded-lg">
-                    <Sparkles className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium text-on-background mb-1">AI-Powered Job Matching</h3>
-
-                    {isSearching ? (
-                      <div className="flex items-center gap-3 py-2">
-                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                        <p className="text-sm text-on-surface-variant">
-                          Analyzing your resume and finding the most relevant jobs...
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-sm text-on-surface-variant mb-3">
-                          Found your resume with <strong>{resumeData.title || 'Software Developer'}</strong> and
-                          {resumeData.skills?.length ? ` ${resumeData.skills.slice(0, 6).join(', ')}` : ' relevant skills'}.
-                        </p>
-                        {resumeData.location && (
-                          <p className="text-sm text-on-surface-variant mb-3">
-                            <MapPin className="w-4 h-4 inline mr-1" />
-                            Location: {resumeData.location}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {resumeData.skills?.slice(0, 8).map((skill, i) => (
-                            <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant/30">
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </>
-                    )}
-
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={autoSearch}
-                        disabled={isSearching}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                      >
-                        {isSearching ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> Finding most relevant jobs for your resume...</>
-                        ) : (
-                          <><Sparkles className="w-4 h-4" /> Find Relevant Jobs</>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setShowAutoSearch(false)}
-                        className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {!resumeData && !isSearching && (
-              <div className="text-center py-12 text-on-surface-variant">
-                <p className="mb-2">No resume data found. Please fill in your resume first.</p>
-                <a href="/resume" className="text-primary hover:underline text-sm font-medium">Go to Resume Builder</a>
-              </div>
-            )}
-
-            {status && (
-              <div className="mb-4">
-                <p className={`text-sm ${isError ? 'text-red-500 dark:text-red-400' : 'text-on-surface-variant'}`}>{status}</p>
-                {isError && status.includes('upgrade') && (
-                  <button
-                    onClick={openUpgrade}
-                    className="mt-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
-                  >
-                    Upgrade Apify Plan
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* AI search results */}
-            <div className="space-y-3">
-              {!isSearching && jobs.length > 0 && jobs.map((job, idx) => renderOldJobCard(job, idx))}
-            </div>
-          </>
-        )}
-
         {/* ── LINKEDIN TAB ────────────────────────────────────────── */}
         {tab === 'linkedin' && (
           <>
-            <form
-              onSubmit={handleLiSubmit}
-              className="bg-surface-container border border-outline-variant/50 rounded-xl p-5 mb-6 shadow-sm"
-            >
-              <div className="flex flex-wrap items-end gap-3 md:flex-nowrap">
-                <div className="flex-1 min-w-[180px]">
-                  <label className="block text-xs font-medium text-on-surface-variant mb-1">Job Title</label>
-                  <select
-                    value={liKeyword}
-                    onChange={(e) => setLiKeyword(e.target.value)}
-                    required
-                    className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
-                  >
-                    <option value="">Select job title</option>
-                    {JOB_TITLES.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex-1 min-w-[160px]">
-                  <label className="block text-xs font-medium text-on-surface-variant mb-1">Location</label>
-                  <select
-                    value={liLocation}
-                    onChange={(e) => setLiLocation(e.target.value)}
-                    className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
-                  >
-                    <option value="">Select city</option>
-                    {INDIAN_CITIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex-1 min-w-[160px]">
-                  <label className="block text-xs font-medium text-on-surface-variant mb-1">Experience Level</label>
-                  <select
-                    value={liExperience}
-                    onChange={(e) => setLiExperience(e.target.value)}
-                    className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer"
-                  >
-                    <option value="any">Any Level</option>
-                    <option value="internship">Internship</option>
-                    <option value="entry">Entry Level</option>
-                    <option value="associate">Associate</option>
-                    <option value="mid-senior">Mid-Senior</option>
-                    <option value="director">Director</option>
-                    <option value="executive">Executive</option>
-                  </select>
-                </div>
-                <div className="flex-1 min-w-[160px]">
-                  <label className="block text-xs font-medium text-on-surface-variant mb-1">Job Type</label>
-                  <select
-                    value={liJobType}
-                    onChange={(e) => setLiJobType(e.target.value)}
-                    className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer"
-                  >
-                    <option value="any">Any Type</option>
-                    <option value="full-time">Full-time</option>
-                    <option value="part-time">Part-time</option>
-                    <option value="contract">Contract</option>
-                    <option value="temporary">Temporary</option>
-                    <option value="volunteer">Volunteer</option>
-                    <option value="internship">Internship</option>
-                    <option value="remote">Remote</option>
-                  </select>
-                </div>
-                <button
-                  type="submit"
-                  disabled={liIsSearching || !liKeyword.trim()}
-                  className="flex items-center justify-center gap-2 h-10 px-6 rounded-lg bg-primary text-on-primary font-medium text-sm hover:bg-primary/90 disabled:opacity-50 transition-colors whitespace-nowrap"
-                >
-                  {liIsSearching ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
-                  ) : (
-                    <><Search className="w-4 h-4" /> Search Jobs</>
-                  )}
-                </button>
-              </div>
-            </form>
 
             {liBlocked && (
               <div className="mb-6 flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg px-4 py-3">
@@ -1361,9 +697,9 @@ export default function ApplyPage() {
             {!liIsSearching && liCount > 0 && (
               <>
                 <p className="text-xs text-on-surface-variant mb-3">
-                  Found <span className="font-medium">{liCount}</span> jobs for{" "}
-                  <span className="font-medium">&apos;{liKeyword}&apos;</span> in{" "}
-                  <span className="font-medium">{liLocation}</span>
+                  Found <span className="font-medium">{liCount}</span> jobs for{' '}
+                  <span className="font-medium">&apos;{keyword}&apos;</span> in{' '}
+                  <span className="font-medium">{location}</span>
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                   {liJobs.map((job, idx) => (
@@ -1428,14 +764,31 @@ export default function ApplyPage() {
         {/* ── INDEED/REMOTIVE TAB ─────────────────────────────────── */}
         {tab === 'indeed' && (
           <>
-            <form
-              onSubmit={handleIndeedSubmit}
-              className="bg-surface-container border border-outline-variant/50 rounded-xl p-5 mb-6 shadow-sm"
-            >
-              <div className="flex flex-col gap-4">
-                {renderIndeedForm()}
+            {/* Source selector */}
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
+              <div className="flex items-center gap-1 bg-surface-container-high/60 border border-outline-variant rounded-lg p-1">
+                {SOURCE_OPTIONS.map((opt) => {
+                  const active = indeedSources.includes(opt.toLowerCase());
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setIndeedSources([opt.toLowerCase()])}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                        active
+                          ? "bg-primary text-on-primary shadow-sm"
+                          : "text-on-surface-variant hover:text-on-background hover:bg-surface-container/60"
+                      }`}
+                    >
+                      {active ? "\u2713 " : ""}{opt}
+                    </button>
+                  );
+                })}
               </div>
-            </form>
+              {locationDisabled && (
+                <span className="text-[10px] text-on-surface-variant/60">Remote only — location disabled</span>
+              )}
+            </div>
 
             {indeedBlocked && indeedSourceStatus?.remotive.count! > 0 && (
               <div className="mb-6 flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg px-4 py-3">
@@ -1470,7 +823,7 @@ export default function ApplyPage() {
               </div>
             )}
 
-            {!isIndeedSearching && indeedSourceStatus && !indeedAllFailed && hasSearched && (
+            {!isIndeedSearching && indeedSourceStatus && !indeedAllFailed && hasIndeedSearched && (
               <div className="mb-4">{renderIndeedSourcePills()}</div>
             )}
 
@@ -1505,7 +858,7 @@ export default function ApplyPage() {
               </>
             )}
 
-            {!isIndeedSearching && !indeedErrorMsg && !indeedBlocked && indeedCount === 0 && hasSearched && (
+            {!isIndeedSearching && !indeedErrorMsg && !indeedBlocked && indeedCount === 0 && hasIndeedSearched && (
               <div className="text-center py-16">
                 <Inbox className="w-12 h-12 mx-auto mb-4 text-on-surface-variant/30" />
                 <p className="text-sm text-on-surface-variant mb-5">No jobs found</p>

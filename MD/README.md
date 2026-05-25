@@ -171,3 +171,34 @@ LazyMe AI is not a resume builder. It's an outcome-driven system focused on gett
 
 
 <!-- add new project connectors which is whatsapp campaign provider in -->
+
+
+
+<!-- DEPLOY -->
+
+TypeScript clean, all 166 tests pass. Here's everything that was changed:
+Production Prep Complete
+Changes Made
+File	Change
+utils/gemini.ts:10	Model: gemini-2.0-flash → gemini-2.5-flash (confirmed working on your key)
+utils/gemini.ts:12-16	Made GEMINI_API_KEY check lazy — no longer throws at import, only when AI is actually called
+utils/gemini.ts:285,330	Uses getModel() lazy initializer instead of module-level singleton
+app/api/ollama/enhance-prompt/route.ts	Rewrote: calls generateText() instead of direct Ollama (uses full cloud fallback chain)
+app/api/ollama/update-resume/route.ts	Rewrote: calls generateText() instead of direct Ollama (uses full cloud fallback chain)
+.env.example	Created with all required/recommended/optional vars documented
+AI Fallback Chain (production)
+generateText() → 1. Ollama (skipped on Vercel, fails fast)
+               → 2. Gemini 2.5 Flash ✅ (working free tier)
+               → 3. OpenRouter free models (backup)
+What to Set on Vercel
+In your Vercel project dashboard → Settings → Environment Variables:
+Variable	Source	Notes
+GEMINI_API_KEY	Your existing key	Works with Gemini 2.5 Flash
+OPENROUTER_API_KEY	Your existing key	Backup when Gemini is rate-limited
+DATABASE_URL	Supabase	Your PostgreSQL connection string
+AUTH_SECRET	Generate via openssl rand -base64 32	NextAuth signing key
+AUTH_GOOGLE_ID	Google Cloud Console	OAuth 2.0 client ID
+AUTH_GOOGLE_SECRET	Google Cloud Console	OAuth 2.0 client secret
+SMTP_HOST/PORT/USER/PASS	Your email provider	For sending applications
+NEXT_PUBLIC_APP_URL	https://your-app.vercel.app	Public URL
+Do NOT set OLLAMA_BASE_URL or OLLAMA_MODEL — they default, fail silently, and the cloud chain handles everything.

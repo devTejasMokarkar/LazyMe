@@ -16,18 +16,21 @@ export function LivePreview({ data }: LivePreviewProps) {
 
   if (!hasContent) {
     return (
-      <div className="bg-white w-[794px] h-[1123px] shadow-2xl flex items-center justify-center p-12">
-        <div className="text-center text-slate-300">
-          <FileText className="w-16 h-16 mx-auto mb-6 opacity-20" />
-          <p className="text-xl font-bold">Resume Preview</p>
-          <p className="text-sm mt-2 text-slate-400">Content will appear as you type or upload.</p>
+      <div className="w-full overflow-x-auto">
+        <div className="bg-white w-[794px] h-[1123px] shadow-2xl flex items-center justify-center p-12 mx-auto">
+          <div className="text-center text-slate-300">
+            <FileText className="w-16 h-16 mx-auto mb-6 opacity-20" />
+            <p className="text-xl font-bold">Resume Preview</p>
+            <p className="text-sm mt-2 text-slate-400">Content will appear as you type or upload.</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white w-[794px] min-h-[1123px] shadow-[0_0_20px_rgba(0,0,0,0.5)] p-[40px] text-black animate-in fade-in duration-700 relative overflow-hidden flex flex-col">
+    <div className="w-full overflow-x-auto">
+      <div className="bg-white w-[794px] min-h-[1123px] shadow-[0_0_20px_rgba(0,0,0,0.5)] p-[40px] text-black animate-in fade-in duration-700 relative overflow-hidden flex flex-col mx-auto">
       <style jsx global>{`
         .resume-content h2 {
           font-size: 18px !important;
@@ -68,5 +71,6 @@ export function LivePreview({ data }: LivePreviewProps) {
         dangerouslySetInnerHTML={{ __html: html }} 
       />
     </div>
+      </div>
   );
 }

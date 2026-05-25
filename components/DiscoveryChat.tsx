@@ -177,7 +177,7 @@ export default function DiscoveryChat() {
           </p>
 
           {!isMatching && !matchResult && (
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-3">
               {actions.map((action, i) => (
                 <motion.button 
                   key={action.label}
@@ -185,10 +185,10 @@ export default function DiscoveryChat() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 + i * 0.1 }}
                   onClick={action.onClick}
-                  className="px-8 py-3.5 bg-surface-container border border-outline-variant rounded-full text-primary hover:bg-surface-container-high transition-all flex items-center gap-3 group shadow-xl hover:scale-105 active:scale-95"
+                  className="px-5 py-3 sm:px-8 sm:py-3.5 bg-surface-container border border-outline-variant rounded-full text-primary hover:bg-surface-container-high transition-all flex items-center gap-2 sm:gap-3 group shadow-xl hover:scale-105 active:scale-95"
                 >
-                  <action.icon className={`w-5 h-5 ${action.color}`} />
-                  <span className="text-[11px] font-bold uppercase tracking-widest">{action.label}</span>
+                  <action.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${action.color}`} />
+                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">{action.label}</span>
                 </motion.button>
               ))}
               <motion.button 
@@ -196,10 +196,10 @@ export default function DiscoveryChat() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
                 onClick={() => setShowQNA(true)}
-                className="px-8 py-3.5 bg-tertiary/10 border border-tertiary/30 rounded-full text-tertiary hover:bg-tertiary/20 transition-all flex items-center gap-3 group shadow-xl hover:scale-105 active:scale-95"
+                className="px-5 py-3 sm:px-8 sm:py-3.5 bg-tertiary/10 border border-tertiary/30 rounded-full text-tertiary hover:bg-tertiary/20 transition-all flex items-center gap-2 sm:gap-3 group shadow-xl hover:scale-105 active:scale-95"
               >
-                <MessageSquareQuote className="w-5 h-5" />
-                <span className="text-[11px] font-bold uppercase tracking-widest">Interview Q&A</span>
+                <MessageSquareQuote className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">Interview Q&A</span>
               </motion.button>
             </div>
           )}
@@ -250,7 +250,7 @@ export default function DiscoveryChat() {
       </section>
 
       {/* Floating Prompt Bar */}
-      <div className="fixed bottom-12 left-[calc(240px+48px)] right-[48px] z-40">
+      <div className="fixed bottom-12 left-4 right-4 lg:left-[calc(240px+48px)] lg:right-[48px] z-40">
         <div className="max-w-6xl mx-auto space-y-4">
           
 
@@ -290,42 +290,42 @@ export default function DiscoveryChat() {
             )}
           </AnimatePresence>
 
-          <div className="bg-surface-container-high/90 backdrop-blur-2xl border border-outline-variant rounded-2xl p-3 flex items-center gap-4 shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
-            <div className="flex items-center gap-2">
+          <div className="bg-surface-container-high/90 backdrop-blur-2xl border border-outline-variant rounded-2xl p-2 sm:p-3 flex items-center gap-2 sm:gap-4 shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary hover:bg-surface-container-highest transition-all shadow-lg active:scale-90"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary hover:bg-surface-container-highest transition-all shadow-lg active:scale-90"
               >
-                {isMatching ? <Loader2 className="w-5 h-5 animate-spin text-primary" /> : <Plus className="w-6 h-6 border-outline text-on-background" />}
+                {isMatching ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-primary" /> : <Plus className="w-5 h-5 sm:w-6 sm:h-6 border-outline text-on-background" />}
               </button>
               <button 
                 onClick={() => setShowJDModal(!showJDModal)}
                 className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-lg active:scale-90",
+                  "hidden sm:flex w-10 h-10 sm:w-12 sm:h-12 rounded-xl items-center justify-center transition-all shadow-lg active:scale-90",
                   showJDModal ? "bg-primary text-on-primary" : "bg-surface-container-highest text-primary hover:bg-surface-container-highest"
                 )}
               >
-                <Code className="w-6 h-6" />
+                <Code className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
             
-            <div className="flex-1 flex items-center gap-4">
+            <div className="flex-1 flex items-center gap-2 sm:gap-4 min-w-0">
 
-              <div className="flex-1 flex flex-col gap-1">
+              <div className="flex-1 flex flex-col gap-1 min-w-0">
                 {uploadedResume && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-lg w-fit">
-                    <FileText className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-[11px] font-bold text-primary truncate max-w-[180px]">{uploadedResume.name}</span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-lg w-fit max-w-full">
+                    <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary shrink-0" />
+                    <span className="text-[10px] sm:text-[11px] font-bold text-primary truncate max-w-[120px] sm:max-w-[180px]">{uploadedResume.name}</span>
                     <button
                       onClick={() => setUploadedResume(null)}
-                      className="text-primary/60 hover:text-primary transition-colors ml-1"
+                      className="text-primary/60 hover:text-primary transition-colors ml-1 shrink-0"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </button>
                   </div>
                 )}
                 {uploadError && (
-                  <span                   className="text-[11px] text-error font-medium px-1">{uploadError}</span>
+                  <span className="text-[10px] sm:text-[11px] text-error font-medium px-1">{uploadError}</span>
                 )}
                 <input 
                   value={prompt}
@@ -344,15 +344,15 @@ export default function DiscoveryChat() {
   alert("LazyMe AI is processing your request...");
 }
                   }}
-                  className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-lg placeholder:text-on-surface-variant"
+                  className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-sm sm:text-lg placeholder:text-on-surface-variant"
                   placeholder={uploadedResume ? "Add a message or click Send to view your resume..." : "Tell LazyMe what to find next..."}
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
-                <Palette className="w-5 h-5" />
+            <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+              <button className="hidden sm:flex w-8 h-8 sm:w-10 sm:h-10 items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+                <Palette className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <button
                 onClick={() => {
@@ -367,10 +367,10 @@ export default function DiscoveryChat() {
                     alert('LazyMe AI is processing your request...');
                   }
                 }}
-                className="h-12 px-8 bg-primary-container text-on-primary-container rounded-xl flex items-center gap-3 font-bold text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                className="h-10 sm:h-12 px-4 sm:px-8 bg-primary-container text-on-primary-container rounded-xl flex items-center gap-2 sm:gap-3 font-bold text-xs sm:text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
               >
-                <span>Send</span>
-                <Send className="w-4 h-4 fill-on-primary-container" />
+                <span className="hidden sm:inline">Send</span>
+                <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-on-primary-container" />
               </button>
             </div>
           </div>

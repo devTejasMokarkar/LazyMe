@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-const MODEL = process.env.OLLAMA_MODEL || "llama3.2";
+import { generateText } from "@/utils/gemini";
 
 interface ResumeChanges {
   summary?: string;
@@ -9,25 +7,7 @@ interface ResumeChanges {
   skills?: string[];
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const { enhancedPrompt } = await request.json();
-
-    if (!enhancedPrompt || !enhancedPrompt.trim()) {
-      return NextResponse.json({ error: "Enhanced prompt is required." }, { status: 400 });
-    }
-
-    const res = await fetch(`${OLLAMA_BASE}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        stream: false,
-        format: "json",
-        messages: [
-          {
-            role: "system",
-            content: `You are a resume data parser. Given a user request, extract the structured resume changes.
+const EXTRACT_PROMPT = `You are a resume data parser. Given a user request, extract the structured resume changes.
 
 Return JSON with this exact shape:
 {
@@ -39,30 +19,29 @@ Return JSON with this exact shape:
 Only include fields that the user explicitly asks to change. Set unchanged fields to null.
 - If the user wants to add a new experience entry, include it in the experience array.
 - If the user wants to modify an existing entry, include it with the same company name.
-- If the user wants to add skills, include the full updated skills list.`,
-          },
-          { role: "user", content: enhancedPrompt },
-        ],
-      }),
-    });
+- If the user wants to add skills, include the full updated skills list.
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("[ollama/update-resume] Ollama error:", res.status, text);
-      return NextResponse.json(
-        { error: `Ollama returned status ${res.status}` },
-        { status: 502 }
-      );
+Return ONLY valid JSON, no markdown, no explanation.`;
+
+export async function POST(request: NextRequest) {
+  try {
+    const { enhancedPrompt } = await request.json();
+
+    if (!enhancedPrompt || !enhancedPrompt.trim()) {
+      return NextResponse.json({ error: "Enhanced prompt is required." }, { status: 400 });
     }
 
-    const data = await res.json();
+    const fullPrompt = `${EXTRACT_PROMPT}\n\nUser request: ${enhancedPrompt}`;
+    const response = await generateText(fullPrompt);
+
     let changes: ResumeChanges;
 
     try {
-      changes = JSON.parse(data.message?.content || "{}");
+      const cleaned = response.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      changes = JSON.parse(cleaned);
     } catch {
       return NextResponse.json(
-        { error: "Failed to parse Ollama response as JSON." },
+        { error: "Failed to parse AI response as JSON." },
         { status: 502 }
       );
     }

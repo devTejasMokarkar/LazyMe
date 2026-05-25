@@ -112,6 +112,31 @@ body {
   }
 }
 
+/* Scrollable page layout */
+.scrollable-page {
+  height: 100vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--outline-variant) transparent;
+}
+
+.scrollable-page::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable-page::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollable-page::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 10px;
+}
+
+.scrollable-page::-webkit-scrollbar-thumb:hover {
+  background: var(--outline);
+}
+
 /* Custom Scrollbar - Premium SaaS Style */
 .custom-scrollbar {
   scrollbar-width: thin;

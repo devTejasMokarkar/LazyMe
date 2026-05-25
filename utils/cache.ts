@@ -4,7 +4,7 @@ interface CacheItem<T> {
   ttl: number; // Time to live in milliseconds
 }
 
-class SimpleCache<T = any> {
+export class SimpleCache<T = any> {
   private cache = new Map<string, CacheItem<T>>();
 
   set(key: string, data: T, ttl: number = 300000): void { // Default 5 minutes

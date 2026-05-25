@@ -4,15 +4,16 @@ import { logger } from "../lib/logger";
 const apiKey = process.env.GEMINI_API_KEY;
 const openAIKey = process.env.OPENROUTER_API_KEY;
 const preferredOllamaModel = process.env.OLLAMA_MODEL;
-const ollamaTimeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS || 120000);
+const ollamaTimeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS || 45000);
 
-if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+// Using Gemini 2.5 Flash for speed and multimodal support
+const MODEL_NAME = "gemini-2.5-flash";
 
-const genAI = new GoogleGenerativeAI(apiKey);
-
-// Using Gemini 2.0 Flash for speed and multimodal support
-const MODEL_NAME = "gemini-2.0-flash";
-const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+function getModel() {
+  if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({ model: MODEL_NAME });
+}
 
 export type AIQuotaError = {
   type: "RPM" | "TPM" | "DAILY" | "UNKNOWN";
@@ -92,7 +93,7 @@ async function callOllama(prompt: string, model: string = 'llama3.2'): Promise<s
         keep_alive: "10m",
         options: {
           temperature: 0.1,
-          num_predict: 700
+          num_predict: 2048
         }
       })
     });
@@ -281,7 +282,7 @@ export async function generateText(prompt: string): Promise<string> {
         message: "Calling Gemini text model", 
         promptLength: prompt.length 
       });
-      const result = await model.generateContent(prompt);
+      const result = await getModel().generateContent(prompt);
       logger.info({ message: "Gemini result received, checking response" });
       const response = await result.response;
       logger.info({ 
@@ -326,7 +327,7 @@ export async function generateTextFromMultiModal(
   mimeType: string
 ): Promise<string> {
   try {
-    const result = await model.generateContent([
+    const result = await getModel().generateContent([
       prompt,
       {
         inlineData: {

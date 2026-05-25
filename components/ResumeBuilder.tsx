@@ -6,8 +6,10 @@ import {
   Cloud, Undo2, Redo2, Mail, Phone, MapPin, Sparkles, PlusCircle, X,
   Download, ZoomIn, ZoomOut, Upload, FileType, CheckCircle2, History,
   RotateCcw, Save, Trash2, Eye, Loader2, PanelLeftClose, PanelRightClose,
-  Monitor, Smartphone, Briefcase, Palette, Code, Send
+  Monitor, Smartphone, Briefcase, Palette, Code, Send,
+  FileText, AlertCircle, Target, ChevronDown
 } from 'lucide-react';
+import { ATSScoreCard } from './ATSScoreCard';
 import Link from 'next/link';
 import { cn, validateParsedResume, calculateResumeCompleteness } from '@/lib/utils';
 import { useToast } from './ToastProvider';
@@ -94,6 +96,15 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const pendingResumeApplied = useRef(false);
   const promptProcessedRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // ATS Analysis state
+  const [showATS, setShowATS] = useState(false);
+  const [jobDescription, setJobDescription] = useState('');
+  const [atsResult, setAtsResult] = useState<any>(null);
+  const [isAnalyzingATS, setIsAnalyzingATS] = useState(false);
+  const [isImprovingATS, setIsImprovingATS] = useState(false);
+  const [previousATSScore, setPreviousATSScore] = useState<number | null>(null);
+  const [atsChanges, setAtsChanges] = useState<string[]>([]);
 
   const enhanceAndAppend = async (promptText: string, resumeContent: any) => {
     showToast("AI is optimizing and appending your new project/experience...", "info");
@@ -907,15 +918,98 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     }
   };
 
+  const handleAnalyzeATS = async () => {
+    if (!jobDescription.trim() || isAnalyzingATS) return;
+    setIsAnalyzingATS(true);
+    setAtsResult(null);
+    setAtsChanges([]);
+    setPreviousATSScore(null);
+    try {
+      const res = await fetch('/api/analyze-ats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resume: {
+            name: userName,
+            title: userRole,
+            summary,
+            skills,
+            experience,
+            education,
+            email,
+            phone,
+            location
+          },
+          jobDescription: jobDescription.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAtsResult(data);
+      } else {
+        showToast(data.error || 'ATS analysis failed', 'error');
+      }
+    } catch (e: any) {
+      showToast('Failed to analyze ATS', 'error');
+    } finally {
+      setIsAnalyzingATS(false);
+    }
+  };
+
+  const handleImproveATS = async () => {
+    if (!atsResult || isImprovingATS) return;
+    setIsImprovingATS(true);
+    try {
+      const res = await fetch('/api/improve-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resume: {
+            name: userName,
+            title: userRole,
+            summary,
+            skills,
+            experience,
+            education,
+            email,
+            phone,
+            location
+          },
+          jobDescription: jobDescription.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.improvedResume) {
+        setPreviousATSScore(data.oldATS?.score ?? null);
+        setAtsChanges([
+          ...(data.analysis?.actionableImprovements?.slice(0, 5) || []),
+          ...(data.analysis?.gapAnalysis ? [data.analysis.gapAnalysis] : [])
+        ]);
+        if (data.improvedResume.summary) setSummary(data.improvedResume.summary);
+        if (data.improvedResume.skills) setSkills(data.improvedResume.skills);
+        if (data.improvedResume.experience) setExperience(data.improvedResume.experience);
+
+        setAtsResult({ ...atsResult, atsScore: data.newATS?.score ?? atsResult.atsScore, analysis: data.analysis, weightedATS: data.newATS });
+        showToast('Resume improved! ATS score updated.', 'success');
+      } else {
+        showToast(data.error || 'Failed to improve resume', 'error');
+      }
+    } catch (e: any) {
+      showToast('Failed to improve resume', 'error');
+    } finally {
+      setIsImprovingATS(false);
+    }
+  };
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* Main Editor - Takes remaining space */}
       <section className="flex-1 flex flex-col h-full overflow-hidden bg-background">
         {/* Sticky Action Bar */}
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-outline-variant/30 px-4 py-3">
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-outline-variant/30 px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center justify-between max-w-3xl mx-auto">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 text-on-surface-variant">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden sm:flex items-center gap-1.5 text-on-surface-variant">
                 <Cloud className="w-3.5 h-3.5" />
                 <span className="text-[10px] font-semibold uppercase tracking-wider">Synced</span>
               </div>
@@ -927,7 +1021,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 <span className="text-[10px] font-semibold uppercase tracking-wider">{versions.length}</span>
               </button>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
@@ -939,45 +1033,45 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               >
                 <RotateCcw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
               </button>
-              <button onClick={() => saveCurrentVersion()} className="p-2 hover:bg-surface-container rounded-md text-on-surface-variant hover:text-primary transition-colors" title="Save">
-                <Save className="w-4 h-4" />
+              <button onClick={() => saveCurrentVersion()} className="p-1.5 sm:p-2 hover:bg-surface-container rounded-md text-on-surface-variant hover:text-primary transition-colors" title="Save">
+                <Save className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
               </button>
               <button
                 onClick={handleUndo}
                 disabled={historyIndex <= 0}
                 className={cn(
-                  "p-2 rounded-md transition-colors",
+                  "p-1.5 sm:p-2 rounded-md transition-colors",
                   historyIndex > 0 ? "hover:bg-surface-container text-on-surface-variant cursor-pointer" : "text-on-surface-variant/30 cursor-not-allowed"
                 )}
                 title="Undo"
               >
-                <Undo2 className="w-4 h-4" />
+                <Undo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
               </button>
               <button
                 onClick={handleRedo}
                 disabled={historyIndex >= history.length - 1}
                 className={cn(
-                  "p-2 rounded-md transition-colors",
+                  "p-1.5 sm:p-2 rounded-md transition-colors",
                   historyIndex < history.length - 1 ? "hover:bg-surface-container text-on-surface-variant cursor-pointer" : "text-on-surface-variant/30 cursor-not-allowed"
                 )}
                 title="Redo"
               >
-                <Redo2 className="w-4 h-4" />
+                <Redo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
               </button>
-              <div className="w-px h-5 bg-outline-variant/30 mx-1" />
+              <div className="w-px h-4 sm:h-5 bg-outline-variant/30 mx-0.5 sm:mx-1" />
               <Link
                 href={parseError ? "#" : "/apply"}
                 className={cn(
-                  "btn-primary py-1.5 text-sm font-medium",
+                  "btn-primary py-1 sm:py-1.5 text-[11px] sm:text-sm font-medium",
                   parseError && "opacity-50 pointer-events-none cursor-not-allowed"
                 )}
                 onClick={(e) => parseError && e.preventDefault()}
               >
-                <Briefcase className="w-4 h-4" />
-                Apply Now
+                <Briefcase className="w-3 sm:w-4 h-3 sm:h-4" />
+                <span className="hidden sm:inline">Apply Now</span>
               </Link>
-              <button onClick={() => setShowPreview(!showPreview)} className="p-2 hover:bg-surface-container rounded-md text-on-surface-variant transition-colors">
-                {showPreview ? <PanelRightClose className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+              <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 sm:p-2 hover:bg-surface-container rounded-md text-on-surface-variant transition-colors">
+                {showPreview ? <PanelRightClose className="w-3.5 sm:w-4 h-3.5 sm:h-4" /> : <PanelLeftClose className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
               </button>
             </div>
           </div>
@@ -988,40 +1082,40 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           <div className="max-w-3xl mx-auto space-y-6">
             {/* Chat Input Bar */}
             <div className="space-y-2">
-              <div className="glass rounded-xl p-2 flex items-center gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+              <div className="glass rounded-xl p-2 flex items-center gap-2 sm:gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                 <textarea
                   rows={1}
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
+                  className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-sm sm:text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
                   placeholder="Tell LazyMe what to find next..."
                 />
                 <button
                   type="button"
                   onClick={handleEnhancePrompt}
                   disabled={!chatInput.trim() || isEnhancing}
-                  className="h-10 px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-2 font-bold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                  className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1.5 sm:gap-2 font-bold text-[10px] sm:text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                   title="Preview the optimized resume entry before appending"
                 >
                   {isEnhancing ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 animate-spin" />
                   ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                   )}
-                  {isEnhancing ? 'Enhancing...' : 'Enhance prompt'}
+                  <span className="hidden sm:inline">{isEnhancing ? 'Enhancing...' : 'Enhance prompt'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleUpdateResume}
-                  className="h-10 px-5 btn-primary rounded-lg flex items-center gap-2 font-bold text-xs shadow-lg disabled:opacity-50 shrink-0"
+                  className="h-9 sm:h-10 px-3 sm:px-5 btn-primary rounded-lg flex items-center gap-1.5 sm:gap-2 font-bold text-[10px] sm:text-xs shadow-lg disabled:opacity-50 shrink-0"
                   disabled={!enhancedPrompt.trim() || isUpdating}
                 >
                   {isUpdating ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 animate-spin" />
                   ) : (
-                    <Send className="w-3 h-3 fill-white" />
+                    <Send className="w-2.5 sm:w-3 h-2.5 sm:h-3 fill-white" />
                   )}
-                  <span>{isUpdating ? 'Updating...' : 'Update Resume'}</span>
+                  <span className="hidden sm:inline">{isUpdating ? 'Updating...' : 'Update Resume'}</span>
                 </button>
               </div>
               {enhancedPrompt && (
@@ -1064,10 +1158,10 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
             )}
 
             {/* Name & Role Card */}
-            <div className="glass rounded-xl p-5 group relative">
-              <h1 className="text-2xl font-bold text-on-surface outline-none focus:text-primary transition-colors" contentEditable suppressContentEditableWarning onBlur={(e) => setUserName(e.currentTarget.innerText)}>{userName || 'Your Name'}</h1>
-              <p className="text-on-surface-variant text-sm font-medium mt-1 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setUserRole(e.currentTarget.innerText)}>{userRole || 'Your Title'}</p>
-              <div className="flex flex-wrap gap-4 mt-3 text-xs text-on-surface-variant/70">
+            <div className="glass rounded-xl p-4 sm:p-5 group relative">
+              <h1 className="text-xl sm:text-2xl font-bold text-on-surface outline-none focus:text-primary transition-colors" contentEditable suppressContentEditableWarning onBlur={(e) => setUserName(e.currentTarget.innerText)}>{userName || 'Your Name'}</h1>
+              <p className="text-on-surface-variant text-xs sm:text-sm font-medium mt-1 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setUserRole(e.currentTarget.innerText)}>{userRole || 'Your Title'}</p>
+              <div className="flex flex-wrap gap-3 sm:gap-4 mt-3 text-[10px] sm:text-xs text-on-surface-variant/70">
                 <span className="flex items-center gap-1"><Mail className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setEmail(e.currentTarget.innerText)}>{email || 'email'}</span></span>
                 <span className="flex items-center gap-1"><Phone className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setPhone(e.currentTarget.innerText)}>{phone || 'phone'}</span></span>
                 <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setLocation(e.currentTarget.innerText)}>{location || 'location'}</span></span>
@@ -1190,6 +1284,85 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 </button>
               </div>
             </div>
+
+            {/* ── ATS Analysis Section ─────────────────────────────────── */}
+            <div className="border-t border-outline-variant/20 pt-4">
+              <button
+                onClick={() => setShowATS(!showATS)}
+                className="flex items-center justify-between w-full group"
+              >
+                <div className="flex items-center gap-2">
+                  <Target className="w-4 h-4 text-primary" />
+                  <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">ATS Compatibility</h3>
+                  {atsResult && (
+                    <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                      {atsResult.atsScore}%
+                    </span>
+                  )}
+                </div>
+                <ChevronDown className={`w-4 h-4 text-on-surface-variant transition-transform ${showATS ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showATS && (
+                <div className="mt-4 space-y-4">
+                  {/* JD Input */}
+                  <div className="glass rounded-xl p-3 border border-outline-variant/30">
+                    <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">
+                      Paste Job Description
+                    </label>
+                    <textarea
+                      value={jobDescription}
+                      onChange={(e) => setJobDescription(e.target.value)}
+                      placeholder="Paste the full job description here to analyze ATS compatibility..."
+                      rows={4}
+                      className="w-full bg-background border border-outline-variant rounded-lg p-3 text-xs text-on-background placeholder:text-on-surface-variant/40 outline-none focus:ring-1 focus:ring-primary resize-none transition-all"
+                    />
+                    <div className="flex items-center justify-end gap-2 mt-3">
+                      {atsResult && (
+                        <button
+                          onClick={handleImproveATS}
+                          disabled={isImprovingATS}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-40"
+                        >
+                          {isImprovingATS ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                          {isImprovingATS ? 'Improving...' : 'Improve Resume'}
+                        </button>
+                      )}
+                      <button
+                        onClick={handleAnalyzeATS}
+                        disabled={!jobDescription.trim() || isAnalyzingATS}
+                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-on-primary text-[10px] font-bold uppercase tracking-wider hover:brightness-110 transition-all disabled:opacity-40 shadow-lg shadow-primary/20"
+                      >
+                        {isAnalyzingATS ? <Loader2 className="w-3 h-3 animate-spin" /> : <Target className="w-3 h-3" />}
+                        {isAnalyzingATS ? 'Analyzing...' : 'Analyze'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ATS Results */}
+                  {isAnalyzingATS && (
+                    <div className="flex items-center justify-center gap-3 py-8 text-on-surface-variant">
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                      <span className="text-xs font-medium">Running ATS analysis...</span>
+                    </div>
+                  )}
+
+                  {atsResult && !isAnalyzingATS && (
+                    <ATSScoreCard
+                      data={atsResult.analysis || atsResult.weightedATS || { score: atsResult.atsScore, matched: [], missing: [] }}
+                      onImprove={handleImproveATS}
+                      improving={isImprovingATS}
+                      changes={atsChanges.length > 0 ? atsChanges : undefined}
+                      previousScore={previousATSScore}
+                      analysis={atsResult.analysis ? {
+                        gapAnalysis: atsResult.analysis.gapAnalysis,
+                        actionableImprovements: atsResult.analysis.actionableImprovements
+                      } : undefined}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -1199,10 +1372,10 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         {showPreview && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 600, opacity: 1 }}
+            animate={{ width: "100%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="hidden lg:flex flex-col h-full bg-background border-l border-white/5 overflow-hidden"
+            className="hidden lg:flex flex-col h-full bg-background border-l border-white/5 overflow-hidden max-w-[600px]"
           >
             {/* Preview Toolbar */}
             <div className="h-12 px-4 flex items-center justify-between border-b border-outline-variant shrink-0">

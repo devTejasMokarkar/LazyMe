@@ -178,41 +178,41 @@ export function JobDashboard({
     return (
       <div className="flex flex-col h-screen bg-background text-primary overflow-hidden font-sans animate-pulse">
 
-        <header className="h-16 border-b border-outline-variant bg-surface-container flex items-center justify-between px-6 shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="h-6 bg-surface-container-highest rounded-lg w-28" />
-            <div className="h-4 w-[1px] bg-outline-variant mx-2" />
-            <div className="h-4 bg-surface-container-highest rounded-lg w-36" />
+        <header className="h-auto min-h-[56px] sm:h-16 border-b border-outline-variant bg-surface-container flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-2 sm:py-0 shrink-0 gap-2 sm:gap-0">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="h-5 sm:h-6 bg-surface-container-highest rounded-lg w-20 sm:w-28" />
+            <div className="h-3 sm:h-4 w-[1px] bg-outline-variant mx-1 sm:mx-2" />
+            <div className="h-3 sm:h-4 bg-surface-container-highest rounded-lg w-24 sm:w-36" />
           </div>
-          <div className="flex items-center gap-3">
-            <div className="h-8 bg-surface-container-highest rounded-lg w-20" />
-            <div className="h-8 bg-surface-container-highest rounded-lg w-20" />
-            <div className="h-10 bg-surface-container-highest rounded-xl w-32" />
+          <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
+            <div className="h-6 sm:h-8 bg-surface-container-highest rounded-lg w-14 sm:w-20" />
+            <div className="h-6 sm:h-8 bg-surface-container-highest rounded-lg w-14 sm:w-20" />
+            <div className="h-8 sm:h-10 bg-surface-container-highest rounded-lg sm:rounded-xl w-20 sm:w-32" />
           </div>
         </header>
 
-        <div className="h-14 border-b border-outline-variant bg-background flex items-center px-6 gap-4 shrink-0">
-          <div className="h-9 bg-surface-container rounded-lg w-80" />
-          <div className="h-9 bg-surface-container rounded-lg w-40" />
+        <div className="h-auto min-h-[40px] sm:h-14 border-b border-outline-variant bg-background flex flex-col sm:flex-row items-stretch sm:items-center px-4 sm:px-6 gap-2 sm:gap-4 py-2 sm:py-0 shrink-0">
+          <div className="h-8 sm:h-9 bg-surface-container rounded-lg w-full sm:w-80" />
+          <div className="h-8 sm:h-9 bg-surface-container rounded-lg w-full sm:w-40" />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 sm:space-y-4">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="bg-surface-container border-2 border-outline-variant/50 rounded-xl p-6 space-y-4 max-w-6xl mx-auto">
-              <div className="flex gap-4">
-                <div className="w-5 h-5 bg-surface-container-highest rounded mt-1" />
+            <div key={n} className="bg-surface-container border-2 border-outline-variant/50 rounded-lg sm:rounded-xl p-4 sm:p-6 space-y-3 sm:space-y-4 max-w-6xl mx-auto">
+              <div className="flex gap-3 sm:gap-4">
+                <div className="w-4 sm:w-5 h-4 sm:h-5 bg-surface-container-highest rounded mt-1 shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="h-6 bg-surface-container-highest rounded-lg w-1/3" />
-                    <div className="h-5 bg-surface-container-highest rounded-full w-20" />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <div className="h-5 sm:h-6 bg-surface-container-highest rounded-lg w-1/2 sm:w-1/3" />
+                    <div className="h-4 sm:h-5 bg-surface-container-highest rounded-full w-16 sm:w-20" />
                   </div>
-                  <div className="h-4 bg-surface-container-highest rounded-lg w-1/4" />
+                  <div className="h-3 sm:h-4 bg-surface-container-highest rounded-lg w-1/3 sm:w-1/4" />
                 </div>
               </div>
-              <div className="flex gap-2 pl-9">
-                <div className="h-6 bg-surface-container-highest rounded-md w-16" />
-                <div className="h-6 bg-surface-container-highest rounded-md w-16" />
-                <div className="h-6 bg-surface-container-highest rounded-md w-16" />
+              <div className="flex gap-1.5 sm:gap-2 pl-7 sm:pl-9">
+                <div className="h-5 sm:h-6 bg-surface-container-highest rounded-md w-12 sm:w-16" />
+                <div className="h-5 sm:h-6 bg-surface-container-highest rounded-md w-12 sm:w-16" />
+                <div className="h-5 sm:h-6 bg-surface-container-highest rounded-md w-12 sm:w-16" />
               </div>
             </div>
           ))}
@@ -225,73 +225,69 @@ export function JobDashboard({
     <div className="flex flex-col h-screen bg-background text-primary overflow-hidden font-sans">
       {applying && <Loader />}
       
-      <header className="h-16 border-b border-outline-variant bg-surface-container flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="h-auto min-h-[56px] sm:h-16 border-b border-outline-variant bg-surface-container flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-2 sm:py-0 shrink-0 gap-2 sm:gap-0">
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
           {onBack && (
-            <button onClick={onBack} className="p-2 hover:bg-surface-container-high rounded-lg transition-colors">
-              <ArrowRight className="w-5 h-5 rotate-180 text-on-surface-variant" />
+            <button onClick={onBack} className="p-1.5 sm:p-2 hover:bg-surface-container-high rounded-lg transition-colors">
+              <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 rotate-180 text-on-surface-variant" />
             </button>
           )}
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <span className="font-bold tracking-tight text-on-background">Job Discovery</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 text-primary shrink-0" />
+            <span className="font-bold text-sm sm:text-base tracking-tight text-on-background truncate">Job Discovery</span>
           </div>
-          <div className="h-4 w-[1px] bg-outline-variant mx-2" />
-          <div className="text-sm text-on-surface-variant">
-            {matchedJobs.length} jobs found • {selectedJobs.size} selected
+          <div className="h-3 sm:h-4 w-[1px] bg-outline-variant mx-1 sm:mx-2 shrink-0" />
+          <div className="text-[11px] sm:text-sm text-on-surface-variant truncate">
+            {matchedJobs.length} jobs • {selectedJobs.size} selected
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <p className="text-xs font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent hidden lg:block">
+        <div className="flex items-center gap-1.5 sm:gap-3 w-full sm:w-auto overflow-x-auto no-scrollbar">
+          <p className="text-[10px] sm:text-xs font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent hidden lg:block">
             Found a job? Just LazyMe it.
           </p>
           <button
             onClick={selectAll}
-            className="text-xs font-medium text-on-surface-variant hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors"
+            className="text-[10px] sm:text-xs font-medium text-on-surface-variant hover:text-primary px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg hover:bg-surface-container-high transition-colors shrink-0"
           >
             Select All
           </button>
           <button
             onClick={deselectAll}
-            className="text-xs font-medium text-on-surface-variant hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors"
+            className="text-[10px] sm:text-xs font-medium text-on-surface-variant hover:text-primary px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg hover:bg-surface-container-high transition-colors shrink-0"
           >
             Deselect All
           </button>
           <button
             onClick={handleBatchApply}
             disabled={selectedJobs.size === 0}
-            className="flex flex-col items-center gap-1 px-6 py-2 bg-primary hover:bg-primary/90 text-on-primary text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-1.5 sm:py-2 bg-primary hover:bg-primary/90 text-on-primary text-[11px] sm:text-sm font-bold rounded-lg sm:rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              Apply to {selectedJobs.size} Job{selectedJobs.size !== 1 ? "s" : ""}
-            </div>
-            <span className="text-[10px] font-semibold text-primary">
-              Found a job? Just LazyMe it.
-            </span>
+            <Zap className="w-3 sm:w-4 h-3 sm:h-4" />
+            <span className="hidden sm:inline">Apply to {selectedJobs.size}</span>
+            <span className="sm:hidden">Apply</span>
           </button>
         </div>
       </header>
 
-      <div className="h-14 border-b border-outline-variant bg-background flex items-center px-6 gap-4 shrink-0">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/50" />
+      <div className="h-auto min-h-[44px] sm:h-14 border-b border-outline-variant bg-background flex flex-col sm:flex-row items-stretch sm:items-center px-4 sm:px-6 gap-2 sm:gap-4 py-2 sm:py-0 shrink-0">
+        <div className="relative flex-1 max-w-full sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 sm:w-4 h-3.5 sm:h-4 text-on-surface-variant/50" />
           <input
             type="text"
             placeholder="Search companies, roles, locations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface-container border border-outline-variant rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-primary placeholder:text-on-surface-variant/50"
+            className="w-full bg-surface-container border border-outline-variant rounded-lg pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-primary placeholder:text-on-surface-variant/50"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-on-surface-variant/50" />
+          <Filter className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-on-surface-variant/50 shrink-0" />
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as any)}
-            className="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-primary"
+            className="bg-surface-container border border-outline-variant rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-primary flex-1 sm:flex-none"
           >
             <option value="all">All Matches</option>
             <option value="high">High Match (70%+)</option>
@@ -301,51 +297,51 @@ export function JobDashboard({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         {filteredJobs.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full text-center">
-              <Briefcase className="w-16 h-16 text-on-surface-variant/30 mb-4" />
-              <h3 className="text-lg font-bold text-primary mb-2">No jobs found</h3>
-            <p className="text-on-surface-variant text-sm">Try adjusting your filters or search query</p>
+              <Briefcase className="w-12 sm:w-16 h-12 sm:h-16 text-on-surface-variant/30 mb-4" />
+              <h3 className="text-base sm:text-lg font-bold text-primary mb-2">No jobs found</h3>
+            <p className="text-on-surface-variant text-xs sm:text-sm">Try adjusting your filters or search query</p>
           </div>
         ) : (
-          <div className="grid gap-4 max-w-6xl mx-auto">
+          <div className="grid gap-3 sm:gap-4 max-w-6xl mx-auto">
             {filteredJobs.map((job) => (
               <div
                 key={job.id}
-                className={`bg-surface-container border-2 rounded-xl p-6 transition-all cursor-pointer hover:border-outline-variant ${
+                className={`bg-surface-container border-2 rounded-lg sm:rounded-xl p-4 sm:p-6 transition-all cursor-pointer hover:border-outline-variant ${
                   selectedJobs.has(job.id) ? "border-primary bg-primary/5" : "border-outline-variant/50"
                 }`}
                 onClick={() => toggleJobSelection(job.id)}
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3 sm:gap-4">
                   <div className="pt-1">
-                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                    <div className={`w-4 sm:w-5 h-4 sm:h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${
                       selectedJobs.has(job.id) 
                         ? "border-primary bg-primary" 
                         : "border-outline-variant bg-transparent"
                     }`}>
-                      {selectedJobs.has(job.id) && <Check className="w-3 h-3 text-on-primary" />}
+                      {selectedJobs.has(job.id) && <Check className="w-2.5 sm:w-3 h-2.5 sm:h-3 text-on-primary" />}
                     </div>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-start justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                           <h3 className="font-bold text-primary text-lg truncate">{job.role}</h3>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${getMatchScoreColor(job.matchScore)}`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-1">
+                           <h3 className="font-bold text-primary text-sm sm:text-lg truncate">{job.role}</h3>
+                          <span className={`self-start px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold w-fit ${getMatchScoreColor(job.matchScore)}`}>
                             {job.matchScore}% match
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-on-surface-variant">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4 text-[11px] sm:text-sm text-on-surface-variant">
                           <div className="flex items-center gap-1">
-                            <Building2 className="w-3.5 h-3.5" />
+                            <Building2 className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                             <span>{job.company}</span>
                           </div>
                           {job.location && (
                             <div className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5" />
+                              <MapPin className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                               <span>{job.location}</span>
                             </div>
                           )}
@@ -358,18 +354,18 @@ export function JobDashboard({
                     </div>
 
                     {job.matchedSkills.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {job.matchedSkills.slice(0, 5).map((skill, idx) => (
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 sm:mt-3">
+                        {job.matchedSkills.slice(0, 3).map((skill, idx) => (
                           <span
                             key={idx}
-                            className="px-2 py-1 bg-success/10 text-success text-xs rounded-md"
+                            className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-success/10 text-success text-[10px] sm:text-xs rounded-md"
                           >
                             {skill}
                           </span>
                         ))}
-                        {job.matchedSkills.length > 5 && (
-                          <span className="px-2 py-1 bg-surface-container-highest text-on-surface-variant text-xs rounded-md">
-                            +{job.matchedSkills.length - 5} more
+                        {job.matchedSkills.length > 3 && (
+                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-surface-container-highest text-on-surface-variant text-[10px] sm:text-xs rounded-md">
+                            +{job.matchedSkills.length - 3} more
                           </span>
                         )}
                       </div>

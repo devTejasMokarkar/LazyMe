@@ -49,8 +49,8 @@ export default function LaTeXPreview({ resumeData, className = "" }: LaTeXPrevie
         </button>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 lg:p-8 font-mono text-sm leading-relaxed bg-surface-container-lowest scrollbar-hide">
-        <pre className="text-on-surface-variant min-w-max">
+      <div className="flex-1 overflow-auto p-3 sm:p-4 lg:p-8 font-mono text-xs sm:text-sm leading-relaxed bg-surface-container-lowest scrollbar-hide">
+        <pre className="text-on-surface-variant min-w-[500px] sm:min-w-max">
           {latexContent.split('\n').map((line, i) => (
             <div key={i} className="flex gap-4 group">
               <span className="w-8 text-right text-on-surface-variant/30 select-none group-hover:text-on-surface-variant/50 transition-colors">

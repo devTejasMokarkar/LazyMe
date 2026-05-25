@@ -57,8 +57,8 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
         )}
       </div>
 
-      <div className="flex items-center gap-6">
-        <div className="text-5xl font-black text-primary">{score}%</div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6">
+        <div className="text-4xl sm:text-5xl font-black text-primary">{score}%</div>
         <div className="space-y-1">
           <div className="text-sm font-medium text-on-surface-variant">Match with job description</div>
           {previousScore != null && (
@@ -77,7 +77,7 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
       {breakdown && (
         <div className="pt-4 border-t border-outline-variant/50">
           <h4 className="text-xs font-bold text-on-surface-variant mb-3 uppercase tracking-wider">Score Breakdown</h4>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div className="flex justify-between">
               <span className="text-on-surface-variant">Skills Match:</span>
               <span className="text-on-surface font-medium">{breakdown.skillsMatch}%</span>
