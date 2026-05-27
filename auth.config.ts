@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 export const authConfig = {
   providers: [Google],
   trustHost: true,
+  secret: process.env.AUTH_SECRET,
   session: {
     strategy: "jwt",
   },
