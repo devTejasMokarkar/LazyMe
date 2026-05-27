@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight, Upload, Target, Zap, CheckCircle2,
   Rocket, FileText, Wand2, Send, MessageSquareQuote,
-  Plus, Palette, Code, X, Sparkles, Copy, Check, Loader2, MapPin, Lock
+  Plus, Code, X, Sparkles, Copy, Check, Loader2, MapPin, Lock
 } from 'lucide-react';
 import { signInAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
@@ -211,7 +211,9 @@ export default function LandingPage() {
     { text: "Rewrite my experience bullet points using the Google X-Y-Z formula", category: "Optimization" },
     { text: "Find remote-first YC startups in the AI space", category: "Discovery" },
     { text: "Generate a cover letter for a Senior Frontend role at Stripe", category: "Matching" },
-    { text: "What are the most common system design questions for L5 roles?", category: "Preparation" }
+    { text: "What are the most common system design questions for L5 roles?", category: "Preparation" },
+    { text: "I'm Priya Sharma, a 2025 B.Tech graduate in Computer Science from IIT Bombay with a CGPA of 8.4/10. I interned at Google (2024) optimizing search latency with Go & Bigtable, at Razorpay (2023) building payment webhooks with Node.js & PostgreSQL, and at IIT Bombay's NLP Lab on text summarization with transformers. Skilled in Python, Java, Go, JS/TS, React, Node.js, PostgreSQL, MongoDB, Docker, K8s, AWS, TF, PyTorch. Built a 'Real-time Code Vulnerability Scanner' using static analysis & ML. Seeking a Software Engineer role at a product-based company.", category: "Resume" },
+    { text: "I'm Arjun Mehta, a Senior Frontend Engineer with 4 years of experience at Swiggy and Ola. I specialize in React, TypeScript, Next.js, and have built design systems serving 10M+ users. I led the migration from class components to hooks, reducing bundle size by 40%. Skilled in JS, TS, React, Next.js, Tailwind CSS, Node.js, GraphQL, Jest, Cypress, Webpack. Looking for a Staff Frontend Engineer role at a product company.", category: "Resume" }
   ];
 
 
@@ -594,7 +596,7 @@ export default function LandingPage() {
                       className="w-8 h-8 rounded-lg hover:bg-surface-container-high flex items-center justify-center hover:text-primary transition-all active:scale-95"
                       title="AI Suggestions"
                     >
-                      <Palette className="w-4 h-4" />
+                      <Sparkles className="w-4 h-4" />
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
@@ -671,7 +673,7 @@ export default function LandingPage() {
                       className="w-8 h-8 rounded-lg hover:bg-surface-container-high flex items-center justify-center hover:text-primary transition-all active:scale-95"
                       title="AI Suggestions"
                     >
-                      <Palette className="w-4 h-4" />
+                      <Sparkles className="w-4 h-4" />
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
@@ -705,28 +707,7 @@ export default function LandingPage() {
               </motion.div>
             )}
           </AnimatePresence>
-          <AnimatePresence>
-            {resumeMode === 'create' && (
-              <motion.div
-                key="example-prompt"
-                initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
-                exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="text-left px-2 max-w-3xl mx-auto overflow-hidden"
-              >
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">Try an example prompt:</p>
-                <button
-                  onClick={() => {
-                    setPrompt("I'm Priya Sharma, a 2025 B.Tech graduate in Computer Science from Indian Institute of Technology (IIT) Bombay with a CGPA of 8.4/10. I did a summer internship at Google as a Software Engineering Intern in 2024 where I worked on optimizing search latency using Go and Bigtable. Before that, I interned at Razorpay as a Backend Intern in 2023 where I built payment webhook handlers in Node.js and PostgreSQL. I also completed a research internship at IIT Bombay's NLP Lab working on text summarization using transformers. My skills include Python, Java, Go, JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, MongoDB, Docker, Kubernetes, AWS, TensorFlow, PyTorch, Git, REST APIs, and GraphQL. My final year project was 'Real-time Code Vulnerability Scanner' using static analysis and ML. I'm looking for a Software Engineer role at a product-based company.");
-                  }}
-                  className="text-left text-xs p-3.5 bg-surface-container-high/40 border border-outline-variant/50 rounded-xl text-on-surface-variant hover:text-primary hover:border-primary/40 transition-all hover:bg-surface-container-high/60 block w-full leading-relaxed shadow-sm hover:scale-[1.01] duration-150"
-                >
-                  "I'm Priya Sharma, a 2025 B.Tech graduate in Computer Science from Indian Institute of Technology (IIT) Bombay with a CGPA of 8.4/10. I did a summer internship at Google as a Software Engineering Intern in 2024 where I worked on optimizing search latency using Go and Bigtable. Before that, I interned at Razorpay..."
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+
         </div>
 
         {/* Stats Grid */}
@@ -783,7 +764,7 @@ export default function LandingPage() {
                     className="text-left p-5 bg-background border border-outline-variant hover:border-primary/50 rounded-2xl transition-all group"
                   >
                     <span className="text-[9px] font-bold text-primary uppercase block mb-2 tracking-widest">{s.category}</span>
-                    <p className="text-sm font-medium text-on-surface-variant group-hover:text-primary leading-relaxed">"{s.text}"</p>
+                    <p className="text-sm font-medium text-on-surface-variant group-hover:text-primary leading-relaxed line-clamp-2">"{s.text}"</p>
                   </button>
                 ))}
               </div>
