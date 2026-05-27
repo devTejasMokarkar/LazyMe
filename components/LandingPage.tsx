@@ -2,9 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowRight, Upload, Target, Zap, CheckCircle2, 
-  Rocket, FileText, Wand2, Send, MessageSquareQuote, 
+import {
+  ArrowRight, Upload, Target, Zap, CheckCircle2,
+  Rocket, FileText, Wand2, Send, MessageSquareQuote,
   Plus, Palette, Code, X, Sparkles, Copy, Check, Loader2, MapPin, Lock
 } from 'lucide-react';
 import { signInAction } from '@/app/actions';
@@ -14,6 +14,7 @@ import TopNav from './TopNav';
 
 export default function LandingPage() {
   const [prompt, setPrompt] = useState('');
+  const [resumeMode, setResumeMode] = useState<'create' | 'import'>('create');
   const [showJDModal, setShowJDModal] = useState(false);
   const [showQNA, setShowQNA] = useState(false);
   const [jdText, setJdText] = useState('');
@@ -28,7 +29,7 @@ export default function LandingPage() {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedFileRef = useRef<File | null>(null);
   const loginFormRef = useRef<HTMLFormElement>(null);
@@ -36,24 +37,24 @@ export default function LandingPage() {
   const isResumeUploaded = !!uploadedFile || !!selectedFileRef.current;
 
   const actions = [
-    { 
-      label: 'Analyze my resume', 
-      icon: FileText, 
+    {
+      label: 'Analyze my resume',
+      icon: FileText,
       color: 'text-primary',
       onClick: () => fileInputRef.current?.click(),
       disabled: false
     },
-    { 
-      label: 'Match this job', 
-      icon: isResumeUploaded ? Zap : Lock, 
+    {
+      label: 'Match this job',
+      icon: isResumeUploaded ? Zap : Lock,
       color: isResumeUploaded ? 'text-tertiary' : 'text-on-surface-variant/30',
       onClick: () => { if (isResumeUploaded) setShowJDModal(true); },
       disabled: !isResumeUploaded,
       tooltip: !isResumeUploaded ? 'Upload a resume first to unlock Job Matching' : undefined
     },
-    { 
-      label: 'Interview Q&A', 
-      icon: MessageSquareQuote, 
+    {
+      label: 'Interview Q&A',
+      icon: MessageSquareQuote,
       color: 'text-tertiary',
       onClick: () => setShowQNA(true),
       disabled: false
@@ -333,21 +334,21 @@ export default function LandingPage() {
   return (
     <div className="w-full bg-background text-on-background min-h-screen selection:bg-primary/30 flex flex-col justify-between">
       <TopNav />
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        className="hidden" 
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
         accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif,image/*"
-        onChange={handleFileSelect} 
+        onChange={handleFileSelect}
       />
-      
+
       {/* Hero Section */}
       <section className="relative flex-1 flex flex-col items-center justify-center pt-24 pb-12 px-6 bg-dot-grid overflow-hidden">
         {/* Ambient Glows */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-secondary/10 rounded-full blur-[100px] pointer-events-none" />
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           className="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high/30 border border-outline-variant rounded-full mb-8 backdrop-blur-md"
@@ -359,48 +360,96 @@ export default function LandingPage() {
           <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Beta Access Open</span>
         </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-4xl w-full flex flex-col items-center text-center relative z-10"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-surface-container-high/40 flex items-center justify-center mb-8 border border-surface-container-highest/40 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-4xl w-full flex flex-col items-center text-center relative z-10"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-surface-container-high/40 flex items-center justify-center mb-8 border border-surface-container-highest/40 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
             <motion.div animate={{ rotate: isMatching ? 360 : 0 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
               <Wand2 className="w-8 h-8 text-primary fill-primary/20" />
             </motion.div>
           </div>
-          
+
           <h1 className="text-4xl md:text-6xl font-bold text-primary leading-tight mb-4 tracking-tighter max-w-3xl">
             {isMatching ? "Analyzing Profile..." : matchResult ? "High Match Detected!" : "Welcome to LazyMe AI"}
           </h1>
           <p className="text-on-surface-variant text-base md:text-lg font-medium max-w-2xl mb-8 leading-relaxed">
-            {matchResult 
+            {matchResult
               ? `We found a ${matchResult.matchScore}% match for ${matchResult.role} at ${matchResult.company}. Sign in to see the full analysis.`
               : "Upload your resume or paste a job link to get started. LazyMe AI is your technical companion for career growth."}
           </p>
 
           {!matchResult && (
+            <div className="relative flex bg-surface-container-high/40 p-1 rounded-xl border border-outline-variant/30 mb-8 backdrop-blur-md">
+              {/* Sliding pill indicator */}
+              <motion.div
+                layoutId="resumeModeIndicator"
+                className="absolute top-1 bottom-1 rounded-lg bg-primary shadow-lg shadow-primary/20"
+                style={{ width: 'calc(50% - 4px)' }}
+                animate={{ x: resumeMode === 'create' ? 0 : 'calc(100% + 4px)' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+              <button
+                onClick={() => {
+                  setResumeMode('create');
+                  selectedFileRef.current = null;
+                  setUploadedFile(null);
+                  setParsedResumeData(null);
+                  setAppendPreview(null);
+                  setAppendNotice(null);
+                }}
+                className={cn(
+                  "relative z-10 flex-1 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors duration-200 flex items-center justify-center gap-2",
+                  resumeMode === 'create'
+                    ? "text-on-primary"
+                    : "text-on-surface-variant hover:text-primary"
+                )}
+              >
+                <Sparkles className="w-4 h-4" />
+                Create New Resume
+              </button>
+              <button
+                onClick={() => setResumeMode('import')}
+                className={cn(
+                  "relative z-10 flex-1 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors duration-200 flex items-center justify-center gap-2",
+                  resumeMode === 'import'
+                    ? "text-on-primary"
+                    : "text-on-surface-variant hover:text-primary"
+                )}
+              >
+                <Upload className="w-4 h-4" />
+                Import Existing Resume
+              </button>
+            </div>
+          )}
+
+          {!matchResult && (
             <div className="flex flex-wrap justify-center gap-3 mb-10">
-              {actions.map((action, i) => (
-                <motion.button 
-                  key={action.label}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.05 }}
-                  onClick={action.onClick}
-                  disabled={action.disabled}
-                  title={action.tooltip}
-                  className={cn(
-                    "px-5 py-2.5 glass rounded-full text-primary transition-all flex items-center gap-2 group shadow-lg",
-                    action.disabled 
-                      ? "opacity-40 cursor-not-allowed" 
-                      : "hover:bg-surface-container-high/40 hover:scale-102 active:scale-98"
-                  )}
-                >
-                  <action.icon className={cn("w-4 h-4 transition-transform", !action.disabled && "group-hover:scale-110", action.color)} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">{action.label}</span>
-                </motion.button>
-              ))}
+              {actions.map((action, i) => {
+                const isHidden = resumeMode === 'create' && (action.label === 'Analyze my resume' || action.label === 'Match this job');
+                if (isHidden) return null;
+                return (
+                  <motion.button
+                    key={action.label}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + i * 0.05 }}
+                    onClick={action.onClick}
+                    disabled={action.disabled}
+                    title={action.tooltip}
+                    className={cn(
+                      "px-5 py-2.5 glass rounded-full text-primary transition-all flex items-center gap-2 group shadow-lg",
+                      action.disabled
+                        ? "opacity-40 cursor-not-allowed"
+                        : "hover:bg-surface-container-high/40 hover:scale-102 active:scale-98"
+                    )}
+                  >
+                    <action.icon className={cn("w-4 h-4 transition-transform", !action.disabled && "group-hover:scale-110", action.color)} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">{action.label}</span>
+                  </motion.button>
+                );
+              })}
             </div>
           )}
 
@@ -417,7 +466,7 @@ export default function LandingPage() {
         <div className="w-full max-w-3xl px-4 mt-4 relative z-20">
           <AnimatePresence>
             {uploadedFile && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -429,7 +478,7 @@ export default function LandingPage() {
                     <p className="text-xs font-bold truncate text-primary">{uploadedFile.name}</p>
                     <p className="text-[9px] text-on-surface-variant uppercase font-semibold">Ready to parse</p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
                       selectedFileRef.current = null;
                       setUploadedFile(null);
@@ -468,7 +517,7 @@ export default function LandingPage() {
 
             {showJDModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-on-background/60 backdrop-blur-sm">
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
@@ -478,7 +527,7 @@ export default function LandingPage() {
                     <h3 className="text-sm font-bold text-primary">Paste Job Description</h3>
                     <button onClick={() => setShowJDModal(false)} className="text-on-surface-variant hover:text-primary hover:bg-surface-container-high p-1 rounded-md transition-colors"><X className="w-4 h-4" /></button>
                   </div>
-                   <textarea 
+                  <textarea
                     value={jdText}
                     onChange={(e) => {
                       setJdText(e.target.value);
@@ -505,87 +554,189 @@ export default function LandingPage() {
 
           {/* Hidden login form */}
           <form ref={loginFormRef} action={signInAction} className="hidden">
-            <input type="hidden" name="redirectTo" value="/resume" />
+            <input
+              type="hidden"
+              name="redirectTo"
+              value={resumeMode === 'create' && prompt.trim()
+                ? `/chat?prompt=${encodeURIComponent(prompt.trim())}`
+                : '/resume'}
+            />
           </form>
 
           {/* Prompt Bar */}
-          <div className="glass rounded-xl p-2 flex items-center gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center gap-1">
-              <button 
-                type="button" 
-                onClick={() => fileInputRef.current?.click()} 
-                className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
-                title="Upload Resume"
+          <AnimatePresence mode="wait">
+            {resumeMode === 'create' ? (
+              /* ── CREATE MODE: stacked vertical layout ── */
+              <motion.div
+                key="create-bar"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="glass rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
               >
-                <Plus className="w-5 h-5" />
-              </button>
-              <button 
-                type="button" 
-                onClick={() => setShowJDModal(true)} 
-                className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
-                title="Paste Job Description"
+                <textarea
+                  value={prompt}
+                  onChange={(e) => {
+                    setPrompt(e.target.value);
+                    setAppendPreview(null);
+                    setAppendNotice(null);
+                  }}
+                  rows={3}
+                  className="w-full bg-transparent border-none focus:ring-0 text-primary font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed overflow-y-auto p-4 pb-2"
+                  placeholder="Describe yourself — your name, skills, experience, education — and AI will build a complete resume for you..."
+                />
+                <div className="flex items-center justify-between px-3 pb-3 pt-1">
+                  <div className="flex items-center gap-1 text-on-surface-variant/50">
+                    <button
+                      type="button"
+                      onClick={() => setShowPromptHelper(true)}
+                      className="w-8 h-8 rounded-lg hover:bg-surface-container-high flex items-center justify-center hover:text-primary transition-all active:scale-95"
+                      title="AI Suggestions"
+                    >
+                      <Palette className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleEnhancePrompt}
+                      disabled={isEnhancing || !prompt.trim()}
+                      className="h-9 px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-2 font-bold text-[11px] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Preview the optimized resume entry before appending"
+                    >
+                      {isEnhancing ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Enhancing...</>
+                      ) : (
+                        <><Sparkles className="w-3.5 h-3.5" /> Enhance prompt</>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendClick}
+                      disabled={isParsing || !prompt.trim()}
+                      className="h-9 px-5 btn-primary rounded-lg flex items-center gap-2 font-bold text-[11px] shadow-lg disabled:opacity-50"
+                    >
+                      {isParsing ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Parsing...</>
+                      ) : (
+                        <><span>Send</span><Send className="w-3 h-3 fill-white" /></>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              /* ── IMPORT MODE: stacked vertical layout (matching create) ── */
+              <motion.div
+                key="import-bar"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="glass rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
               >
-                <Code className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPromptHelper(true)}
-                className="w-10 h-10 rounded-lg hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-95"
-                title="AI Suggestions"
+                <textarea
+                  value={prompt}
+                  onChange={(e) => {
+                    setPrompt(e.target.value);
+                    setAppendPreview(null);
+                    setAppendNotice(null);
+                  }}
+                  rows={appendPreview ? 4 : 2}
+                  className="w-full bg-transparent border-none focus:ring-0 text-primary font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed overflow-y-auto p-4 pb-2"
+                  placeholder="Tell LazyMe what to find next..."
+                />
+                <div className="flex items-center justify-between px-3 pb-3 pt-1">
+                  <div className="flex items-center gap-1 text-on-surface-variant/50">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-8 h-8 rounded-lg hover:bg-surface-container-high flex items-center justify-center hover:text-primary transition-all active:scale-95"
+                      title="Upload Resume"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowJDModal(true)}
+                      className="w-8 h-8 rounded-lg hover:bg-surface-container-high flex items-center justify-center hover:text-primary transition-all active:scale-95"
+                      title="Paste Job Description"
+                    >
+                      <Code className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPromptHelper(true)}
+                      className="w-8 h-8 rounded-lg hover:bg-surface-container-high flex items-center justify-center hover:text-primary transition-all active:scale-95"
+                      title="AI Suggestions"
+                    >
+                      <Palette className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleEnhancePrompt}
+                      disabled={isEnhancing || !prompt.trim()}
+                      className="h-9 px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-2 font-bold text-[11px] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Preview the optimized resume entry before appending"
+                    >
+                      {isEnhancing ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Enhancing...</>
+                      ) : (
+                        <><Sparkles className="w-3.5 h-3.5" /> Enhance prompt</>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendClick}
+                      disabled={isParsing}
+                      className="h-9 px-5 btn-primary rounded-lg flex items-center gap-2 font-bold text-[11px] shadow-lg disabled:opacity-50"
+                    >
+                      {isParsing ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Parsing...</>
+                      ) : (
+                        <><span>Send</span><Send className="w-3 h-3 fill-white" /></>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {resumeMode === 'create' && (
+              <motion.div
+                key="example-prompt"
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="text-left px-2 max-w-3xl mx-auto overflow-hidden"
               >
-                <Palette className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <textarea 
-              value={prompt}
-              onChange={(e) => {
-                setPrompt(e.target.value);
-                setAppendPreview(null);
-                setAppendNotice(null);
-              }}
-              rows={appendPreview ? 4 : 1}
-              className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
-              placeholder="Tell LazyMe what to find next..."
-            />
-
-            <button
-              type="button"
-              onClick={handleEnhancePrompt}
-              disabled={isEnhancing || !prompt.trim()}
-              className="h-10 px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-2 font-bold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-              title="Preview the optimized resume entry before appending"
-            >
-              {isEnhancing ? (
-                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Enhancing...</>
-              ) : (
-                <><Sparkles className="w-3.5 h-3.5" /> Enhance prompt</>
-              )}
-            </button>
-
-            <button 
-              type="button" 
-              onClick={handleSendClick}
-              disabled={isParsing}
-              className="h-10 px-5 btn-primary rounded-lg flex items-center gap-2 font-bold text-xs shadow-lg disabled:opacity-50 shrink-0"
-            >
-              {isParsing ? (
-                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Parsing...</>
-              ) : (
-                <><span>Send</span><Send className="w-3 h-3 fill-white" /></>
-              )}
-            </button>
-          </div>
+                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">Try an example prompt:</p>
+                <button
+                  onClick={() => {
+                    setPrompt("I'm Priya Sharma, a 2025 B.Tech graduate in Computer Science from Indian Institute of Technology (IIT) Bombay with a CGPA of 8.4/10. I did a summer internship at Google as a Software Engineering Intern in 2024 where I worked on optimizing search latency using Go and Bigtable. Before that, I interned at Razorpay as a Backend Intern in 2023 where I built payment webhook handlers in Node.js and PostgreSQL. I also completed a research internship at IIT Bombay's NLP Lab working on text summarization using transformers. My skills include Python, Java, Go, JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, MongoDB, Docker, Kubernetes, AWS, TensorFlow, PyTorch, Git, REST APIs, and GraphQL. My final year project was 'Real-time Code Vulnerability Scanner' using static analysis and ML. I'm looking for a Software Engineer role at a product-based company.");
+                  }}
+                  className="text-left text-xs p-3.5 bg-surface-container-high/40 border border-outline-variant/50 rounded-xl text-on-surface-variant hover:text-primary hover:border-primary/40 transition-all hover:bg-surface-container-high/60 block w-full leading-relaxed shadow-sm hover:scale-[1.01] duration-150"
+                >
+                  "I'm Priya Sharma, a 2025 B.Tech graduate in Computer Science from Indian Institute of Technology (IIT) Bombay with a CGPA of 8.4/10. I did a summer internship at Google as a Software Engineering Intern in 2024 where I worked on optimizing search latency using Go and Bigtable. Before that, I interned at Razorpay..."
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-3xl mt-16 relative z-10">
           {stats.map((stat, i) => (
-            <motion.div 
-              key={stat.label} 
-              initial={{ opacity: 0, y: 10 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              transition={{ delay: 0.3 + i * 0.05 }} 
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.05 }}
               className="bg-surface-container-high/20 flex flex-col items-center justify-center p-4 rounded-2xl border border-outline-variant/30 hover:border-outline-variant transition-all"
             >
               <span className="text-xl md:text-2xl font-mono text-primary font-bold mb-1">{stat.value}</span>
@@ -689,8 +840,8 @@ export default function LandingPage() {
       <footer className="py-24 px-6 border-t border-outline-variant">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-16">
           <div className="flex items-center gap-4">
-             <div className="w-4 h-4 rounded-full bg-primary" />
-             <span className="font-bold text-2xl tracking-tighter">LazyMe AI</span>
+            <div className="w-4 h-4 rounded-full bg-primary" />
+            <span className="font-bold text-2xl tracking-tighter">LazyMe AI</span>
           </div>
           <div className="text-[10px] font-mono text-outline uppercase tracking-[0.3em] opacity-40">
             v2.4.0-stable // 2024
@@ -701,7 +852,7 @@ export default function LandingPage() {
       {/* Global Loader Overlay */}
       <AnimatePresence>
         {isLoading && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

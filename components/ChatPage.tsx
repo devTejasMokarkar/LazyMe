@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Send, Sparkles, Loader2, FileText, X, CheckCircle2,
   ArrowRight, MessageSquare, User, Bot, RefreshCw, Edit3
@@ -18,8 +18,11 @@ const suggestedMessages = [
   "I'm a recent CS grad with internship experience at Google, skilled in Java and cloud computing",
 ];
 
-export default function ChatPage() {
+function ChatPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialPrompt = searchParams.get('prompt');
+  const hasTriggeredInitial = useRef(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -40,6 +43,13 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    if (initialPrompt && !hasTriggeredInitial.current) {
+      hasTriggeredInitial.current = true;
+      handleSend(initialPrompt);
+    }
+  }, [initialPrompt]);
+
   const addMessage = (role: 'user' | 'assistant', content: string) => {
     const msg: ChatMessage = {
       id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -50,10 +60,12 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, msg]);
   };
 
-  const handleSend = async () => {
-    const text = input.trim();
+  const handleSend = async (customText?: string) => {
+    const text = (customText !== undefined ? customText : input).trim();
     if (!text || isGenerating) return;
-    setInput('');
+    if (customText === undefined) {
+      setInput('');
+    }
     setError(null);
     addMessage('user', text);
 
@@ -432,5 +444,17 @@ export default function ChatPage() {
         </aside>
       )}
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <ChatPageContent />
+    </Suspense>
   );
 }

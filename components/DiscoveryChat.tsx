@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Rocket, Zap, FileText, Plus, Send, 
   Palette, Code, X, Sparkles, 
-  MessageSquareQuote, Loader2, Wand2, Copy, FilePlus2
+  MessageSquareQuote, Loader2, Wand2, Copy, FilePlus2, Upload
 } from 'lucide-react';
 import { cn, validateParsedResume, calculateResumeCompleteness } from '@/lib/utils';
 
@@ -150,8 +150,8 @@ export default function DiscoveryChat() {
   };
 
   const handleSendAction = () => {
-    if (isCreateMode) {
-      handleCreateResume();
+    if (isCreateMode && prompt.trim()) {
+      router.push(`/chat?prompt=${encodeURIComponent(prompt.trim())}`);
     } else if (uploadedResume) {
       localStorage.setItem('lazyme_pending_resume', JSON.stringify(uploadedResume.data));
       window.dispatchEvent(new Event('pendingResumeReady'));
@@ -232,6 +232,43 @@ export default function DiscoveryChat() {
               : "Upload your resume or paste a job link to get started. LazyMe AI is your technical companion for high-efficiency career growth."}
           </p>
 
+          {!isMatching && !isCreating && !matchResult && (
+            <div className="flex bg-surface-container-high/40 p-1 rounded-xl border border-outline-variant/30 mb-8 backdrop-blur-md">
+              <button
+                onClick={() => {
+                  setIsCreateMode(true);
+                  setCreateError(null);
+                  setUploadedResume(null);
+                  setUploadError(null);
+                }}
+                className={cn(
+                  "px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 flex items-center gap-2",
+                  isCreateMode
+                    ? "bg-primary text-on-primary shadow-lg shadow-primary/20"
+                    : "text-on-surface-variant hover:text-primary"
+                )}
+              >
+                <Sparkles className="w-4 h-4" />
+                Create New Resume
+              </button>
+              <button
+                onClick={() => {
+                  setIsCreateMode(false);
+                  setCreateError(null);
+                }}
+                className={cn(
+                  "px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 flex items-center gap-2",
+                  !isCreateMode
+                    ? "bg-primary text-on-primary shadow-lg shadow-primary/20"
+                    : "text-on-surface-variant hover:text-primary"
+                )}
+              >
+                <Upload className="w-4 h-4" />
+                Import Existing Resume
+              </button>
+            </div>
+          )}
+
           {createError && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -248,29 +285,35 @@ export default function DiscoveryChat() {
 
           {!isMatching && !isCreating && !matchResult && (
             <div className="flex flex-wrap justify-center gap-3">
-              {actions.map((action, i) => (
+              {actions.map((action, i) => {
+                const isHidden = isCreateMode && (action.label === 'Analyze Resume' || action.label === 'Match Job' || action.label === 'Create Resume' || action.label === 'Analyze my resume' || action.label === 'Match this job');
+                if (isHidden) return null;
+                return (
+                  <motion.button 
+                    key={action.label}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 + i * 0.1 }}
+                    onClick={action.onClick}
+                    className="px-5 py-3 sm:px-8 sm:py-3.5 bg-surface-container border border-outline-variant rounded-full text-primary hover:bg-surface-container-high transition-all flex items-center gap-2 sm:gap-3 group shadow-xl hover:scale-105 active:scale-95"
+                  >
+                    <action.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${action.color}`} />
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">{action.label}</span>
+                  </motion.button>
+                );
+              })}
+              {!isCreateMode && (
                 <motion.button 
-                  key={action.label}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 + i * 0.1 }}
-                  onClick={action.onClick}
-                  className="px-5 py-3 sm:px-8 sm:py-3.5 bg-surface-container border border-outline-variant rounded-full text-primary hover:bg-surface-container-high transition-all flex items-center gap-2 sm:gap-3 group shadow-xl hover:scale-105 active:scale-95"
+                  transition={{ delay: 0.7 }}
+                  onClick={() => setShowQNA(true)}
+                  className="px-5 py-3 sm:px-8 sm:py-3.5 bg-tertiary/10 border border-tertiary/30 rounded-full text-tertiary hover:bg-tertiary/20 transition-all flex items-center gap-2 sm:gap-3 group shadow-xl hover:scale-105 active:scale-95"
                 >
-                  <action.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${action.color}`} />
-                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">{action.label}</span>
+                  <MessageSquareQuote className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">Interview Q&A</span>
                 </motion.button>
-              ))}
-              <motion.button 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-                onClick={() => setShowQNA(true)}
-                className="px-5 py-3 sm:px-8 sm:py-3.5 bg-tertiary/10 border border-tertiary/30 rounded-full text-tertiary hover:bg-tertiary/20 transition-all flex items-center gap-2 sm:gap-3 group shadow-xl hover:scale-105 active:scale-95"
-              >
-                <MessageSquareQuote className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">Interview Q&A</span>
-              </motion.button>
+              )}
             </div>
           )}
 
@@ -363,8 +406,18 @@ export default function DiscoveryChat() {
           <div className="bg-surface-container-high/90 backdrop-blur-2xl border border-outline-variant rounded-2xl p-2 sm:p-3 flex items-center gap-2 sm:gap-4 shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary hover:bg-surface-container-highest transition-all shadow-lg active:scale-90"
+                onClick={() => {
+                  if (!isCreateMode) {
+                    fileInputRef.current?.click();
+                  }
+                }}
+                disabled={isCreateMode}
+                className={cn(
+                  "w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-surface-container-highest flex items-center justify-center transition-all shadow-lg active:scale-90",
+                  isCreateMode
+                    ? "opacity-30 cursor-not-allowed text-on-surface-variant/30 bg-surface-container-highest"
+                    : "bg-surface-container-highest text-primary hover:bg-surface-container-highest"
+                )}
               >
                 {isMatching ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-primary" /> : <Plus className="w-5 h-5 sm:w-6 sm:h-6 border-outline text-on-background" />}
               </button>
@@ -397,7 +450,7 @@ export default function DiscoveryChat() {
                 {uploadError && (
                   <span className="text-[10px] sm:text-[11px] text-error font-medium px-1">{uploadError}</span>
                 )}
-                <input 
+                <textarea 
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => {
@@ -406,8 +459,9 @@ export default function DiscoveryChat() {
                       handleSendAction();
                     }
                   }}
-                  className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-sm sm:text-lg placeholder:text-on-surface-variant"
-                  placeholder={isCreateMode ? "I'm John Doe, a full-stack developer with 3 years experience in React & Node.js..." : uploadedResume ? "Add a message or click Send to view your resume..." : "Tell LazyMe what to find next..."}
+                  rows={isCreateMode ? 6 : 1}
+                  className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-sm sm:text-lg placeholder:text-on-surface-variant outline-none resize-none leading-relaxed max-h-60 overflow-y-auto py-1"
+                  placeholder={isCreateMode ? "Describe yourself below — your name, skills, experience, education — and AI will build a complete resume for you..." : uploadedResume ? "Add a message or click Send to view your resume..." : "Tell LazyMe what to find next..."}
                 />
               </div>
             </div>
@@ -449,6 +503,19 @@ export default function DiscoveryChat() {
               </button>
             </div>
           </div>
+          {isCreateMode && (
+            <div className="mt-4 text-left px-2 max-w-3xl mx-auto w-full">
+              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">Try an example prompt:</p>
+              <button
+                onClick={() => {
+                  setPrompt("I'm Priya Sharma, a 2025 B.Tech graduate in Computer Science from Indian Institute of Technology (IIT) Bombay with a CGPA of 8.4/10. I did a summer internship at Google as a Software Engineering Intern in 2024 where I worked on optimizing search latency using Go and Bigtable. Before that, I interned at Razorpay as a Backend Intern in 2023 where I built payment webhook handlers in Node.js and PostgreSQL. I also completed a research internship at IIT Bombay's NLP Lab working on text summarization using transformers. My skills include Python, Java, Go, JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, MongoDB, Docker, Kubernetes, AWS, TensorFlow, PyTorch, Git, REST APIs, and GraphQL. My final year project was 'Real-time Code Vulnerability Scanner' using static analysis and ML. I'm looking for a Software Engineer role at a product-based company.");
+                }}
+                className="text-left text-xs p-3.5 bg-surface-container-high/40 border border-outline-variant/50 rounded-xl text-on-surface-variant hover:text-primary hover:border-primary/40 transition-all hover:bg-surface-container-high/60 block w-full leading-relaxed shadow-sm hover:scale-[1.01] duration-150"
+              >
+                "I'm Priya Sharma, a 2025 B.Tech graduate in Computer Science from Indian Institute of Technology (IIT) Bombay with a CGPA of 8.4/10. I did a summer internship at Google as a Software Engineering Intern in 2024 where I worked on optimizing search latency using Go and Bigtable. Before that, I interned at Razorpay..."
+              </button>
+            </div>
+          )}
         </div>
       </div>
       {/* Interview Q&A Modal */}
