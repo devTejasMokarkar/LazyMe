@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
+import ChatPage from "@/components/ChatPage";
 
 export default function Page() {
-  notFound();
+  return <ChatPage />;
 }

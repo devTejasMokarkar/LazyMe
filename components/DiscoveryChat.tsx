@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Rocket, Zap, FileText, Plus, Send, 
   Palette, Code, X, Sparkles, 
-  MessageSquareQuote, Loader2, Wand2, Copy
+  MessageSquareQuote, Loader2, Wand2, Copy, FilePlus2
 } from 'lucide-react';
 import { cn, validateParsedResume, calculateResumeCompleteness } from '@/lib/utils';
 
@@ -22,6 +22,9 @@ export default function DiscoveryChat() {
   const [matchResult, setMatchResult] = useState<any>(null);
   const [uploadedResume, setUploadedResume] = useState<{ name: string; data: any } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isCreateMode, setIsCreateMode] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
 
 
@@ -117,6 +120,50 @@ export default function DiscoveryChat() {
     }
   };
 
+  const handleCreateResume = async () => {
+    if (!prompt.trim() || isCreating) return;
+    setIsCreating(true);
+    setCreateError(null);
+    try {
+      const res = await fetch('/api/create-resume-from-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: prompt.trim() })
+      });
+      const data = await res.json();
+      if (res.ok && data.resume) {
+        localStorage.setItem('lazyme_pending_resume', JSON.stringify(data.resume));
+        window.dispatchEvent(new Event('pendingResumeReady'));
+        window.dispatchEvent(new StorageEvent('storage', { key: 'lazyme_pending_resume', newValue: JSON.stringify(data.resume) }));
+        setPrompt('');
+        setIsCreateMode(false);
+        router.push('/resume');
+      } else {
+        setCreateError(data.error || 'Failed to generate resume. Please try again.');
+      }
+    } catch (error) {
+      console.error('Create resume failed:', error);
+      setCreateError('Failed to create resume. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleSendAction = () => {
+    if (isCreateMode) {
+      handleCreateResume();
+    } else if (uploadedResume) {
+      localStorage.setItem('lazyme_pending_resume', JSON.stringify(uploadedResume.data));
+      window.dispatchEvent(new Event('pendingResumeReady'));
+      window.dispatchEvent(new StorageEvent('storage', { key: 'lazyme_pending_resume', newValue: JSON.stringify(uploadedResume.data) }));
+      router.push('/resume');
+    } else if (prompt.toLowerCase().includes('yc') || prompt.toLowerCase().includes('startups')) {
+      router.push('/board');
+    } else if (prompt.trim()) {
+      alert('LazyMe AI is processing your request...');
+    }
+  };
+
   const actions = [
     { 
       label: 'Analyze my resume', 
@@ -141,6 +188,12 @@ export default function DiscoveryChat() {
       icon: MessageSquareQuote, 
       color: 'text-tertiary', 
       onClick: () => setShowQNA(true)
+    },
+    {
+      label: 'Create Resume',
+      icon: FilePlus2,
+      color: 'text-secondary',
+      onClick: () => { setIsCreateMode(true); setCreateError(null); }
     },
   ];
 
@@ -170,13 +223,30 @@ export default function DiscoveryChat() {
           </div>
           
           <h2 className="text-6xl font-bold text-primary leading-tight mb-6 tracking-tighter">
-            {isMatching ? "AI Analysing Match..." : "Welcome to LazyMe AI"}
+            {isCreating ? "AI Creating Your Resume..." : isMatching ? "AI Analysing Match..." : isCreateMode ? "Create Your Resume" : "Welcome to LazyMe AI"}
           </h2>
           <p className="text-on-surface-variant text-xl font-medium max-w-lg mb-12 leading-relaxed">
-            {isMatching ? "Our models are comparing your profile against the provided job requirements." : "Upload your resume or paste a job link to get started. LazyMe AI is your technical companion for high-efficiency career growth."}
+            {isCreating ? "Our AI is generating a professional resume from your details. This may take a moment."
+              : isMatching ? "Our models are comparing your profile against the provided job requirements."
+              : isCreateMode ? "Describe yourself below — your name, skills, experience, education — and AI will build a complete resume for you."
+              : "Upload your resume or paste a job link to get started. LazyMe AI is your technical companion for high-efficiency career growth."}
           </p>
 
-          {!isMatching && !matchResult && (
+          {createError && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-lg w-full mb-6 p-4 bg-error/10 border border-error/30 rounded-2xl text-error text-sm font-medium flex items-center gap-3"
+            >
+              <X className="w-4 h-4 shrink-0" />
+              <span>{createError}</span>
+              <button onClick={() => setCreateError(null)} className="ml-auto text-error/60 hover:text-error">
+                <X className="w-3 h-3" />
+              </button>
+            </motion.div>
+          )}
+
+          {!isMatching && !isCreating && !matchResult && (
             <div className="flex flex-wrap justify-center gap-3">
               {actions.map((action, i) => (
                 <motion.button 
@@ -331,21 +401,13 @@ export default function DiscoveryChat() {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => {
-                    if (uploadedResume) {
-  // Store parsed resume in localStorage for ResumeBuilder
-  localStorage.setItem('lazyme_pending_resume', JSON.stringify(uploadedResume.data));
-  // Notify listeners of the new pending resume
-  window.dispatchEvent(new Event('pendingResumeReady'));
-  window.dispatchEvent(new StorageEvent('storage', { key: 'lazyme_pending_resume', newValue: JSON.stringify(uploadedResume.data) }));
-  router.push('/resume');
-} else if (prompt.toLowerCase().includes('yc') || prompt.toLowerCase().includes('startups')) {
-  router.push('/board');
-} else if (prompt.trim()) {
-  alert("LazyMe AI is processing your request...");
-}
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendAction();
+                    }
                   }}
                   className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-sm sm:text-lg placeholder:text-on-surface-variant"
-                  placeholder={uploadedResume ? "Add a message or click Send to view your resume..." : "Tell LazyMe what to find next..."}
+                  placeholder={isCreateMode ? "I'm John Doe, a full-stack developer with 3 years experience in React & Node.js..." : uploadedResume ? "Add a message or click Send to view your resume..." : "Tell LazyMe what to find next..."}
                 />
               </div>
             </div>
@@ -354,23 +416,36 @@ export default function DiscoveryChat() {
               <button className="hidden sm:flex w-8 h-8 sm:w-10 sm:h-10 items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
                 <Palette className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
+              {isCreateMode && (
+                <button
+                  onClick={() => { setIsCreateMode(false); setCreateError(null); setPrompt(''); }}
+                  className="h-10 sm:h-12 px-3 sm:px-4 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container-highest flex items-center gap-1.5 font-bold text-[10px] sm:text-xs transition-all shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Cancel</span>
+                </button>
+              )}
               <button
-                onClick={() => {
-                  if (uploadedResume) {
-                    localStorage.setItem('lazyme_pending_resume', JSON.stringify(uploadedResume.data));
-                    window.dispatchEvent(new Event('pendingResumeReady'));
-                    window.dispatchEvent(new StorageEvent('storage', { key: 'lazyme_pending_resume', newValue: JSON.stringify(uploadedResume.data) }));
-                    router.push('/resume');
-                  } else if (prompt.toLowerCase().includes('yc') || prompt.toLowerCase().includes('startups')) {
-                    router.push('/board');
-                  } else if (prompt.trim()) {
-                    alert('LazyMe AI is processing your request...');
-                  }
-                }}
-                className="h-10 sm:h-12 px-4 sm:px-8 bg-primary-container text-on-primary-container rounded-xl flex items-center gap-2 sm:gap-3 font-bold text-xs sm:text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                onClick={handleSendAction}
+                disabled={isCreating}
+                className={cn(
+                  "h-10 sm:h-12 px-4 sm:px-8 rounded-xl flex items-center gap-2 sm:gap-3 font-bold text-xs sm:text-sm active:scale-95 transition-all shadow-lg",
+                  isCreateMode
+                    ? "bg-secondary text-on-secondary shadow-secondary/20 hover:brightness-110"
+                    : "bg-primary-container text-on-primary-container shadow-primary/20 hover:brightness-110"
+                )}
               >
-                <span className="hidden sm:inline">Send</span>
-                <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-on-primary-container" />
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                    <span className="hidden sm:inline">Creating...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">{isCreateMode ? 'Generate Resume' : 'Send'}</span>
+                    {isCreateMode ? <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-on-primary-container" />}
+                  </>
+                )}
               </button>
             </div>
           </div>

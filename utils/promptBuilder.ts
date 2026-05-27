@@ -203,3 +203,45 @@ Return:
 - Output must feel like a real recruiter evaluation
 - Return ONLY valid JSON, no markdown, no explanation`;
 }
+
+export function buildResumeFromChatPrompt(message: string): string {
+  return `You are a professional resume writer and career coach.
+
+The user has described themselves in a conversational message. Your job is to extract every detail and generate a complete, polished, professional resume.
+
+User's message:
+"""
+${message}
+"""
+
+Instructions:
+1. Extract all identifiable information from the message (name, email, phone, location, job title, skills, experience, education, projects).
+2. For any missing sections, generate realistic and professional content based on context clues. For example, if the user mentions "3 years of React experience" but doesn't give company names, create plausible entries.
+3. Make experience bullets action-oriented with metrics where possible.
+4. Write a compelling 2-3 sentence professional summary.
+5. List 8-12 relevant skills.
+6. Do NOT invent an email or phone if none was provided — leave them as empty strings.
+7. If the user mentions a target role or job, tailor the resume toward that role.
+
+Output ONLY valid JSON with this exact shape:
+{
+  "name": "",
+  "email": "",
+  "phone": "",
+  "location": "",
+  "title": "",
+  "summary": "",
+  "skills": [""],
+  "experience": [{"company":"","role":"","duration":"","bullets":[""]}],
+  "education": [{"school":"","degree":"","year":""}],
+  "projects": [{"name":"","description":"","tech":[""]}]
+}
+
+STRICT RULES:
+- Output ONLY valid JSON, no markdown, no explanation, no preamble.
+- Every field must be present in the output.
+- Skills array must have 8-12 items.
+- Experience must have at least 1 entry with 2-3 bullets each.
+- Education must have at least 1 entry.
+- Summary must be 2-3 impactful sentences.`;
+}
