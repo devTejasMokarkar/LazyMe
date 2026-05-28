@@ -151,7 +151,7 @@ export default function DiscoveryChat() {
 
   const handleSendAction = () => {
     if (isCreateMode && prompt.trim()) {
-      router.push(`/chat?prompt=${encodeURIComponent(prompt.trim())}`);
+      router.push(`/resume?prompt=${encodeURIComponent(prompt.trim())}`);
     } else if (uploadedResume) {
       localStorage.setItem('lazyme_pending_resume', JSON.stringify(uploadedResume.data));
       window.dispatchEvent(new Event('pendingResumeReady'));

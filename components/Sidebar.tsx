@@ -26,7 +26,6 @@ export default function Sidebar() {
 
   const navItems = [
     { id: 'resume', label: 'Resume Builder', icon: FileText, href: '/resume' },
-    { id: 'chat', label: 'AI Chat', icon: MessageSquare, href: '/chat' },
     { id: 'jobs', label: 'Job Search', icon: Search, href: '/apply' },
   ];
 

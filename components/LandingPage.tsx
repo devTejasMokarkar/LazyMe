@@ -196,6 +196,9 @@ export default function LandingPage() {
       setIsLoading(false);
       setAppendNotice("Upload your resume first, then Send will append this entry.");
       return;
+    } else if (resumeMode === 'create' && prompt.trim()) {
+      localStorage.removeItem('lazyme_pending_resume');
+      localStorage.setItem('lazyme_pending_prompt', prompt.trim());
     }
     // Now trigger the login form
     loginFormRef.current?.requestSubmit();
@@ -386,7 +389,6 @@ export default function LandingPage() {
             <div className="relative flex bg-surface-container-high/40 p-1 rounded-xl border border-outline-variant/30 mb-8 backdrop-blur-md">
               {/* Sliding pill indicator */}
               <motion.div
-                layoutId="resumeModeIndicator"
                 className="absolute top-1 bottom-1 rounded-lg bg-primary shadow-lg shadow-primary/20"
                 style={{ width: 'calc(50% - 4px)' }}
                 animate={{ x: resumeMode === 'create' ? 0 : 'calc(100% + 4px)' }}
@@ -560,7 +562,7 @@ export default function LandingPage() {
               type="hidden"
               name="redirectTo"
               value={resumeMode === 'create' && prompt.trim()
-                ? `/chat?prompt=${encodeURIComponent(prompt.trim())}`
+                ? `/resume?prompt=${encodeURIComponent(prompt.trim())}`
                 : '/resume'}
             />
           </form>

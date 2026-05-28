@@ -87,11 +87,7 @@ export default function TopNav() {
                 Sign in
               </button>
             </form>
-            <form action={signInAction}>
-              <button type="submit" className="btn-primary">
-                Get Started
-              </button>
-            </form>
+
           </div>
         )}
 

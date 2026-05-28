@@ -204,3 +204,8 @@ NEXT_PUBLIC_APP_URL	https://your-app.vercel.app	Public URL
 Do NOT set OLLAMA_BASE_URL or OLLAMA_MODEL — they default, fail silently, and the cloud chain handles everything.
 
  <!-- https://lazymeai.vercel.app -->
+
+
+ next step add api key accept from user if he has also accept api keys like openrouter gemini openai so it becomes free is user doesnt have api key he can use free tier and afte rfree tier ask him to upgrade or user can pay for the api keys and use the app with his own api keys also add credits system for users who dont have api keys  so they can use the app with free credits and after free credits user has to buy credits to use the app  add stripe payment gateway integration for credits also add paypal payment gateway integration for credits and  also add razorpay payment gateway integration for credits  
+
+ also add a route where user can get the personalized qna according the resume like quick revieion cheat sheet for interview prep and this should be run using olama or by own api keys 

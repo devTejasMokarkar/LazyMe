@@ -333,7 +333,85 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         return;
       }
 
-      // Step 3: No pending resume at all — fetch from DB
+      // Step 3: If initialPrompt is provided (create mode), generate a fresh resume
+      if (initialPrompt && !promptProcessedRef.current) {
+        promptProcessedRef.current = true;
+        try {
+          const [res, savedResume] = await (async () => {
+            const genRes = await fetch('/api/create-resume-from-chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: initialPrompt })
+            });
+            if (!genRes.ok) return [null, null];
+            const genData = await genRes.json();
+            if (!genData.resume) return [null, null];
+            const r = genData.resume;
+            try {
+              const saveRes = await fetch('/api/resumes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: `Resume ${new Date().toLocaleDateString()}`,
+                  content: {
+                    name: r.name || '', title: r.title || '',
+                    experience: r.experience || [], skills: r.skills || [],
+                    email: r.email || '', phone: r.phone || '',
+                    location: r.location || '', summary: r.summary || '',
+                    education: r.education || []
+                  },
+                  isDefault: true
+                })
+              });
+              if (saveRes.ok) {
+                const saved = await saveRes.json();
+                return [r, saved];
+              }
+            } catch (dbErr) {
+              console.error("Failed to auto-save created resume:", dbErr);
+            }
+            return [r, null];
+          })();
+
+          if (res) {
+            setUserName(res.name || '');
+            setUserRole(res.title || '');
+            setExperience(res.experience || []);
+            setSkills(normalizeSkills(res.skills));
+            setEmail(res.email || '');
+            setPhone(res.phone || '');
+            setLocation(res.location || '');
+            setSummary(res.summary || '');
+            setEducation(res.education || []);
+            if (savedResume) {
+              setResumeId(savedResume.id);
+              setVersions([{
+                id: savedResume.id, name: savedResume.name,
+                timestamp: new Date().toLocaleString(), content: res
+              }]);
+            }
+            const baseline = {
+              userName: res.name || '', userRole: res.title || '',
+              experience: res.experience || [], skills: normalizeSkills(res.skills),
+              email: res.email || '', phone: res.phone || '',
+              location: res.location || '', summary: res.summary || '',
+              education: res.education || []
+            };
+            setHistory([baseline]);
+            setHistoryIndex(0);
+            lastSavedContent.current = JSON.stringify(baseline);
+            setLoading(false);
+            if (typeof window !== 'undefined') {
+              window.history.replaceState({}, '', window.location.pathname);
+            }
+            return;
+          }
+        } catch (err) {
+          console.error("Failed to create resume from prompt:", err);
+        }
+      }
+
+      // Step 4: No pending resume at all — fetch from DB
       try {
         const res = await fetch('/api/resumes?_t=' + Date.now());
         if (cancelled || !res.ok) return;
@@ -345,11 +423,6 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           setVersions(data.map((r: any) => ({
             id: r.id, name: r.name, timestamp: new Date(r.updatedAt).toLocaleString(), content: r.content
           })));
-
-          if (initialPrompt && !promptProcessedRef.current) {
-            promptProcessedRef.current = true;
-            enhanceAndAppend(initialPrompt, primary.content);
-          }
         } else {
           setNeedsUpload(true);
         }
@@ -1000,6 +1073,72 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       setIsImprovingATS(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-full overflow-hidden bg-background">
+        <section className="flex-1 flex flex-col h-full overflow-hidden">
+          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-outline-variant/30 px-3 sm:px-4 py-2 sm:py-3">
+            <div className="flex items-center justify-between max-w-3xl mx-auto">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="h-4 w-20 bg-surface-container-high rounded animate-pulse" />
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 bg-surface-container-high rounded-lg animate-pulse" />
+                <div className="h-8 w-8 bg-surface-container-high rounded-lg animate-pulse" />
+                <div className="h-8 w-8 bg-surface-container-high rounded-lg animate-pulse" />
+                <div className="h-8 w-20 bg-surface-container-high rounded-lg animate-pulse" />
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-6">
+            <div className="max-w-3xl mx-auto space-y-6">
+              <div className="glass rounded-xl p-2">
+                <div className="h-10 bg-surface-container-high rounded-lg animate-pulse" />
+              </div>
+              <div className="glass rounded-xl p-4 sm:p-5 space-y-4">
+                <div className="h-8 w-48 bg-surface-container-high rounded animate-pulse" />
+                <div className="h-4 w-32 bg-surface-container-high rounded animate-pulse" />
+                <div className="flex gap-4">
+                  <div className="h-3 w-24 bg-surface-container-high rounded animate-pulse" />
+                  <div className="h-3 w-24 bg-surface-container-high rounded animate-pulse" />
+                  <div className="h-3 w-24 bg-surface-container-high rounded animate-pulse" />
+                </div>
+              </div>
+              <div className="glass rounded-xl p-4 sm:p-5 space-y-3">
+                <div className="h-5 w-24 bg-surface-container-high rounded animate-pulse" />
+                <div className="h-16 bg-surface-container-high rounded-lg animate-pulse" />
+              </div>
+              <div className="glass rounded-xl p-4 sm:p-5 space-y-3">
+                <div className="h-5 w-20 bg-surface-container-high rounded animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-12 bg-surface-container-high rounded-lg animate-pulse" />
+                  <div className="h-12 bg-surface-container-high rounded-lg animate-pulse" />
+                </div>
+              </div>
+              <div className="glass rounded-xl p-4 sm:p-5 space-y-3">
+                <div className="h-5 w-28 bg-surface-container-high rounded animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-10 bg-surface-container-high rounded-lg animate-pulse" />
+                  <div className="h-10 bg-surface-container-high rounded-lg animate-pulse" />
+                </div>
+              </div>
+              <div className="glass rounded-xl p-4 sm:p-5 space-y-3">
+                <div className="h-5 w-16 bg-surface-container-high rounded animate-pulse" />
+                <div className="flex flex-wrap gap-2">
+                  <div className="h-6 w-16 bg-surface-container-high rounded-full animate-pulse" />
+                  <div className="h-6 w-20 bg-surface-container-high rounded-full animate-pulse" />
+                  <div className="h-6 w-14 bg-surface-container-high rounded-full animate-pulse" />
+                  <div className="h-6 w-24 bg-surface-container-high rounded-full animate-pulse" />
+                  <div className="h-6 w-16 bg-surface-container-high rounded-full animate-pulse" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
