@@ -645,9 +645,90 @@ model User {
   sessions      Session[]
   resumes       UserResume[]
   applications  Application[]
+  apiKeys       UserApiKey[]
+  creditBalance CreditBalance?
+  credits       CreditTransaction[]
+  payments      Payment[]
 
   @@schema("public")
   @@map("lazyme_users")
+}
+
+model UserApiKey {
+  id            String    @id @default(cuid())
+  userId        String
+  provider      String    // "gemini" | "openrouter" | "openai"
+  encryptedKey  String    @db.Text
+  iv            String    // AES-256-GCM initialization vector
+  isActive      Boolean   @default(true)
+  label         String?
+  lastUsedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@schema("public")
+  @@map("lazyme_api_keys")
+}
+
+model CreditBalance {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  balance     Int      @default(50)
+  totalEarned Int      @default(50)
+  totalSpent  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+  @@map("lazyme_credit_balances")
+}
+
+model CreditTransaction {
+  id           String   @id @default(cuid())
+  userId       String
+  amount       Int      // Positive = credit, negative = debit
+  type         String   // "purchase" | "usage" | "bonus" | "refund"
+  description  String
+  operation    String?  // "resume_gen" | "ats_analysis" | "interview_prep" etc.
+  paymentId    String?
+  balanceAfter Int
+  createdAt    DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([userId, createdAt])
+  @@schema("public")
+  @@map("lazyme_credit_transactions")
+}
+
+model Payment {
+  id               String   @id @default(cuid())
+  userId           String
+  gateway          String   // "stripe" | "paypal" | "razorpay"
+  gatewayPaymentId String?
+  gatewayOrderId   String?
+  amount           Int      // Amount in smallest unit (paise/cents)
+  currency         String   @default("INR")
+  credits          Int      // Credits purchased
+  status           String   @default("pending") // "pending" | "completed" | "failed" | "refunded"
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions CreditTransaction[]
+
+  @@index([userId])
+  @@index([gatewayPaymentId])
+  @@schema("public")
+  @@map("lazyme_payments")
 }
 
 model UserResume {

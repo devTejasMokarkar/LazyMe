@@ -308,7 +308,7 @@ function ChatPageContent() {
               placeholder={generatedResume ? "Ask me to refine a section..." : "Describe your background..."}
             />
             <button
-              onClick={generatedResume ? handleRefine : handleSend}
+              onClick={() => generatedResume ? handleRefine() : handleSend()}
               disabled={!input.trim() || isGenerating}
               className={cn(
                 "h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-all",

@@ -26,6 +26,14 @@ export const authConfig = {
       return session;
     },
   },
+  events: {
+    async createUser({ user }) {
+      if (user.id) {
+        const { initializeCredits } = await import("@/lib/credits");
+        await initializeCredits(user.id).catch(() => {});
+      }
+    },
+  },
   pages: {
     signIn: "/",
   },

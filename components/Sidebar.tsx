@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,10 @@ import {
   HelpCircle,
   LogOut,
   Sparkles,
-  ChevronLeft
+  ChevronLeft,
+  Brain,
+  Settings,
+  Coins,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOutAction } from '@/app/actions';
@@ -27,6 +30,8 @@ export default function Sidebar() {
   const navItems = [
     { id: 'resume', label: 'Resume Builder', icon: FileText, href: '/resume' },
     { id: 'jobs', label: 'Job Search', icon: Search, href: '/apply' },
+    { id: 'interview-prep', label: 'Interview Prep', icon: Brain, href: '/interview-prep' },
+    { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
   ];
 
   const bottomItems = [
@@ -179,6 +184,9 @@ export default function Sidebar() {
             </button>
           ))}
 
+          {/* Credit Balance Indicator */}
+          <CreditBalanceBadge isExpanded={isExpanded} />
+
           <form action={signOutAction}>
             <button
               type="submit"
@@ -272,6 +280,7 @@ export default function Sidebar() {
                 <HelpCircle className="w-5 h-5" />
                 <span className="text-sm font-semibold">Support</span>
               </button>
+              <CreditBalanceBadge isExpanded={true} />
               <form action={signOutAction}>
                 <button type="submit" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-error/10 hover:text-error">
                   <LogOut className="w-5 h-5" />
@@ -291,5 +300,67 @@ export default function Sidebar() {
         <Sparkles className="w-5 h-5" />
       </button>
     </>
+  );
+}
+
+// ── Credit Balance Badge ──────────────────────────────────────
+
+function CreditBalanceBadge({
+  isExpanded,
+}: {
+  isExpanded: boolean;
+}) {
+  const [balance, setBalance] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchBalance = useCallback(async () => {
+    try {
+      const res = await fetch("/api/user/credits");
+      if (!res.ok) return;
+      const data = await res.json();
+      setBalance(data.balance ?? 0);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBalance();
+    const interval = setInterval(fetchBalance, 30000);
+    return () => clearInterval(interval);
+  }, [fetchBalance]);
+
+  if (loading) return null;
+  if (balance === null) return null;
+
+  return (
+    <div className={cn(
+      "flex items-center gap-3 px-3 py-2 rounded-xl transition-all",
+      isExpanded ? "" : "justify-center"
+    )}>
+      <div className="shrink-0 w-5 h-5 flex items-center justify-center">
+        <Coins className={cn(
+          "w-4 h-4",
+          (balance ?? 0) < 10 ? "text-error" : "text-amber-400"
+        )} />
+      </div>
+      <AnimatePresence mode="wait">
+        {isExpanded && (
+          <motion.span
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            className={cn(
+              "text-sm font-semibold whitespace-nowrap",
+              (balance ?? 0) < 10 ? "text-error" : "text-on-surface-variant"
+            )}
+          >
+            {balance} credits
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

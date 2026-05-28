@@ -1,52 +1,118 @@
 "use client";
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Settings, Construction, Shield, User, Bell } from 'lucide-react';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Settings,
+  Key,
+  Coins,
+  User,
+  Sparkles,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import ApiKeyManager from "@/components/ApiKeyManager";
+import CreditsDashboard from "@/components/CreditsDashboard";
+import PaymentModal from "@/components/PaymentModal";
+
+const TABS = [
+  { id: "api-keys", label: "API Keys", icon: Key },
+  { id: "credits", label: "Credits", icon: Coins },
+  { id: "profile", label: "Profile", icon: User },
+];
 
 export default function SettingsPage() {
-  const sections = [
-    { label: 'Profile', icon: User, desc: 'Manage your professional data' },
-    { label: 'Security', icon: Shield, desc: 'API keys & Auth settings' },
-    { label: 'Notifications', icon: Bell, desc: 'Interview & Match alerts' },
-  ];
+  const [activeTab, setActiveTab] = useState("api-keys");
+  const [showPayment, setShowPayment] = useState(false);
+  const [creditsRefetchTrigger, setCreditsRefetchTrigger] = useState(0);
+
+  function handleBuyCredits() {
+    setShowPayment(true);
+  }
+
+  function handlePaymentSuccess(credits: number) {
+    setCreditsRefetchTrigger((p) => p + 1);
+  }
 
   return (
-    <div className="flex-1 p-12 max-w-5xl mx-auto h-full overflow-y-auto">
-      <div className="flex items-center gap-6 mb-12">
-        <div className="w-16 h-16 bg-surface-container-high rounded-2xl flex items-center justify-center border border-outline-variant shadow-xl">
-          <Settings className="w-8 h-8 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Settings</h1>
-          <p className="text-on-surface-variant font-medium">Configure your LazyMe experience.</p>
-        </div>
-      </div>
-
-      <div className="grid gap-6">
-        {sections.map((section) => (
-          <div key={section.label} className="group bg-surface border border-outline-variant rounded-3xl p-8 hover:bg-surface-container-low transition-all cursor-pointer opacity-50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <div className="w-12 h-12 bg-surface-container-highest rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <section.icon className="w-6 h-6 text-on-surface-variant" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">{section.label}</h3>
-                  <p className="text-on-surface-variant font-medium">{section.desc}</p>
-                </div>
-              </div>
-              <Construction className="w-5 h-5 text-outline-variant" />
-            </div>
+    <div className="flex-1 h-full overflow-y-auto">
+      <div className="max-w-4xl mx-auto p-6 lg:p-10">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border border-primary/20 shadow-lg">
+            <Settings className="w-6 h-6 text-primary" />
           </div>
-        ))}
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+            <p className="text-sm text-on-surface-variant font-medium">Configure your API keys, credits, and profile</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 p-1 rounded-2xl bg-surface-container-low border border-outline-variant/20 w-fit">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all",
+                  isActive
+                    ? "text-on-surface bg-surface shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50"
+                )}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="settings-tab-bg"
+                    className="absolute inset-0 rounded-xl bg-surface shadow-sm border border-outline-variant/20"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-2">
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Content */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
+          >
+            {activeTab === "api-keys" && <ApiKeyManager />}
+            {activeTab === "credits" && (
+              <CreditsDashboard
+                key={creditsRefetchTrigger}
+                onBuyCredits={handleBuyCredits}
+              />
+            )}
+            {activeTab === "profile" && (
+              <div className="p-8 rounded-2xl border border-outline-variant/20 bg-surface-container-low text-center">
+                <User className="w-12 h-12 mx-auto mb-3 text-on-surface-variant/40" />
+                <h3 className="text-lg font-bold mb-1">Profile Settings</h3>
+                <p className="text-sm text-on-surface-variant max-w-md mx-auto">
+                  Your profile info is managed via your Google account. Name, email, and avatar sync automatically.
+                </p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      <div className="mt-20 p-8 border-2 border-dashed border-outline-variant/30 rounded-[2.5rem] flex flex-col items-center text-center opacity-40">
-        <Construction className="w-10 h-10 mb-4" />
-        <h4 className="text-lg font-bold">Preferences Under Construction</h4>
-        <p className="text-sm font-medium max-w-xs">Custom AI agents and deep-integration settings are being finalized.</p>
-      </div>
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPayment}
+        onClose={() => setShowPayment(false)}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 }

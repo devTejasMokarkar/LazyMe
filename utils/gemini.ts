@@ -359,6 +359,142 @@ export async function generateTextFromMultiModal(
     }
 }
 
+// ── User-key-aware generation ────────────────────────────────
+
+/**
+ * Calls Gemini using a user-provided API key.
+ */
+async function callGeminiWithUserKey(prompt: string, userApiKey: string): Promise<string> {
+  const genAI = new GoogleGenerativeAI(userApiKey);
+  const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  return response.text();
+}
+
+/**
+ * Calls OpenAI API (or compatible) using a user-provided API key.
+ */
+async function callOpenAIWithUserKey(prompt: string, userApiKey: string): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    signal: controller.signal,
+    headers: {
+      "Authorization": `Bearer ${userApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 4000,
+      temperature: 0.1,
+    }),
+  });
+  clearTimeout(timer);
+  
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(`OpenAI error: ${err?.error?.message || r.statusText}`);
+  }
+  
+  const data = await r.json();
+  return data.choices[0].message.content;
+}
+
+/**
+ * Calls OpenRouter using a user-provided API key.
+ */
+async function callOpenRouterWithUserKey(prompt: string, userApiKey: string): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  
+  const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    signal: controller.signal,
+    headers: {
+      "Authorization": `Bearer ${userApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 4000,
+      temperature: 0.1,
+    }),
+  });
+  clearTimeout(timer);
+  
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(`OpenRouter error: ${err?.error?.message || r.statusText}`);
+  }
+  
+  const data = await r.json();
+  return data.choices[0].message.content;
+}
+
+/**
+ * Generate text using a user's own API key.
+ * Tries the specified provider. Returns null if the key is invalid or fails.
+ */
+export async function generateWithUserKey(
+  prompt: string,
+  provider: string,
+  apiKey: string
+): Promise<string | null> {
+  try {
+    switch (provider) {
+      case "gemini":
+        return await callGeminiWithUserKey(prompt, apiKey);
+      case "openai":
+        return await callOpenAIWithUserKey(prompt, apiKey);
+      case "openrouter":
+        return await callOpenRouterWithUserKey(prompt, apiKey);
+      default:
+        logger.warn({ provider }, "Unknown provider for user key");
+        return null;
+    }
+  } catch (error: any) {
+    logger.warn({
+      message: `User key (${provider}) failed`,
+      error: error.message?.slice(0, 100),
+    });
+    return null;
+  }
+}
+
+/**
+ * User-aware AI text generation.
+ * Priority: User's own API keys (free) → Platform keys (costs credits) → Ollama (free)
+ * 
+ * @param userId - The user's ID
+ * @param prompt - The prompt to generate from
+ * @param operation - The operation type (for credit costing)
+ * @param userKeys - Optional array of user's decrypted API keys [{ provider, key }]
+ */
+export async function generateTextForUser(
+  prompt: string,
+  userKeys?: Array<{ provider: string; key: string }>
+): Promise<string> {
+  // 1. Try user's own API keys first (free, no credit cost)
+  if (userKeys && userKeys.length > 0) {
+    for (const { provider, key } of userKeys) {
+      const result = await generateWithUserKey(prompt, provider, key);
+      if (result) {
+        logger.info({ provider }, "Generated using user's own API key");
+        return result;
+      }
+    }
+    logger.warn("All user keys failed, falling back to platform");
+  }
+
+  // 2. Fall back to platform keys (credits will be handled by the API route)
+  return generateText(prompt);
+}
+
 /**
  * Legacy support for image extraction
  * @deprecated Use generateTextFromMultiModal instead
