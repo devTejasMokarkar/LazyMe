@@ -11,13 +11,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
-        'lib/**/*.ts',
-        'utils/**/*.ts',
-        'auth.config.ts',
-        'middleware.ts',
+        'src/lib/**/*.ts',
+        'src/features/**/*.ts',
+        'src/config/*.ts',
+        'src/middleware.ts',
       ],
       exclude: [
-        'lib/parser/__tests__/**',
+        'src/lib/parser/__tests__/**',
         '**/*.test.ts',
         '**/*.test.tsx',
       ],
@@ -25,7 +25,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '.'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
 });

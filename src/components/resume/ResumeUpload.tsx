@@ -1,0 +1,140 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { Upload, File, X, Loader2 } from "lucide-react";
+import { useToast } from '@/components/layout/ToastProvider';
+
+interface ResumeUploadProps {
+  onParsed: (data: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    title?: string;
+    summary?: string;
+    skills?: string[];
+    experience?: Array<any>;
+    education?: Array<any>;
+  }) => void;
+}
+
+export function ResumeUpload({ onParsed }: ResumeUploadProps) {
+  const [file, setFile] = useState<File | null>(null);
+  const [parsing, setParsing] = useState(false);
+  const { showToast } = useToast();
+
+  const handleFile = useCallback(async (selectedFile: File) => {
+    // Supported MIME types (PDF, DOCX, TXT, TEX, images)
+    const supportedTypes = [
+      "application/pdf",
+      "text/plain",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/x-tex",
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/webp",
+      "image/gif",
+    ];
+
+    // Validate file type
+    if (!supportedTypes.includes(selectedFile.type)) {
+      showToast(
+        "We couldn't read your resume.\n\n✔ Please upload:\n• PDF, DOCX, TXT, TEX, or an image (PNG/JPG)\n• OR paste your resume manually",
+        "error"
+      );
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      showToast("File too large. Maximum size is 5MB.", "error");
+      return;
+    }
+
+    // Validate file not empty
+    if (selectedFile.size === 0) {
+      showToast("File is empty. Please select a valid file.", "error");
+      return;
+    }
+
+    setFile(selectedFile);
+    setParsing(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const res = await fetch("/api/parse-resume", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to parse resume");
+      }
+
+      const data = await res.json();
+      onParsed(data);
+      showToast("Resume parsed successfully!", "success");
+    } catch (error: any) {
+      const errorMessage = error.message || "Failed to parse resume. Try manual entry.";
+      showToast(errorMessage, "error");
+    } finally {
+      setParsing(false);
+    }
+  }, [onParsed, showToast]);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  }, [handleFile]);
+
+  const onInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) handleFile(f);
+  }, [handleFile]);
+
+  return (
+    <div className="w-full">
+      {!file ? (
+        <div
+          onDrop={onDrop}
+          onDragOver={(e) => e.preventDefault()}
+          className="border-2 border-dashed border-outline-variant rounded-xl sm:rounded-2xl p-6 sm:p-8 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer active:scale-[0.99]"
+        >
+          <input
+            type="file"
+            accept=".pdf,.docx,.txt,.tex,.png,.jpg,.jpeg,.webp,.gif,image/*"
+            onChange={onInput}
+            className="hidden"
+            id="resume-upload"
+          />
+          <label htmlFor="resume-upload" className="cursor-pointer block touch-manipulation">
+            <Upload className="w-8 sm:w-10 h-8 sm:h-10 mx-auto mb-2 sm:mb-3 text-on-surface-variant" />
+            <p className="text-sm sm:text-base text-on-background font-medium mb-1">Drop your resume here</p>
+            <p className="text-[11px] sm:text-sm text-on-surface-variant">PDF, DOCX, TXT, TEX, PNG, JPG (max 5MB)</p>
+          </label>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 sm:gap-3 bg-surface-container-high/50 border border-outline-variant rounded-lg sm:rounded-xl p-3 sm:p-4">
+          <File className="w-6 sm:w-8 h-6 sm:h-8 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-base text-on-background font-medium truncate">{file.name}</p>
+            <p className="text-[10px] sm:text-sm text-on-surface-variant">
+              {parsing ? "Parsing with AI..." : "Ready"}
+            </p>
+          </div>
+          {parsing && <Loader2 className="w-4 sm:w-5 h-4 sm:h-5 text-primary animate-spin shrink-0" />}
+          <button
+            onClick={() => { setFile(null); }}
+            className="p-1.5 sm:p-1 hover:bg-surface-container-highest rounded-lg transition-colors"
+          >
+            <X className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-on-surface-variant" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
