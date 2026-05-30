@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { runAutoPilot } from "@/features/ai/auto-pilot.service";
 import { logger } from "@/lib/logger";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {

@@ -29,10 +29,56 @@ export default function LandingPage() {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedFileRef = useRef<File | null>(null);
   const loginFormRef = useRef<HTMLFormElement>(null);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      const allowedTypes = [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain"
+      ];
+      const isAllowedExt = file.name.endsWith('.pdf') || file.name.endsWith('.docx') || file.name.endsWith('.txt');
+      
+      if (allowedTypes.includes(file.type) || isAllowedExt) {
+        selectedFileRef.current = file;
+        setParsedResumeData(null);
+        setAppendPreview(null);
+        setAppendNotice(null);
+        setUploadedFile({
+          name: file.name,
+          type: file.type
+        });
+        setResumeMode('import');
+      } else {
+        setAppendNotice("Invalid file format. Please drop a PDF, Word, or TXT file.");
+      }
+    }
+  };
 
   const isResumeUploaded = !!uploadedFile || !!selectedFileRef.current;
 
@@ -205,9 +251,9 @@ export default function LandingPage() {
   };
 
   const stats = [
-    { value: '2,847', label: 'Active Users' },
-    { value: '18,492', label: 'Jobs Applied' },
-    { value: '4.2 min', label: 'Avg Apply Time' },
+    { value: '2,847', label: 'Active Users', icon: Rocket, color: 'text-primary' },
+    { value: '18,492', label: 'Jobs Applied', icon: CheckCircle2, color: 'text-success' },
+    { value: '4.2 min', label: 'Avg Apply Time', icon: Zap, color: 'text-secondary' },
   ];
 
   const suggestions = [
@@ -332,13 +378,49 @@ export default function LandingPage() {
   ];
 
   const feedItems = [
-    { company: 'Stripe', role: 'Software Engineer (L4)', location: 'Remote, USA', match: 92, color: '#635BFF', initials: 'S' },
-    { company: 'Linear', role: 'Product Designer', location: 'San Francisco, CA', match: 87, color: '#FFFFFF', initials: 'L' },
+    { company: 'Stripe', role: 'Staff Backend Engineer', location: 'Remote, USA', match: 94, color: '#635BFF', initials: 'S' },
+    { company: 'Linear', role: 'Senior Product Designer', location: 'San Francisco, CA', match: 88, color: '#141414', initials: 'L' },
+    { company: 'Airbnb', role: 'Staff Frontend Architect', location: 'Remote, Europe', match: 91, color: '#FF5A5F', initials: 'A' },
+    { company: 'Vercel', role: 'DevOps & Infra Lead', location: 'Remote', match: 95, color: '#000000', initials: 'V' },
+    { company: 'Supabase', role: 'Database Engineer', location: 'Singapore', match: 89, color: '#3ECF8E', initials: 'S' },
   ];
 
   return (
-    <div className="w-full bg-background text-on-background min-h-screen selection:bg-primary/30 flex flex-col justify-between">
+    <div 
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="w-full bg-background text-on-background min-h-screen selection:bg-primary/30 flex flex-col justify-between"
+    >
       <TopNav />
+      
+      {/* Drag and Drop Overlay */}
+      <AnimatePresence>
+        {isDragging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[250] flex flex-col items-center justify-center bg-background/95 backdrop-blur-lg border-4 border-dashed border-primary/50 m-4 rounded-3xl pointer-events-none"
+          >
+            <div className="flex flex-col items-center gap-6 text-center max-w-md p-8">
+              <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary shadow-[0_0_30px_rgba(112,145,230,0.3)] animate-pulse">
+                <Upload className="w-10 h-10 animate-bounce" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-primary mb-2">Drop your resume here</h3>
+                <p className="text-on-surface-variant text-sm font-medium">
+                  We'll parse your profile and optimize it for ATS in real-time.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1 bg-surface-container-high/40 border border-outline-variant rounded-full">
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Supports PDF, DOCX, TXT</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <input
         type="file"
         ref={fileInputRef}
@@ -577,7 +659,10 @@ export default function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
-                className="glass rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
+                className={cn(
+                  "glass rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-300 overflow-hidden border border-outline-variant/30",
+                  isFocused && "border-primary/60 ring-2 ring-primary/20 shadow-[0_0_30px_rgba(112,145,230,0.15)]"
+                )}
               >
                 <textarea
                   value={prompt}
@@ -586,6 +671,8 @@ export default function LandingPage() {
                     setAppendPreview(null);
                     setAppendNotice(null);
                   }}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
                   rows={3}
                   className="w-full bg-transparent border-none focus:ring-0 text-primary font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed overflow-y-auto p-4 pb-2"
                   placeholder="Describe yourself — your name, skills, experience, education — and AI will build a complete resume for you..."
@@ -600,6 +687,12 @@ export default function LandingPage() {
                     >
                       <Sparkles className="w-4 h-4" />
                     </button>
+                    {isResumeUploaded && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-success/15 border border-success/35 rounded-lg text-[9px] font-bold text-success uppercase tracking-wider ml-1 shadow-sm">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span className="hidden sm:inline">Resume Synced</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -638,7 +731,10 @@ export default function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
-                className="glass rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
+                className={cn(
+                  "glass rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-300 overflow-hidden border border-outline-variant/30",
+                  isFocused && "border-primary/60 ring-2 ring-primary/20 shadow-[0_0_30px_rgba(112,145,230,0.15)]"
+                )}
               >
                 <textarea
                   value={prompt}
@@ -647,6 +743,8 @@ export default function LandingPage() {
                     setAppendPreview(null);
                     setAppendNotice(null);
                   }}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
                   rows={appendPreview ? 4 : 2}
                   className="w-full bg-transparent border-none focus:ring-0 text-primary font-medium text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed overflow-y-auto p-4 pb-2"
                   placeholder="Tell LazyMe what to find next..."
@@ -677,6 +775,12 @@ export default function LandingPage() {
                     >
                       <Sparkles className="w-4 h-4" />
                     </button>
+                    {isResumeUploaded && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-success/15 border border-success/35 rounded-lg text-[9px] font-bold text-success uppercase tracking-wider ml-1 shadow-sm">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span className="hidden sm:inline">Resume Synced</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -710,20 +814,66 @@ export default function LandingPage() {
             )}
           </AnimatePresence>
 
+          {/* Live Activity Feed */}
+          <div className="w-full max-w-3xl mt-10 mb-2 overflow-hidden relative">
+            <div className="flex items-center gap-2 mb-3 px-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+              </span>
+              <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">Live Engine Matches</span>
+            </div>
+
+            <div className="w-full overflow-x-auto scrollbar-none py-1 custom-scrollbar-h">
+              <div className="flex gap-3 pb-2 whitespace-nowrap min-w-full">
+                {feedItems.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="inline-flex items-center gap-3 bg-surface-container-high/30 border border-outline-variant/30 px-4 py-2.5 rounded-xl backdrop-blur-md hover:border-outline-variant hover:bg-surface-container-high/50 transition-all cursor-default shadow-sm hover:scale-[1.02] duration-300"
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-white"
+                      style={{ backgroundColor: item.color, border: '1px solid rgba(255,255,255,0.1)' }}
+                    >
+                      {item.initials}
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-bold text-primary">{item.company}</span>
+                        <span className="text-[9px] font-semibold text-on-surface-variant">{item.location}</span>
+                      </div>
+                      <p className="text-[10px] font-medium text-on-background line-clamp-1 max-w-[140px] truncate">{item.role}</p>
+                    </div>
+                    <div className="h-6 w-[1px] bg-outline-variant/30 mx-1" />
+                    <div className="text-right">
+                      <span className="text-[11px] font-mono font-bold text-success">{item.match}%</span>
+                      <span className="block text-[7px] font-bold text-on-surface-variant uppercase">Match</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-3xl mt-16 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl mt-12 relative z-10">
           {stats.map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + i * 0.05 }}
-              className="bg-surface-container-high/20 flex flex-col items-center justify-center p-4 rounded-2xl border border-outline-variant/30 hover:border-outline-variant transition-all"
+              className="glass rounded-2xl p-4 border border-outline-variant/30 flex items-center gap-4 hover:scale-[1.03] hover:shadow-[0_10px_30px_rgba(0,0,0,0.15)] transition-all duration-300 group cursor-default"
             >
-              <span className="text-xl md:text-2xl font-mono text-primary font-bold mb-1">{stat.value}</span>
-              <span className="text-[8px] md:text-[9px] uppercase tracking-wider text-on-surface-variant font-bold">{stat.label}</span>
+              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center bg-surface-container-high/50 border border-outline-variant/50 transition-colors group-hover:bg-primary/10 group-hover:border-primary/20", stat.color)}>
+                <stat.icon className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <span className="text-xl md:text-2xl font-mono text-primary font-bold block leading-none mb-1">{stat.value}</span>
+                <span className="text-[9px] uppercase tracking-wider text-on-surface-variant font-bold block">{stat.label}</span>
+              </div>
             </motion.div>
           ))}
         </div>
@@ -798,21 +948,33 @@ export default function LandingPage() {
       </AnimatePresence>
 
       {/* Re-use existing sections from original LandingPage */}
-      <section className="py-32 px-6 bg-surface-container-lowest/30">
+      <section className="py-32 px-6 bg-surface-container-lowest/30 overflow-hidden">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-24">
             <h2 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight">Precision Engineering</h2>
             <p className="text-on-surface-variant text-xl font-medium">The engine that automates your career trajectory.</p>
           </div>
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-12">
+            {/* Desktop Connecting Line */}
+            <div className="absolute top-12 left-[15%] right-[15%] h-[1.5px] bg-gradient-to-r from-primary/10 via-secondary/40 to-primary/10 hidden md:block z-0 pointer-events-none" />
+
             {steps.map((step, i) => (
-              <motion.div key={step.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.2 }} className="flex flex-col items-center text-center group">
-                <div className="w-24 h-24 rounded-3xl bg-surface-container-high border border-outline-variant flex items-center justify-center mb-10 group-hover:scale-110 transition-transform shadow-2xl">
-                  <step.icon className="w-10 h-10 text-secondary" />
+              <motion.div
+                key={step.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2 }}
+                className="flex flex-col items-center text-center group relative z-10 p-6 rounded-2xl hover:bg-surface-container-high/15 border border-transparent hover:border-outline-variant/30 transition-all duration-300"
+              >
+                <div className="w-24 h-24 rounded-3xl bg-surface-container-high border border-outline-variant flex items-center justify-center mb-10 group-hover:scale-110 group-hover:border-secondary/40 transition-all duration-300 shadow-2xl relative">
+                  {/* Outer pulse ring on hover */}
+                  <div className="absolute inset-0 rounded-3xl bg-secondary/10 opacity-0 group-hover:opacity-100 group-hover:scale-125 transition-all duration-500 blur-sm pointer-events-none" />
+                  <step.icon className="w-10 h-10 text-secondary relative z-10 transition-transform group-hover:rotate-6 duration-300" />
                 </div>
                 <div className="font-mono text-primary text-xl font-bold mb-3">{step.step}</div>
                 <h3 className="text-2xl font-bold mb-4 tracking-tight">{step.title}</h3>
-                <p className="text-on-surface-variant leading-relaxed font-medium text-lg">{step.desc}</p>
+                <p className="text-on-surface-variant leading-relaxed font-medium text-base max-w-xs">{step.desc}</p>
               </motion.div>
             ))}
           </div>

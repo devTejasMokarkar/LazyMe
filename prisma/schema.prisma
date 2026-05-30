@@ -456,7 +456,7 @@ model JobPosting {
   url          String?
   requirements Json?
   createdAt    DateTime      @default(now())
-  updatedAt    DateTime
+  updatedAt     DateTime      @updatedAt
   salary       String?
   source       String?
   type         String?
@@ -485,15 +485,21 @@ model MatchResult {
 }
 
 model Profile {
-  id          String        @id
-  userId      String        @unique
-  email       String        @unique
-  fullName    String?
-  avatarUrl   String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime
-  MatchResult MatchResult[]
-  Resume      UserResume[]
+  id            String        @id
+  userId        String        @unique
+  email         String        @unique
+  fullName      String?
+  avatarUrl     String?
+  bio           String?
+  jobTitle      String?
+  preferredName String?
+  linkedinUrl   String?
+  githubUrl     String?
+  portfolioUrl  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  MatchResult   MatchResult[]
+  Resume        UserResume[]
 
   @@schema("public")
 }

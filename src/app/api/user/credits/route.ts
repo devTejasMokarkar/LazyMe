@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/config/auth";
 import { getBalance, getTransactions } from "@/features/credits/credits.service";
 
 /**
  * GET /api/user/credits — Get current balance + recent transactions
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -75,7 +75,7 @@ export default function Sidebar() {
             className="flex items-center gap-3 overflow-hidden"
             animate={{ opacity: 1 }}
           >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
               <img src="/logo.png" alt="LazyMe Logo" className="w-full h-full object-contain" />
             </div>
             <AnimatePresence mode="wait">
@@ -238,7 +238,7 @@ export default function Sidebar() {
           >
             <div className="h-16 flex items-center px-5 border-b border-outline-variant/30">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
                   <img src="/logo.png" alt="LazyMe Logo" className="w-full h-full object-contain" />
                 </div>
                 <span className="font-bold text-on-surface text-lg tracking-tight">LazyMe</span>
@@ -343,7 +343,7 @@ function CreditBalanceBadge({
       <div className="shrink-0 w-5 h-5 flex items-center justify-center">
         <Coins className={cn(
           "w-4 h-4",
-          (balance ?? 0) < 10 ? "text-error" : "text-amber-400"
+          (balance ?? 0) < 10 ? "text-error" : "text-primary"
         )} />
       </div>
       <AnimatePresence mode="wait">

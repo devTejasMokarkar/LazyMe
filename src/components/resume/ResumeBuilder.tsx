@@ -7,7 +7,7 @@ import {
   Download, ZoomIn, ZoomOut, Upload, FileType, CheckCircle2, History,
   RotateCcw, Save, Trash2, Eye, Loader2, PanelLeftClose, PanelRightClose,
   Monitor, Smartphone, Briefcase, Palette, Code, Send,
-  FileText, AlertCircle, Target, ChevronDown
+  FileText, AlertCircle, Target, ChevronDown, Edit3
 } from 'lucide-react';
 import { ATSScoreCard } from '@/components/jobs/ATSScoreCard';
 import Link from 'next/link';
@@ -96,6 +96,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const pendingResumeApplied = useRef(false);
   const promptProcessedRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ai-chat' | 'manual-edit' | 'ats-score'>('ai-chat');
 
   // ATS Analysis state
   const [showATS, setShowATS] = useState(false);
@@ -1216,66 +1217,47 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           </div>
         </div>
 
+        {/* Tab Bar */}
+        <div className="px-4 pt-2 pb-0 bg-background">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center gap-1 bg-surface-container-high/50 rounded-xl p-1">
+              {([
+                { id: 'ai-chat' as const, label: 'AI Chat', icon: Sparkles },
+                { id: 'manual-edit' as const, label: 'Manual Edit', icon: Edit3 },
+                { id: 'ats-score' as const, label: 'ATS Score', icon: Target },
+              ]).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all relative",
+                    activeTab === tab.id
+                      ? "text-primary"
+                      : "text-on-surface-variant/60 hover:text-on-surface-variant hover:bg-surface-container-higher/50"
+                  )}
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                  {activeTab === tab.id && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute inset-0 bg-primary/10 rounded-lg -z-0"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Editor Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6">
           <div className="max-w-3xl mx-auto space-y-6">
-            {/* Chat Input Bar */}
-            <div className="space-y-2">
-              <div className="glass rounded-xl p-2 flex items-center gap-2 sm:gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                <textarea
-                  rows={1}
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-sm sm:text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
-                  placeholder="Tell LazyMe what to find next..."
-                />
-                <button
-                  type="button"
-                  onClick={handleEnhancePrompt}
-                  disabled={!chatInput.trim() || isEnhancing}
-                  className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1.5 sm:gap-2 font-bold text-[10px] sm:text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                  title="Preview the optimized resume entry before appending"
-                >
-                  {isEnhancing ? (
-                    <Loader2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
-                  )}
-                  <span className="hidden sm:inline">{isEnhancing ? 'Enhancing...' : 'Enhance prompt'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleUpdateResume}
-                  className="h-9 sm:h-10 px-3 sm:px-5 btn-primary rounded-lg flex items-center gap-1.5 sm:gap-2 font-bold text-[10px] sm:text-xs shadow-lg disabled:opacity-50 shrink-0"
-                  disabled={!enhancedPrompt.trim() || isUpdating}
-                >
-                  {isUpdating ? (
-                    <Loader2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 animate-spin" />
-                  ) : (
-                    <Send className="w-2.5 sm:w-3 h-2.5 sm:h-3 fill-white" />
-                  )}
-                  <span className="hidden sm:inline">{isUpdating ? 'Updating...' : 'Update Resume'}</span>
-                </button>
-              </div>
-              {enhancedPrompt && (
-                <div className="glass rounded-xl p-3 border border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold text-primary tracking-wider uppercase">Enhanced Prompt</span>
-                    <button
-                      type="button"
-                      onClick={() => setEnhancedPrompt('')}
-                      className="p-1 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <p className="text-sm text-on-background leading-relaxed whitespace-pre-wrap">{enhancedPrompt}</p>
-                </div>
-              )}
-            </div>
+            {/* Shared: file input (always mounted) */}
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif,image/*" />
 
-            {/* Parse Error Alert */}
+            {/* Shared: parse error alert */}
             {parseError && (
               <div className="glass rounded-xl p-4 border border-error/30 bg-error/5">
                 <div className="flex items-start gap-3">
@@ -1296,154 +1278,227 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               </div>
             )}
 
-            {/* Name & Role Card */}
-            <div className="glass rounded-xl p-4 sm:p-5 group relative">
-              <h1 className="text-xl sm:text-2xl font-bold text-on-surface outline-none focus:text-primary transition-colors" contentEditable suppressContentEditableWarning onBlur={(e) => setUserName(e.currentTarget.innerText)}>{userName || 'Your Name'}</h1>
-              <p className="text-on-surface-variant text-xs sm:text-sm font-medium mt-1 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setUserRole(e.currentTarget.innerText)}>{userRole || 'Your Title'}</p>
-              <div className="flex flex-wrap gap-3 sm:gap-4 mt-3 text-[10px] sm:text-xs text-on-surface-variant/70">
-                <span className="flex items-center gap-1"><Mail className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setEmail(e.currentTarget.innerText)}>{email || 'email'}</span></span>
-                <span className="flex items-center gap-1"><Phone className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setPhone(e.currentTarget.innerText)}>{phone || 'phone'}</span></span>
-                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setLocation(e.currentTarget.innerText)}>{location || 'location'}</span></span>
-              </div>
-              <button className="absolute -right-2 top-4 w-8 h-8 flex items-center justify-center bg-primary/10 border border-primary/20 text-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"><Sparkles className="w-4 h-4" /></button>
-            </div>
-
-            {/* Summary Section */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Summary</h3>
-              </div>
-              <div className="glass rounded-xl p-4 group">
-                <div
-                  className="text-sm text-on-surface outline-none min-h-[80px]"
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => setSummary(e.currentTarget.innerText)}
+            {/* ── AI Chat Tab ─────────────────────────────────────────── */}
+            {activeTab === 'ai-chat' && (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key="ai-chat"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.15 }}
+                  className="space-y-4"
                 >
-                  {summary || 'Write a brief professional summary about yourself...'}
-                </div>
-              </div>
-            </div>
-
-            {/* Education Section */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Education</h3>
-                <button onClick={addEducation} className="p-1 text-on-surface-variant hover:text-primary transition-colors"><PlusCircle className="w-5 h-5" /></button>
-              </div>
-              {education.length === 0 ? (
-                <div className="glass rounded-xl p-4 text-center text-on-surface-variant text-sm">
-                  No education added yet
-                </div>
-              ) : (
-                education.map((edu, i) => (
-                  <div key={i} className="glass rounded-xl p-4 group hover:border-primary/50 transition-colors">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="text-base font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].school = e.currentTarget.innerText; setEducation(n); }}>{edu.school}</h4>
-                        <p className="text-xs font-semibold text-on-surface-variant mt-0.5 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].degree = e.currentTarget.innerText; setEducation(n); }}>{edu.degree}</p>
+                  <div className="space-y-2">
+                    <div className="glass rounded-xl p-2 flex items-center gap-2 sm:gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                      <textarea
+                        rows={1}
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-sm sm:text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
+                        placeholder="Tell LazyMe what to find next..."
+                      />
+                      <button
+                        type="button"
+                        onClick={handleEnhancePrompt}
+                        disabled={!chatInput.trim() || isEnhancing}
+                        className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1.5 sm:gap-2 font-bold text-[10px] sm:text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                        title="Preview the optimized resume entry before appending"
+                      >
+                        {isEnhancing ? (
+                          <Loader2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+                        )}
+                        <span className="hidden sm:inline">{isEnhancing ? 'Enhancing...' : 'Enhance prompt'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleUpdateResume}
+                        className="h-9 sm:h-10 px-3 sm:px-5 btn-primary rounded-lg flex items-center gap-1.5 sm:gap-2 font-bold text-[10px] sm:text-xs shadow-lg disabled:opacity-50 shrink-0"
+                        disabled={!enhancedPrompt.trim() || isUpdating}
+                      >
+                        {isUpdating ? (
+                          <Loader2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-2.5 sm:w-3 h-2.5 sm:h-3 fill-white" />
+                        )}
+                        <span className="hidden sm:inline">{isUpdating ? 'Updating...' : 'Update Resume'}</span>
+                      </button>
+                    </div>
+                    {enhancedPrompt && (
+                      <div className="glass rounded-xl p-3 border border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-bold text-primary tracking-wider uppercase">Enhanced Prompt</span>
+                          <button
+                            type="button"
+                            onClick={() => setEnhancedPrompt('')}
+                            className="p-1 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="text-sm text-on-background leading-relaxed whitespace-pre-wrap">{enhancedPrompt}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].year = e.currentTarget.innerText; setEducation(n); }}>{edu.year}</span>
-                        <button onClick={() => setEducation(education.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                ))
-              )}
-            </div>
+                </motion.div>
+              </AnimatePresence>
+            )}
 
-            {/* Experience Section */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Experience</h3>
-                <button onClick={addExperience} className="p-1 text-on-surface-variant hover:text-primary transition-colors"><PlusCircle className="w-5 h-5" /></button>
-              </div>
-              {experience.map((exp, i) => (
-                <div key={i} className="glass rounded-xl p-4 group hover:border-primary/50 transition-colors">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="text-base font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].company = e.currentTarget.innerText; setExperience(n); }}>{exp.company}</h4>
-                      <p className="text-xs font-semibold text-on-surface-variant uppercase mt-0.5 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].role = e.currentTarget.innerText; setExperience(n); }}>{exp.role}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].duration = e.currentTarget.innerText; setExperience(n); }}>{exp.duration || exp.period}</span>
-                      <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </div>
-                  <ul className="list-disc ml-4 text-sm text-on-surface-variant space-y-1.5">
-                    {(exp.bullets || []).map((b: string, j: number) => (<li key={j} className="outline-none leading-relaxed" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].bullets[j] = e.currentTarget.innerText; setExperience(n); }}>{b}</li>))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            {/* Skills Section */}
-            <div className="space-y-3">
-              <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Skills & Tools</h3>
-              <div className="flex flex-wrap gap-2">
-                {skills.map((skill, i) => (
-                  <div key={i} className="glass rounded-full px-3 py-1.5 flex items-center gap-2 group transition-all hover:bg-surface-container-highest">
-                    <span
-                      className="text-xs font-semibold text-on-surface outline-none min-w-[40px] cursor-text"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => {
-                        const newSkills = [...skills];
-                        const val = e.currentTarget.innerText.trim();
-                        if (val) {
-                          newSkills[i] = val;
-                          setSkills(newSkills);
-                        } else {
-                          setSkills(skills.filter((_, idx) => idx !== i));
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          e.currentTarget.blur();
-                        }
-                      }}
-                    >
-                      {skill}
-                    </span>
-                    <button
-                      onClick={() => setSkills(skills.filter((_, idx) => idx !== i))}
-                      className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={() => setSkills([...skills, 'New Skill'])}
-                  className="bg-primary/10 border border-primary/30 text-primary rounded-full px-3 py-1.5 text-xs font-semibold hover:bg-primary/15 transition-all"
+            {/* ── Manual Edit Tab ─────────────────────────────────────── */}
+            {activeTab === 'manual-edit' && (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key="manual-edit"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.15 }}
+                  className="space-y-6"
                 >
-                  + Add
-                </button>
-              </div>
-            </div>
+                  {/* Name & Role Card */}
+                  <div className="glass rounded-xl p-4 sm:p-5 group relative">
+                    <h1 className="text-xl sm:text-2xl font-bold text-on-surface outline-none focus:text-primary transition-colors" contentEditable suppressContentEditableWarning onBlur={(e) => setUserName(e.currentTarget.innerText)}>{userName || 'Your Name'}</h1>
+                    <p className="text-on-surface-variant text-xs sm:text-sm font-medium mt-1 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setUserRole(e.currentTarget.innerText)}>{userRole || 'Your Title'}</p>
+                    <div className="flex flex-wrap gap-3 sm:gap-4 mt-3 text-[10px] sm:text-xs text-on-surface-variant/70">
+                      <span className="flex items-center gap-1"><Mail className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setEmail(e.currentTarget.innerText)}>{email || 'email'}</span></span>
+                      <span className="flex items-center gap-1"><Phone className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setPhone(e.currentTarget.innerText)}>{phone || 'phone'}</span></span>
+                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setLocation(e.currentTarget.innerText)}>{location || 'location'}</span></span>
+                    </div>
+                    <button className="absolute -right-2 top-4 w-8 h-8 flex items-center justify-center bg-primary/10 border border-primary/20 text-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"><Sparkles className="w-4 h-4" /></button>
+                  </div>
 
-            {/* ── ATS Analysis Section ─────────────────────────────────── */}
-            <div className="border-t border-outline-variant/20 pt-4">
-              <button
-                onClick={() => setShowATS(!showATS)}
-                className="flex items-center justify-between w-full group"
-              >
-                <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-primary" />
-                  <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">ATS Compatibility</h3>
-                  {atsResult && (
-                    <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                      {atsResult.atsScore}%
-                    </span>
-                  )}
-                </div>
-                <ChevronDown className={`w-4 h-4 text-on-surface-variant transition-transform ${showATS ? 'rotate-180' : ''}`} />
-              </button>
+                  {/* Summary Section */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Summary</h3>
+                    </div>
+                    <div className="glass rounded-xl p-4 group">
+                      <div
+                        className="text-sm text-on-surface outline-none min-h-[80px]"
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={(e) => setSummary(e.currentTarget.innerText)}
+                      >
+                        {summary || 'Write a brief professional summary about yourself...'}
+                      </div>
+                    </div>
+                  </div>
 
-              {showATS && (
-                <div className="mt-4 space-y-4">
+                  {/* Education Section */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Education</h3>
+                      <button onClick={addEducation} className="p-1 text-on-surface-variant hover:text-primary transition-colors"><PlusCircle className="w-5 h-5" /></button>
+                    </div>
+                    {education.length === 0 ? (
+                      <div className="glass rounded-xl p-4 text-center text-on-surface-variant text-sm">
+                        No education added yet
+                      </div>
+                    ) : (
+                      education.map((edu, i) => (
+                        <div key={i} className="glass rounded-xl p-4 group hover:border-primary/50 transition-colors">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="text-base font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].school = e.currentTarget.innerText; setEducation(n); }}>{edu.school}</h4>
+                              <p className="text-xs font-semibold text-on-surface-variant mt-0.5 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].degree = e.currentTarget.innerText; setEducation(n); }}>{edu.degree}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].year = e.currentTarget.innerText; setEducation(n); }}>{edu.year}</span>
+                              <button onClick={() => setEducation(education.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Experience Section */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Experience</h3>
+                      <button onClick={addExperience} className="p-1 text-on-surface-variant hover:text-primary transition-colors"><PlusCircle className="w-5 h-5" /></button>
+                    </div>
+                    {experience.map((exp, i) => (
+                      <div key={i} className="glass rounded-xl p-4 group hover:border-primary/50 transition-colors">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="text-base font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].company = e.currentTarget.innerText; setExperience(n); }}>{exp.company}</h4>
+                            <p className="text-xs font-semibold text-on-surface-variant uppercase mt-0.5 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].role = e.currentTarget.innerText; setExperience(n); }}>{exp.role}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].duration = e.currentTarget.innerText; setExperience(n); }}>{exp.duration || exp.period}</span>
+                            <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </div>
+                        <ul className="list-disc ml-4 text-sm text-on-surface-variant space-y-1.5">
+                          {(exp.bullets || []).map((b: string, j: number) => (<li key={j} className="outline-none leading-relaxed" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].bullets[j] = e.currentTarget.innerText; setExperience(n); }}>{b}</li>))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Skills Section */}
+                  <div className="space-y-3">
+                    <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Skills & Tools</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {skills.map((skill, i) => (
+                        <div key={i} className="glass rounded-full px-3 py-1.5 flex items-center gap-2 group transition-all hover:bg-surface-container-highest">
+                          <span
+                            className="text-xs font-semibold text-on-surface outline-none min-w-[40px] cursor-text"
+                            contentEditable
+                            suppressContentEditableWarning
+                            onBlur={(e) => {
+                              const newSkills = [...skills];
+                              const val = e.currentTarget.innerText.trim();
+                              if (val) {
+                                newSkills[i] = val;
+                                setSkills(newSkills);
+                              } else {
+                                setSkills(skills.filter((_, idx) => idx !== i));
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.currentTarget.blur();
+                              }
+                            }}
+                          >
+                            {skill}
+                          </span>
+                          <button
+                            onClick={() => setSkills(skills.filter((_, idx) => idx !== i))}
+                            className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => setSkills([...skills, 'New Skill'])}
+                        className="bg-primary/10 border border-primary/30 text-primary rounded-full px-3 py-1.5 text-xs font-semibold hover:bg-primary/15 transition-all"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            )}
+
+            {/* ── ATS Score Tab ───────────────────────────────────────── */}
+            {activeTab === 'ats-score' && (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key="ats-score"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.15 }}
+                  className="space-y-4"
+                >
                   {/* JD Input */}
                   <div className="glass rounded-xl p-3 border border-outline-variant/30">
                     <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">
@@ -1499,9 +1554,9 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                       } : undefined}
                     />
                   )}
-                </div>
-              )}
-            </div>
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
         </div>
       </section>

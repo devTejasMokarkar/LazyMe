@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/config/auth';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     

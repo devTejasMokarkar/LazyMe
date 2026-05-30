@@ -7,7 +7,7 @@ import { generateWithUserKey } from "@/features/ai/ai.service";
 /**
  * GET /api/user/api-keys — List user's API keys (masked)
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

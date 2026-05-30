@@ -25,7 +25,7 @@ export default function TopNav() {
           href="/"
           className="font-bold text-lg text-primary flex items-center gap-2 cursor-pointer hover:text-primary/80 transition-colors"
         >
-          <img src="/logo.png" alt="LazyMe Logo" className="w-8 h-8 object-contain" />
+          <img src="/logo.png" alt="LazyMe Logo" className="w-10 h-10 object-contain" />
           <span className="hidden sm:inline">LazyMe</span>
         </Link>
       </div>
