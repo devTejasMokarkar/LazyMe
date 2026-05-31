@@ -166,5 +166,5 @@ export {
   parseTXT,
   extractPDFChunks,
   chunkText,
-  parseResumeLocally
+  parseResumeLocally,
 };

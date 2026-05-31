@@ -7,13 +7,18 @@ import {
   Download, ZoomIn, ZoomOut, Upload, FileType, CheckCircle2, History,
   RotateCcw, Save, Trash2, Eye, Loader2, PanelLeftClose, PanelRightClose,
   Monitor, Smartphone, Briefcase, Palette, Code, Send,
-  FileText, AlertCircle, Target, ChevronDown, Edit3
+  FileText, AlertCircle, Target, ChevronDown, Edit3, MessageSquare, Bot, User
 } from 'lucide-react';
 import { ATSScoreCard } from '@/components/jobs/ATSScoreCard';
 import Link from 'next/link';
 import { cn, validateParsedResume, calculateResumeCompleteness } from '@/lib/utils';
 import { useToast } from '@/components/layout/ToastProvider';
 import DownloadDropdown from '@/components/resume/DownloadDropdown';
+import { LineByLineImprovements } from '@/components/resume/LineByLineImprovements';
+import { ClassicTemplate } from '@/components/resume/templates/ClassicTemplate';
+import { ModernTemplate } from '@/components/resume/templates/ModernTemplate';
+import { MinimalistTemplate } from '@/components/resume/templates/MinimalistTemplate';
+import type { TemplateType, ResumeData as TemplateResumeData } from '@/components/resume/templates/index';
 import { resumeToLatex } from '@/features/ai/latex.service';
 
 interface ResumeVersion {
@@ -103,9 +108,25 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const [jobDescription, setJobDescription] = useState('');
   const [atsResult, setAtsResult] = useState<any>(null);
   const [isAnalyzingATS, setIsAnalyzingATS] = useState(false);
+  const [isAnalyzingChunked, setIsAnalyzingChunked] = useState(false);
+  const [chunkStatusText, setChunkStatusText] = useState('');
   const [isImprovingATS, setIsImprovingATS] = useState(false);
   const [previousATSScore, setPreviousATSScore] = useState<number | null>(null);
   const [atsChanges, setAtsChanges] = useState<string[]>([]);
+
+  // Template state
+  const [template, setTemplate] = useState<TemplateType>('modern');
+
+  // Line-by-line improvements
+  const [atsImprovements, setAtsImprovements] = useState<Array<{ section: string; before: string; after: string; impact?: number }>>([]);
+  const [appliedImprovementIndices, setAppliedImprovementIndices] = useState<Set<number>>(new Set());
+  const [isApplyingImprovement, setIsApplyingImprovement] = useState(false);
+
+  // AI Chat tab - conversation
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
+    { role: 'assistant', content: "Hi! I can help optimize your resume. Ask me to improve specific sections, add keywords, or rewrite bullet points." }
+  ]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   const enhanceAndAppend = async (promptText: string, resumeContent: any) => {
     showToast("AI is optimizing and appending your new project/experience...", "info");
@@ -641,7 +662,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
 
         // Check completeness - must be at least 70%
         const completeness = calculateResumeCompleteness(data);
-        if (completeness < 70) {
+        if (completeness < 50) {
           setParseError(
             `Failed to parse PDF completely. Only ${completeness}% of details were extracted. ` +
             `The file may be image-based or corrupted. Please try a different format (DOCX or text-based PDF).`
@@ -919,7 +940,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     );
   }
 
-  const resumeData = {
+  const resumeData: TemplateResumeData = {
     name: userName,
     title: userRole,
     experience,
@@ -930,7 +951,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     summary,
     education
   };
-  const latex = resumeToLatex(resumeData);
+  const latex = resumeToLatex(resumeData, template);
 
   const handleEnhancePrompt = async () => {
     if (!chatInput.trim() || isEnhancing) return;
@@ -993,13 +1014,17 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   };
 
   const handleAnalyzeATS = async () => {
-    if (!jobDescription.trim() || isAnalyzingATS) return;
-    setIsAnalyzingATS(true);
+    if (!jobDescription.trim() || isAnalyzingChunked) return;
+    setIsAnalyzingChunked(true);
     setAtsResult(null);
     setAtsChanges([]);
+    setAtsImprovements([]);
+    setAppliedImprovementIndices(new Set());
     setPreviousATSScore(null);
+    setChunkStatusText('Starting analysis...');
+
     try {
-      const res = await fetch('/api/analyze-ats', {
+      const res = await fetch('/api/analyze-ats-chunked', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1017,17 +1042,165 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           jobDescription: jobDescription.trim()
         })
       });
-      const data = await res.json();
-      if (res.ok) {
-        setAtsResult(data);
-      } else {
-        showToast(data.error || 'ATS analysis failed', 'error');
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || 'Chunked analysis failed');
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let eventType = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            eventType = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              switch (eventType) {
+                case 'status':
+                  setChunkStatusText(data.message);
+                  break;
+                case 'skills':
+                  setAtsImprovements(prev => [...prev, ...(data.improvements || [])]);
+                  // Store partial keyword analysis for the score card
+                  if (data.keywordAnalysis) {
+                    setAtsResult((prev: any) => prev || {});
+                  }
+                  break;
+                case 'experience':
+                  setAtsImprovements(prev => [...prev, ...(data.improvements || [])]);
+                  break;
+                case 'education':
+                  setAtsImprovements(prev => [...prev, ...(data.improvements || [])]);
+                  break;
+                case 'summary':
+                  setAtsResult({
+                    analysis: {
+                      atsScore: data.atsScore,
+                      keywordAnalysis: data.keywordAnalysis,
+                      gapAnalysis: data.gapAnalysis,
+                      actionableImprovements: data.actionableImprovements,
+                      autoImprovements: data.autoImprovements,
+                    },
+                    weightedATS: data.weightedATS,
+                    atsScore: data.atsScore,
+                  });
+                  setAtsChanges((data.actionableImprovements || []).slice(0, 5));
+                  setAtsImprovements(data.autoImprovements || []);
+                  setChunkStatusText('Analysis complete!');
+                  break;
+              }
+            } catch (parseErr) {
+              // skip malformed event data
+            }
+          }
+        }
       }
     } catch (e: any) {
-      showToast('Failed to analyze ATS', 'error');
+      showToast(e.message || 'Failed to analyze ATS', 'error');
     } finally {
-      setIsAnalyzingATS(false);
+      setIsAnalyzingChunked(false);
     }
+  };
+
+  const handleSendChatMessage = async () => {
+    const text = chatInput.trim();
+    if (!text || isChatLoading) return;
+    setChatMessages(prev => [...prev, { role: 'user', content: text }]);
+    setChatInput('');
+    setIsChatLoading(true);
+    try {
+      const res = await fetch('/api/ollama/update-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enhancedPrompt: text }),
+      });
+      const data = await res.json();
+      if (res.ok && data.changes) {
+        const { summary: newSummary, experience: newExperience, skills: newSkills } = data.changes;
+        if (newSummary) setSummary(newSummary);
+        if (newExperience) {
+          setExperience((prev: any[]) => {
+            const merged = [...prev];
+            for (const entry of newExperience) {
+              const idx = merged.findIndex((e: any) => e.company === entry.company);
+              if (idx >= 0) {
+                merged[idx] = { ...merged[idx], ...entry };
+              } else {
+                merged.push(entry);
+              }
+            }
+            return merged;
+          });
+        }
+        if (newSkills) setSkills(newSkills);
+        setChatMessages(prev => [...prev, { role: 'assistant', content: "I've applied the optimizations to your resume. Check the preview or Manual Edit tab to see the changes." }]);
+      } else {
+        setChatMessages(prev => [...prev, { role: 'assistant', content: data.error || "I couldn't process that request. Try being more specific about what you'd like to improve." }]);
+      }
+    } catch (e: any) {
+      setChatMessages(prev => [...prev, { role: 'assistant', content: "Sorry, something went wrong. Please try again." }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleApplyImprovement = (index: number) => {
+    if (appliedImprovementIndices.has(index)) return;
+    const improvement = atsImprovements[index];
+    if (!improvement) return;
+
+    const section = improvement.section.toLowerCase();
+    const after = typeof improvement.after === 'string' ? improvement.after : String(improvement.after ?? '');
+    const before = typeof improvement.before === 'string' ? improvement.before : String(improvement.before ?? '');
+
+    if (section.includes('summary')) {
+      setSummary(after);
+    } else if (section.includes('skill')) {
+      setSkills(after.split(',').map(s => s.trim()).filter(Boolean));
+    } else if (section.includes('experience') || section.includes('project')) {
+      setExperience(prev => {
+        const updated = [...prev];
+        for (let i = 0; i < updated.length; i++) {
+          const bullets = updated[i].bullets || [];
+          const bulletIdx = bullets.findIndex((b: string) =>
+            b.trim() === before.trim() || b.includes(before.trim()) || before.includes(b.trim())
+          );
+          if (bulletIdx >= 0) {
+            const afterBullets = after.split('\n').map((s: string) => s.trim()).filter(Boolean);
+            updated[i] = {
+              ...updated[i],
+              bullets: [...bullets.slice(0, bulletIdx), afterBullets[0] || after, ...bullets.slice(bulletIdx + 1)],
+            };
+            break;
+          }
+        }
+        return updated;
+      });
+    }
+
+    setAppliedImprovementIndices(prev => new Set(prev).add(index));
+  };
+
+  const handleApplyAllImprovements = () => {
+    atsImprovements.forEach((_, i) => {
+      if (!appliedImprovementIndices.has(i)) {
+        handleApplyImprovement(i);
+      }
+    });
   };
 
   const handleImproveATS = async () => {
@@ -1056,7 +1229,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       if (res.ok && data.improvedResume) {
         setPreviousATSScore(data.oldATS?.score ?? null);
         setAtsChanges([
-          ...(data.analysis?.actionableImprovements?.slice(0, 5) || []),
+          ...(data.analysis?.actionableImprovements?.slice(0, 5).filter((i: any) => typeof i === 'string') || []),
           ...(data.analysis?.gapAnalysis ? [data.analysis.gapAnalysis] : [])
         ]);
         if (data.improvedResume.summary) setSummary(data.improvedResume.summary);
@@ -1064,6 +1237,10 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         if (data.improvedResume.experience) setExperience(data.improvedResume.experience);
 
         setAtsResult({ ...atsResult, atsScore: data.newATS?.score ?? atsResult.atsScore, analysis: data.analysis, weightedATS: data.newATS });
+        if (data.analysis?.autoImprovements) {
+          setAtsImprovements(data.analysis.autoImprovements);
+          setAppliedImprovementIndices(new Set(data.analysis.autoImprovements.map((_: any, i: number) => i)));
+        }
         showToast('Resume improved! ATS score updated.', 'success');
       } else {
         showToast(data.error || 'Failed to improve resume', 'error');
@@ -1287,60 +1464,103 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.15 }}
-                  className="space-y-4"
+                  className="flex flex-col h-full"
                 >
-                  <div className="space-y-2">
-                    <div className="glass rounded-xl p-2 flex items-center gap-2 sm:gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                      <textarea
-                        rows={1}
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-sm sm:text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed max-h-36 overflow-y-auto py-2"
-                        placeholder="Tell LazyMe what to find next..."
-                      />
-                      <button
-                        type="button"
-                        onClick={handleEnhancePrompt}
-                        disabled={!chatInput.trim() || isEnhancing}
-                        className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1.5 sm:gap-2 font-bold text-[10px] sm:text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                        title="Preview the optimized resume entry before appending"
-                      >
-                        {isEnhancing ? (
-                          <Loader2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+                  {/* Chat Messages */}
+                  <div className="flex-1 space-y-3 mb-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                    {chatMessages.map((msg, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "flex gap-3",
+                          msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
                         )}
-                        <span className="hidden sm:inline">{isEnhancing ? 'Enhancing...' : 'Enhance prompt'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleUpdateResume}
-                        className="h-9 sm:h-10 px-3 sm:px-5 btn-primary rounded-lg flex items-center gap-1.5 sm:gap-2 font-bold text-[10px] sm:text-xs shadow-lg disabled:opacity-50 shrink-0"
-                        disabled={!enhancedPrompt.trim() || isUpdating}
                       >
-                        {isUpdating ? (
-                          <Loader2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 animate-spin" />
-                        ) : (
-                          <Send className="w-2.5 sm:w-3 h-2.5 sm:h-3 fill-white" />
-                        )}
-                        <span className="hidden sm:inline">{isUpdating ? 'Updating...' : 'Update Resume'}</span>
-                      </button>
-                    </div>
-                    {enhancedPrompt && (
-                      <div className="glass rounded-xl p-3 border border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-bold text-primary tracking-wider uppercase">Enhanced Prompt</span>
-                          <button
-                            type="button"
-                            onClick={() => setEnhancedPrompt('')}
-                            className="p-1 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                        <div className={cn(
+                          "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-1",
+                          msg.role === 'user'
+                            ? 'bg-primary/20 border border-primary/30'
+                            : 'bg-surface-container-highest border border-outline-variant'
+                        )}>
+                          {msg.role === 'user' ? (
+                            <User className="w-4 h-4 text-primary" />
+                          ) : (
+                            <Bot className="w-4 h-4 text-secondary" />
+                          )}
                         </div>
-                        <p className="text-sm text-on-background leading-relaxed whitespace-pre-wrap">{enhancedPrompt}</p>
+                        <div className={cn(
+                          "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
+                          msg.role === 'user'
+                            ? 'bg-primary text-on-primary rounded-tr-md'
+                            : 'bg-surface-container border border-outline-variant/50 rounded-tl-md'
+                        )}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))}
+                    {isChatLoading && (
+                      <div className="flex gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-surface-container-highest border border-outline-variant flex items-center justify-center shrink-0">
+                          <Bot className="w-4 h-4 text-secondary" />
+                        </div>
+                        <div className="bg-surface-container border border-outline-variant/50 rounded-2xl rounded-tl-md px-4 py-3 flex items-center gap-2 text-sm text-on-surface-variant">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Thinking...
+                        </div>
                       </div>
                     )}
+                  </div>
+
+                  {/* Suggested actions */}
+                  {chatMessages.length === 1 && !isChatLoading && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {[
+                        "Improve my summary for ATS",
+                        "Add more keywords from JD",
+                        "Rewrite experience bullets",
+                        "Suggest skill improvements"
+                      ].map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          onClick={() => {
+                            setChatInput(suggestion);
+                          }}
+                          className="text-left text-[11px] px-3 py-2 bg-surface-container-hover border border-outline-variant/50 rounded-xl text-on-surface-variant hover:text-primary hover:border-primary/30 transition-all"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Input */}
+                  <div className="glass rounded-xl p-2 flex items-center gap-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                    <textarea
+                      rows={1}
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendChatMessage();
+                        }
+                      }}
+                      className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-sm sm:text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed py-2"
+                      placeholder="Ask me to optimize your resume..."
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendChatMessage}
+                      disabled={!chatInput.trim() || isChatLoading}
+                      className="h-9 sm:h-10 px-4 btn-primary rounded-lg flex items-center gap-1.5 font-bold text-[10px] sm:text-xs shadow-lg disabled:opacity-50 shrink-0"
+                    >
+                      {isChatLoading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3 h-3 fill-white" />
+                      )}
+                      <span className="hidden sm:inline">Send</span>
+                    </button>
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -1524,35 +1744,86 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                       )}
                       <button
                         onClick={handleAnalyzeATS}
-                        disabled={!jobDescription.trim() || isAnalyzingATS}
+                        disabled={!jobDescription.trim() || isAnalyzingChunked}
                         className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-on-primary text-[10px] font-bold uppercase tracking-wider hover:brightness-110 transition-all disabled:opacity-40 shadow-lg shadow-primary/20"
                       >
-                        {isAnalyzingATS ? <Loader2 className="w-3 h-3 animate-spin" /> : <Target className="w-3 h-3" />}
-                        {isAnalyzingATS ? 'Analyzing...' : 'Analyze'}
+                        {isAnalyzingChunked ? <Loader2 className="w-3 h-3 animate-spin" /> : <Target className="w-3 h-3" />}
+                        {isAnalyzingChunked ? 'Analyzing...' : 'Analyze'}
                       </button>
                     </div>
                   </div>
 
                   {/* ATS Results */}
-                  {isAnalyzingATS && (
-                    <div className="flex items-center justify-center gap-3 py-8 text-on-surface-variant">
-                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                      <span className="text-xs font-medium">Running ATS analysis...</span>
+                  {isAnalyzingChunked && (
+                    <div className="bg-surface-container/50 border border-outline-variant rounded-xl p-6 space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-surface-container-high animate-pulse" />
+                          <div className="h-5 w-36 bg-surface-container-high animate-pulse rounded" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6">
+                        <div className="w-20 h-14 bg-surface-container-high animate-pulse rounded-lg" />
+                        <div className="space-y-2">
+                          <div className="h-4 w-44 bg-surface-container-high animate-pulse rounded" />
+                          <div className="h-3 w-56 bg-surface-container-high animate-pulse rounded" />
+                        </div>
+                      </div>
+                      <div className="space-y-3 pt-4 border-t border-outline-variant/50">
+                        <div className="h-3 w-28 bg-surface-container-high animate-pulse rounded" />
+                        <div className="flex flex-wrap gap-2">
+                          {[1, 2, 3, 4].map(i => <div key={i} className="h-6 w-20 bg-surface-container-high animate-pulse rounded" />)}
+                        </div>
+                      </div>
+                      <div className="space-y-3 pt-4 border-t border-outline-variant/50">
+                        <div className="h-3 w-24 bg-surface-container-high animate-pulse rounded" />
+                        <div className="h-12 w-full bg-surface-container-high animate-pulse rounded" />
+                      </div>
+                      <div className="flex items-center gap-2 pt-2 text-on-surface-variant">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
+                        <span className="text-xs font-medium">{chunkStatusText}</span>
+                        <span className="text-[10px] text-on-surface-variant/50">
+                          (improvements appearing as they arrive)
+                        </span>
+                      </div>
+                      {/* Incremental improvements */}
+                      {atsImprovements.length > 0 && (
+                        <LineByLineImprovements
+                          improvements={atsImprovements}
+                          onApply={handleApplyImprovement}
+                          onApplyAll={handleApplyAllImprovements}
+                          applying={isApplyingImprovement}
+                          appliedIndices={appliedImprovementIndices}
+                        />
+                      )}
                     </div>
                   )}
 
-                  {atsResult && !isAnalyzingATS && (
-                    <ATSScoreCard
-                      data={atsResult.analysis || atsResult.weightedATS || { score: atsResult.atsScore, matched: [], missing: [] }}
-                      onImprove={handleImproveATS}
-                      improving={isImprovingATS}
-                      changes={atsChanges.length > 0 ? atsChanges : undefined}
-                      previousScore={previousATSScore}
-                      analysis={atsResult.analysis ? {
-                        gapAnalysis: atsResult.analysis.gapAnalysis,
-                        actionableImprovements: atsResult.analysis.actionableImprovements
-                      } : undefined}
-                    />
+                  {atsResult && !isAnalyzingChunked && (
+                    <>
+                      <ATSScoreCard
+                        data={atsResult.analysis ? { ...atsResult.analysis, score: atsResult.analysis.atsScore ?? atsResult.analysis.score } : atsResult.weightedATS || { score: atsResult.atsScore ?? 0, matched: [], missing: [] }}
+                        onImprove={handleImproveATS}
+                        improving={isImprovingATS}
+                        changes={atsChanges.length > 0 ? atsChanges : undefined}
+                        previousScore={previousATSScore}
+                        analysis={atsResult.analysis ? {
+                          gapAnalysis: atsResult.analysis.gapAnalysis,
+                          actionableImprovements: atsResult.analysis.actionableImprovements
+                        } : undefined}
+                      />
+
+                      {/* Line-by-line improvements */}
+                      {atsImprovements.length > 0 && (
+                        <LineByLineImprovements
+                          improvements={atsImprovements}
+                          onApply={handleApplyImprovement}
+                          onApplyAll={handleApplyAllImprovements}
+                          applying={isApplyingImprovement}
+                          appliedIndices={appliedImprovementIndices}
+                        />
+                      )}
+                    </>
                   )}
                 </motion.div>
               </AnimatePresence>
@@ -1578,6 +1849,21 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 <button onClick={() => setPreviewMode('mobile')} className={cn("p-1.5 rounded-md transition-colors", previewMode === 'mobile' ? "bg-surface-container-high text-on-surface" : "text-on-surface-variant hover:text-on-surface")}><Smartphone className="w-4 h-4" /></button>
               </div>
               <div className="flex items-center gap-2">
+                {/* Template Selector */}
+                <div className="flex items-center gap-0.5 bg-surface-container-high px-1 py-1 rounded-lg border border-outline-variant">
+                  {(['classic', 'modern', 'minimalist'] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTemplate(t)}
+                      className={cn(
+                        "px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-md transition-all",
+                        template === t ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex items-center bg-surface-container-high rounded-lg overflow-hidden">
                   <button onClick={() => setZoom(Math.max(50, zoom - 10))} className="p-1.5 text-on-surface-variant hover:text-on-surface"><ZoomOut className="w-3.5 h-3.5" /></button>
                   <span className="text-[10px] font-mono text-on-surface-variant w-10 text-center">{zoom}%</span>
@@ -1606,73 +1892,24 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <motion.div
                 id="resume-preview"
                 className={cn(
-                  "rounded-lg shadow-2xl p-8 flex flex-col font-sans transition-all",
+                  "rounded-lg shadow-2xl transition-all overflow-hidden",
                   previewMode === 'mobile' ? "w-[320px]" : "w-[800px]"
                 )}
                 style={{
                   transform: `scale(${zoom / 100})`,
                   transformOrigin: 'top center',
                   minHeight: '900px',
-                  backgroundColor: resumeTheme === 'light' ? '#ffffff' : '#1a1b1f',
-                  color: resumeTheme === 'light' ? '#000000' : '#e2e8f0'
                 }}
               >
-                <div className="text-center mb-6">
-                  <h2 className={cn("text-2xl font-extrabold", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>{userName || 'Your Name'}</h2>
-                  <p className={cn("text-sm", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{userRole || 'Your Title'}</p>
-                </div>
-                <div className={cn("flex justify-center gap-4 text-[9px] uppercase tracking-wider mb-5 pb-3 border-b", resumeTheme === 'light' ? "text-slate-700 border-slate-300" : "text-slate-500 border-slate-800")}>
-                  {email && <span>{email}</span>}
-                  {phone && <span>{phone}</span>}
-                  <span>{location || 'Location'}</span>
-                </div>
-                <div className="space-y-5">
-                  {summary && (
-                    <div>
-                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-2", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>Summary</h3>
-                      <p className={cn("text-xs leading-relaxed", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{summary}</p>
-                    </div>
-                  )}
-                  {skills.length > 0 && (
-                    <div className={cn("pt-2", summary ? "border-t" : "")}>
-                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-2", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>Skills</h3>
-                      <div className={cn("text-xs flex flex-wrap gap-x-3 gap-y-1", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{skills.join(', ')}</div>
-                    </div>
-                  )}
-                  {experience.length > 0 && (
-                    <div className={cn("pt-4 border-t", resumeTheme === 'light' ? "border-slate-300" : "border-slate-800")}>
-                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-3", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>Experience</h3>
-                      <div className="space-y-4">
-                        {experience.map((exp, i) => (
-                          <div key={i}>
-                            <div className="flex justify-between"><span className={cn("font-bold text-xs", resumeTheme === 'light' ? "text-black" : "text-white")}>{exp.company}</span><span className={cn("text-[9px]", resumeTheme === 'light' ? "text-slate-600" : "text-slate-500")}>{exp.duration || exp.period}</span></div>
-                            <p className={cn("text-xs mt-0.5", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{exp.role}</p>
-                            {(exp.bullets && exp.bullets.length > 0) && (
-                              <ul className={cn("text-[10px] mt-1 space-y-0.5", resumeTheme === 'light' ? "text-slate-700" : "text-slate-500")}>
-                                {exp.bullets.slice(0, 3).map((b: string, j: number) => (
-                                  <li key={j} className="flex gap-1"><span className="shrink-0">•</span><span>{b}</span></li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {education.length > 0 && (
-                    <div className={cn("pt-4 border-t", resumeTheme === 'light' ? "border-slate-300" : "border-slate-800")}>
-                      <h3 className={cn("text-[9px] font-black tracking-[0.2em] uppercase mb-3", resumeTheme === 'light' && resumeColor === '#000000' ? "text-black" : resumeTheme === 'dark' && resumeColor === '#000000' ? 'text-white' : '')} style={resumeColor !== '#000000' ? { color: resumeColor } : {}}>Education</h3>
-                      <div className="space-y-2">
-                        {education.map((edu, i) => (
-                          <div key={i}>
-                            <div className="flex justify-between"><span className={cn("font-bold text-xs", resumeTheme === 'light' ? "text-black" : "text-white")}>{edu.school}</span><span className={cn("text-[9px]", resumeTheme === 'light' ? "text-slate-600" : "text-slate-500")}>{edu.year}</span></div>
-                            <p className={cn("text-xs mt-0.5", resumeTheme === 'light' ? "text-slate-800" : "text-slate-400")}>{edu.degree}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {template === 'classic' && (
+                  <ClassicTemplate data={resumeData} color={resumeColor} theme={resumeTheme} />
+                )}
+                {template === 'modern' && (
+                  <ModernTemplate data={resumeData} color={resumeColor} theme={resumeTheme} />
+                )}
+                {template === 'minimalist' && (
+                  <MinimalistTemplate data={resumeData} color={resumeColor} theme={resumeTheme} />
+                )}
               </motion.div>
             </div>
 

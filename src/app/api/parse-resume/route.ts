@@ -6,7 +6,8 @@ import {
   parseDocument, 
   DocumentType,
   parseResumeLocally,
-  chunkText 
+  chunkText,
+  pdfToImage
 } from "@/lib/parser";
 import { parserLogger, createLogEntry } from "@/lib/parser/logger";
 import { generateTextFromMultiModal } from "@/features/ai/ai.service";
@@ -24,6 +25,7 @@ const SUPPORTED_TYPES = [
   "image/gif",
 ] as const;
 
+const COMPLETENESS_THRESHOLD = 50;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const RESUME_PARSE_PROMPT = `Parse this resume and extract all information into a JSON object with this exact structure. Return ONLY valid JSON, no markdown, no explanations:
@@ -193,7 +195,7 @@ export async function POST(req: NextRequest) {
        // Step 2: Check if local parser extracted enough data
        const completeness = calculateCompleteness(result.data);
        
-       if (completeness >= 70) {
+       if (completeness >= COMPLETENESS_THRESHOLD) {
          // Local parser did well enough, use it
          logger.info(`Local parser completeness: ${completeness}%, using local results`);
          return buildSuccessResponse(result.data, result.text, result.parseMethod, file, buffer, startTime, session);
@@ -224,14 +226,48 @@ export async function POST(req: NextRequest) {
       // which passes them as inlineData to Gemini 2.0 Flash (which natively supports image OCR).
       // No conversion needed — just pass the raw buffer and MIME type through.
       
-      const aiResponse = await generateTextFromMultiModal(
-        RESUME_PARSE_PROMPT,
-        fileBuffer,
-        mimeType
-      );
+      let aiData: any = null;
+      const isPdf = file.type.includes('pdf') || !!file.name.match(/\.pdf$/i);
 
-      const aiData = normalizeAIData(aiResponse);
-      
+      if (isPdf && !file.type.includes('image')) {
+        // PDF files: try text-based AI first, fallback to image OCR
+        try {
+          const textAiResponse = await generateTextFromMultiModal(
+            RESUME_PARSE_PROMPT,
+            fileBuffer,
+            mimeType
+          );
+          aiData = normalizeAIData(textAiResponse);
+        } catch (textErr: any) {
+          logger.warn({ error: textErr.message }, "Text-based AI parsing failed for PDF");
+        }
+
+        if (!aiData) {
+          logger.info("Text AI parsing failed, trying PDF-to-image OCR...");
+          const imgBuffer = pdfToImage(buffer, 1);
+          if (imgBuffer) {
+            try {
+              const ocrResponse = await generateTextFromMultiModal(
+                RESUME_PARSE_PROMPT + "\n\nThis is a scanned document page converted to an image. Extract all text and resume details.",
+                imgBuffer,
+                'image/png'
+              );
+              aiData = normalizeAIData(ocrResponse);
+            } catch (ocrErr: any) {
+              logger.error({ error: ocrErr.message }, "PDF image OCR also failed");
+            }
+          }
+        }
+      } else {
+        // Non-PDF files (images, text): direct multi-modal
+        const aiResponse = await generateTextFromMultiModal(
+          RESUME_PARSE_PROMPT,
+          fileBuffer,
+          mimeType
+        );
+        aiData = normalizeAIData(aiResponse);
+      }
+
       if (!aiData) {
         return NextResponse.json({ 
           error: "AI could not parse the resume. The file may be corrupted or image-based." 
@@ -246,8 +282,8 @@ export async function POST(req: NextRequest) {
         sectionsFound: Object.keys(aiData).filter(k => !k.startsWith('_'))
       };
 
-       logger.info("AI parsing successful");
-       return buildSuccessResponse(aiData, result.text || aiResponse, 'ai-parser', file, buffer, startTime, session);
+        logger.info("AI parsing successful");
+       return buildSuccessResponse(aiData, result.text || JSON.stringify(aiData), 'ai-parser', file, buffer, startTime, session);
 
      } catch (aiError: any) {
         logger.error({ message: aiError.message }, "AI parsing failed:");

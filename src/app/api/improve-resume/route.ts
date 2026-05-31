@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "@/features/ai/ai.service";
-import { calculateATS, calculateWeightedATS } from "@/features/ai/ats.service";
-import { buildATSOptimizationPrompt, ATSAnalysisResult } from "@/features/ai/prompts/resume.prompts";
+import { calculateWeightedATS } from "@/features/ai/ats.service";
+import { buildATSOptimizationPrompt } from "@/features/ai/prompts/resume.prompts";
+import { logger } from "@/lib/logger";
+
+function normalizeImprovementValue(val: any): string {
+  if (typeof val === 'string') return val;
+  if (Array.isArray(val)) return val.join(', ');
+  if (val && typeof val === 'object') return JSON.stringify(val);
+  return String(val ?? '');
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,41 +19,56 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing resume or job description" }, { status: 400 });
     }
 
-    // Use the new MASTER PROMPT for ATS optimization
     const prompt = buildATSOptimizationPrompt(resume, jobDescription);
     const response = await generateText(prompt);
-    
+
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? jsonMatch[0] : response;
-    
-    const analysis: ATSAnalysisResult = JSON.parse(jsonStr);
 
-    // Apply auto-improvements to the resume
+    const analysis = JSON.parse(jsonStr);
+
+    const autoImprovements = analysis?.autoImprovements;
+    if (!Array.isArray(autoImprovements)) {
+      logger.warn("No autoImprovements array in AI response");
+    }
+
     let improvedResume = { ...resume };
-    analysis.autoImprovements.forEach(improvement => {
-      if (improvement.section === "experience" && improvedResume.experience) {
-        // Find and replace the matching experience bullet
-        improvedResume.experience = improvedResume.experience.map((exp: any) => {
-          if (exp.bullets && exp.bullets.includes(improvement.before)) {
-            return {
-              ...exp,
-              bullets: exp.bullets.map((bullet: string) => 
-                bullet === improvement.before ? improvement.after : bullet
-              )
-            };
-          }
-          return exp;
-        });
-      } else if (improvement.section === "summary" && improvement.before === resume.summary) {
-        improvedResume.summary = improvement.after;
-      } else if (improvement.section === "skills" && improvedResume.skills) {
-        // Add missing skills
-        const newSkills = improvement.after.split(", ").map(s => s.trim());
-        improvedResume.skills = Array.from(new Set([...improvedResume.skills, ...newSkills]));
-      }
-    });
 
-    // Calculate both old and new ATS scores using weighted logic
+    if (Array.isArray(autoImprovements)) {
+      for (const improvement of autoImprovements) {
+        if (!improvement || typeof improvement !== 'object') continue;
+
+        const section = String(improvement.section || '').toLowerCase();
+        const before = normalizeImprovementValue(improvement.before);
+        const after = normalizeImprovementValue(improvement.after);
+
+        if (section === "experience" && Array.isArray(improvedResume.experience)) {
+          improvedResume.experience = improvedResume.experience.map((exp: any) => {
+            if (!Array.isArray(exp.bullets)) return exp;
+            const bulletIndex = exp.bullets.findIndex((b: string) =>
+              b.trim() === before.trim() || b.includes(before.trim())
+            );
+            if (bulletIndex === -1) return exp;
+            const newBullets = [...exp.bullets];
+            const afterBullets = after.split('\n').map((s: string) => s.trim()).filter(Boolean);
+            newBullets[bulletIndex] = afterBullets[0] || after;
+            if (afterBullets.length > 1) {
+              newBullets.splice(bulletIndex + 1, 0, ...afterBullets.slice(1));
+            }
+            return { ...exp, bullets: newBullets };
+          });
+        } else if (section === "summary") {
+          const summaryStr = typeof improvedResume.summary === 'string' ? improvedResume.summary : '';
+          if (summaryStr.trim() === before.trim() || summaryStr.includes(before.trim())) {
+            improvedResume.summary = after;
+          }
+        } else if (section === "skills" && Array.isArray(improvedResume.skills)) {
+          const newSkills = after.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+          improvedResume.skills = Array.from(new Set([...improvedResume.skills, ...newSkills]));
+        }
+      }
+    }
+
     const oldATS = calculateWeightedATS(resume, jobDescription);
     const newATS = calculateWeightedATS(improvedResume, jobDescription);
 
@@ -56,6 +79,7 @@ export async function POST(req: NextRequest) {
       newATS
     });
   } catch (error: any) {
+    logger.error({ error: error?.message || error, stack: error?.stack }, "improve-resume failed");
     return NextResponse.json({ error: "Failed to improve resume" }, { status: 500 });
   }
 }

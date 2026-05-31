@@ -4,7 +4,7 @@ import { logger } from "@/lib/logger";
 const apiKey = process.env.GEMINI_API_KEY;
 const openAIKey = process.env.OPENROUTER_API_KEY;
 const preferredOllamaModel = process.env.OLLAMA_MODEL;
-const ollamaTimeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS || 45000);
+    const ollamaTimeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS || 90000);
 
 // Using Gemini 2.5 Flash for speed and multimodal support
 const MODEL_NAME = "gemini-2.5-flash";
@@ -93,7 +93,7 @@ async function callOllama(prompt: string, model: string = 'llama3.2'): Promise<s
         keep_alive: "10m",
         options: {
           temperature: 0.1,
-          num_predict: 2048
+          num_predict: 4096
         }
       })
     });

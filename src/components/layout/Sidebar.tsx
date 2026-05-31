@@ -31,11 +31,17 @@ export default function Sidebar() {
     { id: 'resume', label: 'Resume Builder', icon: FileText, href: '/resume' },
     { id: 'jobs', label: 'Job Search', icon: Search, href: '/apply' },
     { id: 'interview-prep', label: 'Interview Prep', icon: Brain, href: '/interview-prep' },
-    { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
   ];
 
-  const bottomItems = [
+  const bottomItems: Array<{
+    id: string;
+    label: string;
+    icon: any;
+    href?: string;
+    action?: () => void;
+  }> = [
     { id: 'support', label: 'Support', icon: HelpCircle, action: () => { } },
+    { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
   ];
 
   return (
@@ -75,7 +81,7 @@ export default function Sidebar() {
             className="flex items-center gap-3 overflow-hidden"
             animate={{ opacity: 1 }}
           >
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
               <img src="/logo.png" alt="LazyMe Logo" className="w-full h-full object-contain" />
             </div>
             <AnimatePresence mode="wait">
@@ -87,7 +93,7 @@ export default function Sidebar() {
                   transition={{ duration: 0.2 }}
                   className="flex items-center gap-2"
                 >
-                  <span className="font-bold text-on-surface text-lg tracking-tight whitespace-nowrap">LazyMe</span>
+                  <span className="font-bold text-on-surface text-xl tracking-tight whitespace-nowrap">LazyMe</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -159,30 +165,64 @@ export default function Sidebar() {
 
         {/* Bottom Section */}
         <div className="py-4 px-3 space-y-1.5 border-t border-outline-variant/30">
-          {bottomItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={item.action}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 group"
-            >
-              <div className="shrink-0 w-5 h-5 flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
-                <item.icon className="w-5 h-5" />
-              </div>
-              <AnimatePresence mode="wait">
-                {isExpanded && (
-                  <motion.span
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-sm font-semibold whitespace-nowrap"
-                  >
-                    {item.label}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </button>
-          ))}
+          {bottomItems.map((item) => {
+            if (item.href) {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
+                    isActive
+                      ? "bg-primary/20 text-primary border border-primary/30"
+                      : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border border-transparent"
+                  )}
+                >
+                  <div className="shrink-0 w-5 h-5 flex items-center justify-center group-hover:text-primary transition-colors">
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <AnimatePresence mode="wait">
+                    {isExpanded && (
+                      <motion.span
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-sm font-semibold whitespace-nowrap"
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              );
+            }
+            return (
+              <button
+                key={item.id}
+                onClick={item.action}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 group"
+              >
+                <div className="shrink-0 w-5 h-5 flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+                  <item.icon className="w-5 h-5" />
+                </div>
+                <AnimatePresence mode="wait">
+                  {isExpanded && (
+                    <motion.span
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-sm font-semibold whitespace-nowrap"
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
+            );
+          })}
 
           {/* Credit Balance Indicator */}
           <CreditBalanceBadge isExpanded={isExpanded} />
@@ -238,10 +278,10 @@ export default function Sidebar() {
           >
             <div className="h-16 flex items-center px-5 border-b border-outline-variant/30">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
                   <img src="/logo.png" alt="LazyMe Logo" className="w-full h-full object-contain" />
                 </div>
-                <span className="font-bold text-on-surface text-lg tracking-tight">LazyMe</span>
+                <span className="font-bold text-on-surface text-xl tracking-tight">LazyMe</span>
               </div>
             </div>
 
@@ -280,6 +320,19 @@ export default function Sidebar() {
                 <HelpCircle className="w-5 h-5" />
                 <span className="text-sm font-semibold">Support</span>
               </button>
+              <Link
+                href="/settings"
+                onClick={() => setIsMobileOpen(false)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all",
+                  pathname === '/settings'
+                    ? "bg-primary/20 text-primary border border-primary/30"
+                    : "text-on-surface-variant hover:bg-surface-container-high"
+                )}
+              >
+                <Settings className="w-5 h-5" />
+                <span className="text-sm font-semibold">Settings</span>
+              </Link>
               <CreditBalanceBadge isExpanded={true} />
               <form action={signOutAction}>
                 <button type="submit" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant hover:bg-error/10 hover:text-error">

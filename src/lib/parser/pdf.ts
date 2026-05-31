@@ -53,6 +53,9 @@ function isImageBased(text: string): boolean {
 
 // Convert PDF to images using pdftoppm (system tool)
 export function pdfToImage(buffer: Buffer, page: number = 1): Buffer | null {
+  if (typeof execSync === 'undefined' || typeof writeFileSync === 'undefined') {
+    return null;
+  }
   const tmpPdf = join(tmpdir(), `resume_${Date.now()}.pdf`);
   const tmpOut = join(tmpdir(), `resume_${Date.now()}`);
   

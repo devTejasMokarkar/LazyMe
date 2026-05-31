@@ -34,6 +34,55 @@ interface ATSScoreCardProps {
   };
 }
 
+function formatItem(item: any): string {
+  if (typeof item === 'string') return item;
+  if (item && typeof item === 'object' && item.section) {
+    const section = String(item.section);
+    if (item.after) {
+      const after = String(item.after).trim();
+      if (section === 'Skills' || section === 'skills') {
+        const newItems = after.replace(/^\[.*?\]\s*/, '').replace(/^["\[]+/, '').replace(/["\]]+$/, '');
+        return `Add to ${section}: ${newItems.slice(0, 120)}`;
+      }
+      if (section === 'Summary' || section === 'summary') {
+        return `Rewrite ${section}: ${after.slice(0, 120)}...`;
+      }
+      if (section === 'Experience' || section === 'experience') {
+        const lines = after.split('\n').filter(Boolean);
+        return lines.length > 1 ? `Rewrite bullet to: ${lines[lines.length - 1].slice(0, 120)}` : `Update ${section} bullet: ${after.slice(0, 120)}`;
+      }
+      return `[${section}] ${after.slice(0, 120)}`;
+    }
+    return `[${section}] Update content`;
+  }
+  return String(item);
+}
+
+function formatImprovement(item: any): string {
+  if (typeof item === 'string') return item;
+  if (item && typeof item === 'object') {
+    if (item.section && item.after && item.before) {
+      const section = String(item.section);
+      const after = String(item.after).trim();
+      if (section === 'Skills' || section === 'skills') {
+        const added = after.replace(/^\[.*?\]\s*/, '').replace(/^\[|\]$/g, '').split(', ').slice(-3).join(', ');
+        return `Add missing skills: ${added}`;
+      }
+      if (section === 'Summary' || section === 'summary') {
+        return `Rewrite summary to include ${after.split(' ').slice(-5).join(' ')}`;
+      }
+      if (section === 'Experience' || section === 'experience') {
+        const lines = after.split('\n').filter(Boolean);
+        const lastBullet = lines[lines.length - 1]?.replace(/^[•\-\*]\s*/, '') || '';
+        return `Enhance experience bullet: ${lastBullet.slice(0, 120)}`;
+      }
+      return `[${section}] ${after.slice(0, 120)}`;
+    }
+    return JSON.stringify(item);
+  }
+  return String(item);
+}
+
 export function ATSScoreCard({ data, onImprove, improving, changes, previousScore, analysis }: ATSScoreCardProps) {
   const score = data.score;
   const missingKeywords = 'missing' in data ? data.missing : data.keywordAnalysis.missingSkills;
@@ -104,9 +153,9 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
             <CheckCircle className="w-4 h-4 text-success" /> Changes Made
           </h4>
           <ul className="space-y-2">
-            {changes.map((c, i) => (
+            {changes.map((c: any, i: number) => (
               <li key={i} className="text-sm text-on-surface-variant flex items-start gap-2">
-                <span className="text-success mt-0.5">•</span> {c}
+                <span className="text-success mt-0.5">•</span> {formatImprovement(c)}
               </li>
             ))}
           </ul>
@@ -124,9 +173,9 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
         <div className="pt-4 border-t border-outline-variant/50">
           <h4 className="text-xs font-bold text-on-surface-variant mb-3 uppercase tracking-wider">Actionable Improvements</h4>
           <ul className="space-y-2">
-            {analysis.actionableImprovements.slice(0, 5).map((improvement, i) => (
+            {analysis.actionableImprovements.slice(0, 5).map((improvement: any, i: number) => (
               <li key={i} className="text-sm text-on-surface-variant flex items-start gap-2">
-                 <span className="text-tertiary mt-0.5">→</span> {improvement}
+                 <span className="text-tertiary mt-0.5">→</span> {formatItem(improvement)}
               </li>
             ))}
           </ul>

@@ -4,7 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { downloadPDF } from "@/features/ai/pdf.service";
 import { useToast } from "@/components/layout/ToastProvider";
 import { latexToHtml } from "@/features/ai/latex.service";
-import { Download, FileText, Code, AlignLeft, File as FileIcon, ChevronDown } from "lucide-react";
+import { Download, FileText, Code, AlignLeft, File as FileIcon, ChevronDown, ScanSearch } from "lucide-react";
+import { transformResumeData } from "@/features/pdf/resume-transformer";
+import { generateATSPDF, downloadATSPDF } from "@/features/pdf/ats-pdf-generator";
 
 interface DownloadDropdownProps {
   resumeData: any;
@@ -35,6 +37,37 @@ export default function DownloadDropdown({ resumeData, latex, resumePreviewId = 
       const filename = `resume_${resumeData.name?.replace(/\s+/g, '_').toLowerCase() || 'download'}`;
 
       switch (type) {
+        case "ats-pdf":
+          showToast("Generating ATS-optimized PDF...", "info");
+          const atsData = transformResumeData({
+            userName: resumeData.name || '',
+            userRole: resumeData.title || '',
+            email: resumeData.email || '',
+            phone: resumeData.phone || '',
+            location: resumeData.location || '',
+            summary: resumeData.summary || '',
+            skills: resumeData.skills || [],
+            experience: (resumeData.experience || []).map((e: any) => ({
+              company: e.company || '',
+              role: e.role || '',
+              duration: e.duration || '',
+              bullets: e.bullets || [],
+              sections: e.sections || [],
+              stack: e.stack || '',
+              location: e.location || '',
+            })),
+            education: (resumeData.education || []).map((e: any) => ({
+              school: e.school || '',
+              degree: e.degree || '',
+              year: e.year || '',
+            })),
+          });
+
+          const { html, config, pageCount } = await generateATSPDF(atsData);
+          await downloadATSPDF(html, `${filename}-ats.pdf`);
+          showToast(`ATS PDF downloaded! (${pageCount} page${pageCount !== 1 ? 's' : ''}, ${config.fontSize}pt)`, "success");
+          break;
+
         case "tex":
           const texBlob = new Blob([latex], { type: "application/x-tex" });
           const texUrl = URL.createObjectURL(texBlob);
@@ -142,6 +175,18 @@ ${resumeData.education.map((e: any) => `${e.degree} from ${e.school} (${e.year})
             Select Export Format
           </div>
           <div className="p-2 space-y-1">
+            <button 
+              onClick={() => downloadFile("ats-pdf")} 
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500 group-hover:scale-110 transition-transform">
+                <ScanSearch className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-on-surface">ATS PDF</p>
+                <p className="text-[10px] text-on-surface-variant">ATS-optimized single-page PDF</p>
+              </div>
+            </button>
             <button 
               onClick={() => downloadFile("pdf")} 
               className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-all group"

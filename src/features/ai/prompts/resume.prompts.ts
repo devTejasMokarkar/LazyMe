@@ -129,7 +129,8 @@ Return ONLY valid JSON with this exact structure:
     {
       "section": string,
       "before": string,
-      "after": string
+      "after": string,
+      "impact": number (estimated ATS points gained 1-15)
     }
   ],
   "finalSummary": {
@@ -186,6 +187,8 @@ Example style:
 ## AUTO-IMPROVEMENT OUTPUT
 
 Return structured rewrite suggestions in the "autoImprovements" array with section, before, and after fields.
+Each entry MUST include an "impact" field (1-15) estimating the ATS points each individual change adds.
+Focus on high-impact changes (adding missing keywords, rewriting weak bullets, improving summary).
 
 ## FINAL SUMMARY
 
@@ -202,6 +205,132 @@ Return:
 - Focus on hiring relevance, not keyword stuffing
 - Output must feel like a real recruiter evaluation
 - Return ONLY valid JSON, no markdown, no explanation`;
+}
+
+export function buildSkillChunkPrompt(skills: string[], jdKeywords: string[], jd: string): string {
+  return `You are an ATS Skills Analyzer. Your job is to analyze ONLY the SKILLS section of a resume against a job description.
+
+## CURRENT SKILLS
+${JSON.stringify(skills, null, 2)}
+
+## JD KEYWORDS
+${JSON.stringify(jdKeywords, null, 2)}
+
+## FULL JOB DESCRIPTION
+${jd}
+
+Return ONLY valid JSON:
+{
+  "keywordAnalysis": {
+    "missingSkills": ["skills present in JD but absent from resume"],
+    "weakSkills": ["skills mentioned but weakly or needing better context"],
+    "strongSkills": ["skills that are a clear match"]
+  },
+  "actionableImprovements": ["specific skill-related suggestions as strings"],
+  "autoImprovements": [
+    {
+      "section": "Skills",
+      "before": "comma-separated current skills as a flat string",
+      "after": "comma-separated improved skills as a flat string",
+      "impact": number (1-15)
+    }
+  ]
+}
+
+STRICT: before/after must be flat comma-separated strings, not arrays.`;
+}
+
+export function buildExperienceChunkPrompt(expEntry: any, jd: string): string {
+  return `You are an ATS Experience Analyzer. Analyze ONE experience entry against the job description.
+
+## EXPERIENCE ENTRY
+${JSON.stringify(expEntry, null, 2)}
+
+## JOB DESCRIPTION
+${jd}
+
+Return ONLY valid JSON:
+{
+  "relevanceScore": number (0-100),
+  "matchedKeywords": string[],
+  "actionableImprovements": ["specific bullet-level suggestions as strings"],
+  "autoImprovements": [
+    {
+      "section": "experience[INDEX]",
+      "before": "exact original text of the bullet being changed (string only)",
+      "after": "improved text (string only)",
+      "impact": number (1-15)
+    }
+  ]
+}
+
+STRICT RULES:
+- before/after must be plain text strings, not objects or arrays
+- If a bullet is fine, leave it out of autoImprovements
+- Focus on adding metrics, action verbs, and JD keywords`;
+}
+
+export function buildEducationChunkPrompt(education: any[], jd: string): string {
+  return `You are an ATS Education Analyzer. Analyze education entries against the job description.
+
+## EDUCATION
+${JSON.stringify(education, null, 2)}
+
+## JOB DESCRIPTION
+${jd}
+
+Return ONLY valid JSON:
+{
+  "relevanceScore": number (0-100),
+  "actionableImprovements": ["specific education-related suggestions as strings"],
+  "autoImprovements": [
+    {
+      "section": "Education",
+      "before": "current education text as a flat string",
+      "after": "improved education text as a flat string",
+      "impact": number (1-15)
+    }
+  ]
+}
+
+STRICT: before/after must be flat strings, not arrays or objects.`;
+}
+
+export function buildGapAnalysisPrompt(
+  resume: any, 
+  jd: string, 
+  skillResult: any, 
+  expResults: any[], 
+  eduResult: any
+): string {
+  return `You are an ATS Recruiter providing final gap analysis. Given the full resume and the individual section analyses below, generate a recruiter-grade evaluation.
+
+## FULL RESUME
+${JSON.stringify(resume, null, 2)}
+
+## JOB DESCRIPTION
+${jd}
+
+## SKILLS ANALYSIS
+${JSON.stringify(skillResult?.keywordAnalysis || {}, null, 2)}
+
+## EXPERIENCE ANALYSES
+${JSON.stringify(expResults.map((r: any) => r.actionableImprovements || []).flat(), null, 2)}
+
+## EDUCATION ANALYSIS
+${JSON.stringify(eduResult?.actionableImprovements || [], null, 2)}
+
+Return ONLY valid JSON:
+{
+  "gapAnalysis": "2-3 paragraph recruiter-grade evaluation of what's missing",
+  "finalSummary": {
+    "strengths": ["what matches well"],
+    "weaknesses": ["critical gaps"],
+    "estimatedScoreAfterImprovement": number (0-100)
+  },
+  "actionableImprovements": ["overall improvement suggestions as flat strings"],
+  "atsScore": number (0-100 overall score based on all sections)
+}`;
 }
 
 export function buildResumeFromChatPrompt(message: string): string {
