@@ -75,12 +75,12 @@ function isGeminiNetworkError(error: any) {
   return message.includes("fetch failed") || message.includes("generativelanguage.googleapis.com");
 }
 
-async function callOllama(prompt: string, model: string = 'llama3.2'): Promise<string | null> {
+async function callOllama(prompt: string, model: string = 'llama3.2', timeoutMs: number = ollamaTimeoutMs): Promise<string | null> {
   const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
   
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), ollamaTimeoutMs);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     
     const r = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
@@ -144,9 +144,8 @@ async function getInstalledOllamaModels(): Promise<string[] | null> {
 async function callOllamaFallback(prompt: string): Promise<string | null> {
   const ollamaModels = [
     preferredOllamaModel,
-    'llama3.2',
-    'deepseek-coder:6.7b',
-    'gemma4:e4b',
+    ...(preferredOllamaModel !== 'llama3.2' ? ['llama3.2'] : []),
+    ...(preferredOllamaModel !== 'deepseek-coder:6.7b' ? ['deepseek-coder:6.7b'] : []),
   ].filter(Boolean) as string[];
   const installedModels = await getInstalledOllamaModels();
 
@@ -156,7 +155,9 @@ async function callOllamaFallback(prompt: string): Promise<string | null> {
     if (installedModels && !installedModels.includes(modelName) && !installedModels.includes(`${modelName}:latest`)) continue;
     triedModels.push(modelName);
 
-    const result = await callOllama(prompt, modelName);
+    const isFirst = triedModels.length === 1;
+    const timeout = isFirst ? ollamaTimeoutMs : Math.min(ollamaTimeoutMs, 30000);
+    const result = await callOllama(prompt, modelName, timeout);
     if (result) {
       logger.info({ 
       message: `Ollama ${modelName} successful` 

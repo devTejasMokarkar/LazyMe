@@ -18,7 +18,7 @@ export default async function AppLayout({
     <div className="min-h-screen bg-background text-on-background overflow-x-hidden">
       <TopNav />
       <Sidebar />
-      <div className="lg:pl-[72px] pt-16">
+      <div className="lg:pl-20 pt-16">
         <main className="h-[calc(100vh-64px)] overflow-hidden">
           {children}
         </main>

@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { signOutAction } from '@/app/actions';
 
 const SIDEBAR_WIDTH = 240;
-const COLLAPSED_WIDTH = 72;
+const COLLAPSED_WIDTH = 80;
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -72,16 +72,16 @@ export default function Sidebar() {
         style={{
           width: isExpanded ? SIDEBAR_WIDTH : COLLAPSED_WIDTH,
         }}
-        onMouseEnter={() => setIsExpanded(true)}
+        onMouseEnter={() => setIsExpanded(false)}
         onMouseLeave={() => setIsExpanded(false)}
       >
         {/* Logo Section */}
-        <div className="relative h-16 flex items-center px-5 border-b border-outline-variant/30">
+        <div className="relative h-20 flex items-center px-2 border-b border-outline-variant/30">
           <motion.div
-            className="flex items-center gap-3 overflow-hidden"
+            className="flex w-full items-center justify-center gap-3 overflow-hidden"
             animate={{ opacity: 1 }}
           >
-            <div className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="w-16 h-16 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
               <img src="/logo.png" alt="LazyMe Logo" className="w-full h-full object-contain" />
             </div>
             <AnimatePresence mode="wait">
@@ -145,19 +145,7 @@ export default function Sidebar() {
                   )}
                 </AnimatePresence>
 
-                {/* Tooltip for collapsed state */}
-                <AnimatePresence>
-                  {!isExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, x: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, x: 0, scale: 1 }}
-                      exit={{ opacity: 0, x: -10, scale: 0.95 }}
-                      className="absolute left-full ml-3 px-3 py-1.5 bg-surface-container-highest border border-outline-variant rounded-lg shadow-xl whitespace-nowrap pointer-events-none z-50"
-                    >
-                      <span className="text-xs font-semibold text-on-surface">{item.label}</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <span className="sr-only">{item.label}</span>
               </Link>
             );
           })}

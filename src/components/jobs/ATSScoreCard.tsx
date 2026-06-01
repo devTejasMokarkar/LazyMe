@@ -25,6 +25,8 @@ interface NewATSFormat {
 interface ATSScoreCardProps {
   data: OldATSFormat | NewATSFormat;
   onImprove?: () => void;
+  onApplyKeyword?: (keyword: string) => void;
+  applyingKeyword?: string | null;
   improving?: boolean;
   changes?: string[];
   previousScore?: number | null;
@@ -83,7 +85,7 @@ function formatImprovement(item: any): string {
   return String(item);
 }
 
-export function ATSScoreCard({ data, onImprove, improving, changes, previousScore, analysis }: ATSScoreCardProps) {
+export function ATSScoreCard({ data, onImprove, onApplyKeyword, applyingKeyword, improving, changes, previousScore, analysis }: ATSScoreCardProps) {
   const score = data.score;
   const missingKeywords = 'missing' in data ? data.missing : data.keywordAnalysis.missingSkills;
   const strongSkills = 'keywordAnalysis' in data ? data.keywordAnalysis.strongSkills : ('matched' in data ? data.matched : []);
@@ -117,7 +119,7 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
           )}
           {score < 70 && !previousScore && (
             <div className="text-xs text-warning font-medium">
-              Your resume can be improved. Click "Improve Resume".
+              Add the missing keywords or apply suggested changes.
             </div>
           )}
         </div>
@@ -189,7 +191,19 @@ export function ATSScoreCard({ data, onImprove, improving, changes, previousScor
           </h4>
           <div className="flex flex-wrap gap-2">
             {missingKeywords.slice(0, 12).map((w, i) => (
-              <span key={i} className="px-2 py-1 bg-error/10 text-error text-xs rounded border border-error/20">{w}</span>
+              <span key={i} className="inline-flex items-center gap-1.5 px-2 py-1 bg-error/10 text-error text-xs rounded border border-error/20">
+                {w}
+                {onApplyKeyword && (
+                  <button
+                    type="button"
+                    onClick={() => onApplyKeyword(w)}
+                    disabled={applyingKeyword === w}
+                    className="rounded border border-error/25 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider hover:bg-error/10 disabled:opacity-50"
+                  >
+                    {applyingKeyword === w ? 'Applying' : 'Apply'}
+                  </button>
+                )}
+              </span>
             ))}
             {missingKeywords.length > 12 && (
               <span className="px-2 py-1 text-on-surface-variant/50 text-xs rounded border border-outline-variant">+{missingKeywords.length - 12} more</span>

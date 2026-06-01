@@ -3,6 +3,8 @@ import { auth } from "@/config/auth";
 import { prisma } from "@/lib/db";
 import { generateText } from "@/features/ai/ai.service";
 import { buildCoverLetterPrompt } from "@/features/ai/prompts/resume.prompts";
+import { buildATSScorerPrompt } from "@/features/ai/prompts/ats.prompts";
+import { resumeToPlainText } from "@/features/ai/utils/resume-text";
 import { calculateWeightedATS } from "@/features/ai/ats.service";
 import { logger } from "@/lib/logger";
 
@@ -64,7 +66,30 @@ export async function POST(req: NextRequest) {
       jobs.map(async (job) => {
         const jobDescription = `We are hiring a ${job.title} at ${job.company}. Location: ${job.location}. Apply here: ${job.url}`;
 
-        const atsResult = calculateWeightedATS(resumeContent, jobDescription);
+        // AI-powered scoring with fallback to keyword-based
+        let atsScore = 0;
+        let breakdown: any = null;
+        let keywordAnalysis: any = null;
+        try {
+          const plainText = resumeToPlainText(resumeContent);
+          const scorerPrompt = buildATSScorerPrompt(plainText, jobDescription);
+          const aiResponse = await generateText(scorerPrompt);
+          const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            atsScore = parsed.overall_score || 0;
+            breakdown = parsed.breakdown;
+            keywordAnalysis = {
+              missingSkills: parsed.missing_keywords || [],
+              strongSkills: parsed.found_keywords || [],
+            };
+          }
+        } catch {
+          const fallback = calculateWeightedATS(resumeContent, jobDescription);
+          atsScore = fallback.score;
+          breakdown = fallback.breakdown;
+          keywordAnalysis = fallback.keywordAnalysis;
+        }
 
         let coverLetter: string | undefined;
         if (generateCoverLetter) {
@@ -86,7 +111,7 @@ export async function POST(req: NextRequest) {
             description: jobDescription,
             source: job.source || "auto-pilot",
             applyUrl: job.url,
-            matchScore: atsResult.score,
+            matchScore: atsScore,
           },
           create: {
             id: job.id,
@@ -96,7 +121,7 @@ export async function POST(req: NextRequest) {
             description: jobDescription,
             source: job.source || "auto-pilot",
             applyUrl: job.url,
-            matchScore: atsResult.score,
+            matchScore: atsScore,
           },
         });
 
@@ -145,9 +170,9 @@ export async function POST(req: NextRequest) {
           jobId: job.id,
           company: job.company,
           role: job.title,
-          atsScore: atsResult.score,
-          breakdown: atsResult.breakdown,
-          keywordAnalysis: atsResult.keywordAnalysis,
+          atsScore: atsScore,
+          breakdown: breakdown,
+          keywordAnalysis: keywordAnalysis,
           coverLetterGenerated: !!coverLetter,
           applicationId: application.id,
           emailSent,

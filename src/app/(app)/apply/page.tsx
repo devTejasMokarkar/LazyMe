@@ -6,6 +6,7 @@ import {
   AlertCircle, DollarSign, Clock, ChevronDown, Inbox, RefreshCw, Linkedin,
   Sparkles, Check, Zap, Target, BarChart3, Brain
 } from 'lucide-react';
+import DirectMailToHR from '@/components/apply/DirectMailToHR';
 
 interface IndeedJob {
   id: string;
@@ -113,6 +114,42 @@ const INDIAN_CITIES = [
   "Coimbatore", "Vadodara", "Agra", "Varanasi", "Patna",
   "Ranchi", "Bhubaneswar", "Guwahati", "Mysore", "Nashik",
 ];
+
+function inferExperienceLevel(resume: any): string {
+  const exp = Array.isArray(resume?.experience) ? resume.experience : [];
+  const text = `${resume?.summary || ''} ${resume?.title || ''} ${exp.map((e: any) => `${e.duration || ''} ${e.role || ''}`).join(' ')}`.toLowerCase();
+  const yearMatches: number[] = [];
+  const yearRegex = /(\d+)\+?\s*(?:years|yrs|year|yr)/g;
+  let match = yearRegex.exec(text);
+  while (match) {
+    const years = Number(match[1]);
+    if (years) yearMatches.push(years);
+    match = yearRegex.exec(text);
+  }
+  const maxYears = yearMatches.length ? Math.max(...yearMatches) : exp.length * 2;
+  if (/\b(entry|fresher|intern|junior)\b/.test(text) || maxYears <= 1) return "entry-level";
+  if (/\b(senior|lead|principal|architect|manager)\b/.test(text) || maxYears >= 5) return "senior";
+  if (maxYears >= 2) return "mid-senior";
+  return "any";
+}
+
+function inferJobType(resume: any): string {
+  const text = `${resume?.summary || ''} ${resume?.title || ''} ${(resume?.skills || []).join(' ')}`.toLowerCase();
+  if (/\b(remote|work from home|wfh)\b/.test(text)) return "remote";
+  if (/\b(contract|freelance|consultant)\b/.test(text)) return "contract";
+  if (/\b(part[-\s]?time)\b/.test(text)) return "part-time";
+  if (/\b(full[-\s]?time|permanent)\b/.test(text)) return "full-time";
+  return "full-time";
+}
+
+function normalizeResumeTitle(title: string): string {
+  const clean = (title || '').trim();
+  if (!clean) return "";
+  const exact = JOB_TITLES.find((t) => t.toLowerCase() === clean.toLowerCase());
+  if (exact) return exact;
+  const fuzzy = JOB_TITLES.find((t) => clean.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(clean.toLowerCase()));
+  return fuzzy || clean;
+}
 
 function getDaysAgo(dateText: string): number {
   try {
@@ -227,6 +264,7 @@ export default function ApplyPage() {
   const [indeedErrorMsg, setIndeedErrorMsg] = useState("");
   const [indeedBlocked, setIndeedBlocked] = useState(false);
   const [indeedAllFailed, setIndeedAllFailed] = useState(false);
+  const [resumePrefill, setResumePrefill] = useState<{ title?: string; experience?: string; jobType?: string } | null>(null);
   const initialized = useRef(false);
 
   const locationDisabled = isLocationDisabled(indeedSources);
@@ -420,6 +458,29 @@ export default function ApplyPage() {
     if (tabParam === 'linkedin') {
       setTab('linkedin');
     }
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasUrlFilters = params.has("q") || params.has("experience") || params.has("jobType");
+    if (hasUrlFilters) return;
+
+    fetch('/api/resumes')
+      .then((r) => r.ok ? r.json() : [])
+      .then((resumes) => {
+        if (!Array.isArray(resumes) || resumes.length === 0) return;
+        const primary = resumes.find((r: any) => r.isDefault) || resumes[0];
+        const resume = primary?.content || {};
+        const title = normalizeResumeTitle(resume.title || '');
+        const inferredExperience = inferExperienceLevel(resume);
+        const inferredJobType = inferJobType(resume);
+
+        if (title) setKeyword(title);
+        if (inferredExperience !== "any") setExperience(inferredExperience);
+        if (inferredJobType !== "any") setJobType(inferredJobType);
+        setResumePrefill({ title, experience: inferredExperience, jobType: inferredJobType });
+      })
+      .catch(() => {});
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -889,23 +950,25 @@ export default function ApplyPage() {
           <p className="text-sm text-on-surface-variant mt-1">Find and apply to relevant jobs</p>
         </div>
 
+        <DirectMailToHR />
+
         <form onSubmit={handleSearch} className="bg-surface-container border border-outline-variant/50 rounded-xl p-4 mb-5 shadow-sm">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-medium text-on-surface-variant mb-1">
                 Job Title <span className="text-red-500 dark:text-red-400">*</span>
               </label>
-              <select
+              <input
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 required
-                className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
-              >
-                <option value="">Select</option>
-                {JOB_TITLES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+                list="job-title-suggestions"
+                placeholder="Job title"
+                className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm"
+              />
+              <datalist id="job-title-suggestions">
+                {JOB_TITLES.map((t) => <option key={t} value={t} />)}
+              </datalist>
             </div>
             <div>
               <label className="block text-xs font-medium text-on-surface-variant mb-1">Location</label>
@@ -972,6 +1035,11 @@ export default function ApplyPage() {
             {tab === 'indeed' && (
               <span className="text-[11px] text-on-surface-variant/60">
                 {locationDisabled ? "Remote only — location disabled" : "Results from Indeed & Remotive"}
+              </span>
+            )}
+            {resumePrefill && (
+              <span className="text-[11px] text-primary/80">
+                Prefilled from resume
               </span>
             )}
           </div>

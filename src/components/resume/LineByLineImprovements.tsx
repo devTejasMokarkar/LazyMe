@@ -14,6 +14,8 @@ interface LineByLineImprovementsProps {
   onApply: (index: number) => void;
   onApplyAll: () => void;
   applying?: boolean;
+  applyingIndex?: number | null;
+  loadingCount?: number;
   appliedIndices?: Set<number>;
 }
 
@@ -41,11 +43,13 @@ export function LineByLineImprovements({
   onApply,
   onApplyAll,
   applying,
+  applyingIndex = null,
+  loadingCount = 0,
   appliedIndices = new Set(),
 }: LineByLineImprovementsProps) {
-  if (!improvements.length) return null;
+  if (!improvements.length && loadingCount <= 0) return null;
 
-  const allApplied = improvements.every((_, i) => appliedIndices.has(i));
+  const allApplied = improvements.length > 0 && improvements.every((_, i) => appliedIndices.has(i));
 
   return (
     <div className="glass rounded-xl border border-outline-variant/30 overflow-hidden">
@@ -55,9 +59,9 @@ export function LineByLineImprovements({
             <Sparkles className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-bold">Suggested Improvements</h3>
+            <h3 className="text-sm font-bold">Suggested Apply Changes</h3>
             <p className="text-[10px] text-on-surface-variant font-medium">
-              {improvements.filter((_, i) => !appliedIndices.has(i)).length} remaining
+              {loadingCount > 0 ? `${loadingCount} loading` : `${improvements.filter((_, i) => !appliedIndices.has(i)).length} remaining`}
             </p>
           </div>
         </div>
@@ -87,6 +91,8 @@ export function LineByLineImprovements({
         <AnimatePresence initial={false}>
           {improvements.map((imp, i) => {
             const isApplied = appliedIndices.has(i);
+            if (isApplied) return null;
+            const isApplyingThis = applyingIndex === i;
             const sectionKey = imp.section.toLowerCase();
             const borderColor = Object.keys(sectionColors).find(k => sectionKey.includes(k))
               ? sectionColors[Object.keys(sectionColors).find(k => sectionKey.includes(k))!]
@@ -105,7 +111,6 @@ export function LineByLineImprovements({
                 className={cn(
                   "border-l-2 pl-4 pr-4 py-4 transition-opacity",
                   borderColor,
-                  isApplied && "opacity-40"
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -134,16 +139,14 @@ export function LineByLineImprovements({
 
                   <button
                     onClick={() => onApply(i)}
-                    disabled={isApplied || applying}
+                    disabled={applying}
                     className={cn(
                       "shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                      isApplied
-                        ? "bg-success/10 text-success border border-success/20 cursor-default"
-                        : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 disabled:opacity-30"
+                      "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 disabled:opacity-30"
                     )}
                   >
-                    {isApplied ? (
-                      <><CheckCircle2 className="w-3 h-3" /> Applied</>
+                    {isApplyingThis ? (
+                      <><Loader2 className="w-3 h-3 animate-spin" /> Applying</>
                     ) : (
                       <><ArrowRight className="w-3 h-3" /> Apply</>
                     )}
@@ -152,6 +155,33 @@ export function LineByLineImprovements({
               </motion.div>
             );
           })}
+          {Array.from({ length: loadingCount }).map((_, i) => (
+            <motion.div
+              key={`loading-${i}`}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="border-l-2 border-l-primary bg-primary/5 pl-4 pr-4 py-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0 space-y-3">
+                  <div className="h-5 w-28 rounded-full bg-surface-container-high animate-pulse" />
+                  <div className="space-y-2 rounded-lg border border-outline-variant/20 bg-surface-container/40 p-3">
+                    <div className="h-3 w-20 rounded bg-surface-container-high animate-pulse" />
+                    <div className="h-3 w-full rounded bg-surface-container-high animate-pulse" />
+                    <div className="h-3 w-2/3 rounded bg-surface-container-high animate-pulse" />
+                  </div>
+                  <div className="space-y-2 rounded-lg border border-outline-variant/20 bg-surface-container/40 p-3">
+                    <div className="h-3 w-16 rounded bg-surface-container-high animate-pulse" />
+                    <div className="h-3 w-5/6 rounded bg-surface-container-high animate-pulse" />
+                    <div className="h-3 w-1/2 rounded bg-surface-container-high animate-pulse" />
+                  </div>
+                </div>
+                <div className="h-8 w-20 rounded-lg bg-surface-container-high animate-pulse" />
+              </div>
+            </motion.div>
+          ))}
         </AnimatePresence>
       </div>
     </div>

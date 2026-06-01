@@ -19,13 +19,13 @@ export default function TopNav() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 z-40 flex justify-between items-center px-4 lg:pl-[72px] glass-dark border-b">
+    <header className="fixed top-0 left-0 right-0 h-16 z-40 flex justify-between items-center px-4 lg:pl-20 glass-dark border-b">
       <div className="flex items-center gap-4">
         <Link 
           href="/"
           className="font-bold text-lg text-primary flex items-center gap-2 cursor-pointer hover:text-primary/80 transition-colors"
         >
-          <img src="/logo.png" alt="LazyMe Logo" className="w-12 h-12 object-contain" />
+          <img src="/logo.png" alt="LazyMe Logo" className="w-14 h-14 object-contain" />
           <span className="hidden sm:inline text-xl font-bold">LazyMe</span>
         </Link>
       </div>

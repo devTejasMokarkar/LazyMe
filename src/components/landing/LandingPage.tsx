@@ -311,6 +311,7 @@ export default function LandingPage() {
 
       // Save parsed data to localStorage so it is available post-login
       localStorage.setItem('lazyme_pending_resume', JSON.stringify(data));
+      localStorage.setItem('lazyme_pending_jd', trimmedJd);
 
       // Heuristic 1: Extract Job Title
       let matchedRole = data.title || "Software Engineer";

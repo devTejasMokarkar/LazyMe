@@ -23,7 +23,8 @@ export const downloadPDF = async (elementId: string, filename: string = "resume.
       filename: filename,
       image: { type: "jpeg" as const, quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: "in" as const, format: "letter" as const, orientation: "portrait" as const }
+      jsPDF: { unit: "in" as const, format: "letter" as const, orientation: "portrait" as const },
+      pagebreak: { mode: ["css", "legacy"], avoid: ["li", "h1", "h2", ".avoid-break"] }
     };
 
     await html2pdf().set(opt).from(element).save();
@@ -49,7 +50,8 @@ export const downloadPDFFromContent = async (content: string, filename: string =
       filename: filename,
       image: { type: "jpeg" as const, quality: 0.98 },
       html2canvas: { scale: 2 },
-      jsPDF: { unit: "in" as const, format: "letter" as const, orientation: "portrait" as const }
+      jsPDF: { unit: "in" as const, format: "letter" as const, orientation: "portrait" as const },
+      pagebreak: { mode: ["css", "legacy"], avoid: ["li", "h1", "h2", ".avoid-break"] }
     };
 
     await html2pdf().set(opt).from(content).save();

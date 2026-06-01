@@ -101,18 +101,20 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const pendingResumeApplied = useRef(false);
   const promptProcessedRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ai-chat' | 'manual-edit' | 'ats-score'>('ai-chat');
+  const [activeTab, setActiveTab] = useState<'optimize' | 'manual-edit'>('optimize');
 
   // ATS Analysis state
   const [showATS, setShowATS] = useState(false);
   const [jobDescription, setJobDescription] = useState('');
   const [atsResult, setAtsResult] = useState<any>(null);
   const [isAnalyzingATS, setIsAnalyzingATS] = useState(false);
-  const [isAnalyzingChunked, setIsAnalyzingChunked] = useState(false);
-  const [chunkStatusText, setChunkStatusText] = useState('');
   const [isImprovingATS, setIsImprovingATS] = useState(false);
   const [previousATSScore, setPreviousATSScore] = useState<number | null>(null);
   const [atsChanges, setAtsChanges] = useState<string[]>([]);
+  const [atsScoreResult, setAtsScoreResult] = useState<any>(null);
+  const [applyingImprovementIndex, setApplyingImprovementIndex] = useState<number | null>(null);
+  const [applyingKeyword, setApplyingKeyword] = useState<string | null>(null);
+  const [loadingImprovementCount, setLoadingImprovementCount] = useState(0);
 
   // Template state
   const [template, setTemplate] = useState<TemplateType>('modern');
@@ -255,6 +257,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           setSummary(parsed.summary || '');
           setEducation(parsed.education || []);
           setUploadSuccess(true);
+
+          // Read pending JD and auto-analyze
+          const pendingJd = localStorage.getItem('lazyme_pending_jd');
+          if (pendingJd) {
+            localStorage.removeItem('lazyme_pending_jd');
+            setJobDescription(pendingJd);
+          }
           setLoading(false);
           setParsingFeedback([
             { name: 'Identity', status: 'success', confidence: 98 },
@@ -1014,17 +1023,18 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   };
 
   const handleAnalyzeATS = async () => {
-    if (!jobDescription.trim() || isAnalyzingChunked) return;
-    setIsAnalyzingChunked(true);
+    if (!jobDescription.trim() || isAnalyzingATS) return;
+    setIsAnalyzingATS(true);
     setAtsResult(null);
+    setAtsScoreResult(null);
     setAtsChanges([]);
     setAtsImprovements([]);
     setAppliedImprovementIndices(new Set());
     setPreviousATSScore(null);
-    setChunkStatusText('Starting analysis...');
 
     try {
-      const res = await fetch('/api/analyze-ats-chunked', {
+      // STEP 1 — Score first
+      const scoreRes = await fetch('/api/ats-score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1043,76 +1053,90 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         })
       });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(errData?.error || 'Chunked analysis failed');
+      if (!scoreRes.ok) {
+        const errData = await scoreRes.json().catch(() => null);
+        throw new Error(errData?.error || 'ATS scoring failed');
       }
 
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('No response body');
+      const scoreData = await scoreRes.json();
+      setAtsScoreResult(scoreData);
 
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let eventType = '';
+      const score = scoreData.overall_score;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+      setAtsResult({
+        analysis: {
+          atsScore: score,
+          atsScoreResult: scoreData,
+          keywordAnalysis: {
+            missingSkills: scoreData.missing_keywords,
+            strongSkills: scoreData.found_keywords,
+          },
+          autoImprovements: [],
+        },
+        atsScore: score,
+      });
+      setIsAnalyzingATS(false);
 
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+      // STEP 2 — Check if improvement needed
+      if (score >= 75) {
+        showToast(`ATS Score: ${score}% — Resume is already well-optimized!`, 'success');
+        return;
+      }
 
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            eventType = line.slice(7).trim();
-          } else if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              switch (eventType) {
-                case 'status':
-                  setChunkStatusText(data.message);
-                  break;
-                case 'skills':
-                  setAtsImprovements(prev => [...prev, ...(data.improvements || [])]);
-                  // Store partial keyword analysis for the score card
-                  if (data.keywordAnalysis) {
-                    setAtsResult((prev: any) => prev || {});
-                  }
-                  break;
-                case 'experience':
-                  setAtsImprovements(prev => [...prev, ...(data.improvements || [])]);
-                  break;
-                case 'education':
-                  setAtsImprovements(prev => [...prev, ...(data.improvements || [])]);
-                  break;
-                case 'summary':
-                  setAtsResult({
-                    analysis: {
-                      atsScore: data.atsScore,
-                      keywordAnalysis: data.keywordAnalysis,
-                      gapAnalysis: data.gapAnalysis,
-                      actionableImprovements: data.actionableImprovements,
-                      autoImprovements: data.autoImprovements,
-                    },
-                    weightedATS: data.weightedATS,
-                    atsScore: data.atsScore,
-                  });
-                  setAtsChanges((data.actionableImprovements || []).slice(0, 5));
-                  setAtsImprovements(data.autoImprovements || []);
-                  setChunkStatusText('Analysis complete!');
-                  break;
-              }
-            } catch (parseErr) {
-              // skip malformed event data
-            }
+      // STEP 3 — Generate suggestions one weak section at a time.
+      const weakSections = Array.isArray(scoreData.weak_sections) && scoreData.weak_sections.length
+        ? scoreData.weak_sections.slice(0, 4)
+        : ['summary', 'skills', 'experience'];
+      setLoadingImprovementCount(weakSections.length);
+      setAtsChanges(scoreData.missing_keywords || []);
+
+      for (const section of weakSections) {
+        try {
+          const optRes = await fetch('/api/optimize-resume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              resume: {
+                name: userName,
+                title: userRole,
+                summary,
+                skills,
+                experience,
+                education,
+                email,
+                phone,
+                location
+              },
+              jobDescription: jobDescription.trim(),
+              currentScore: score,
+              missingKeywords: scoreData.missing_keywords,
+              weakSections: [section],
+              titleInJd: scoreData.title_in_jd || "",
+              skipRescore: true,
+            })
+          });
+
+          if (optRes.ok) {
+            const optData = await optRes.json();
+            const improvements = (optData.changes || []).map((c: any) => ({
+              section: c.section,
+              before: c.before,
+              after: c.after,
+              impact: undefined,
+            }));
+            setAtsImprovements(prev => [...prev, ...improvements]);
           }
+        } finally {
+          setLoadingImprovementCount(prev => Math.max(0, prev - 1));
         }
       }
+
+      showToast('Suggestions ready. Apply one or apply all to rescore.', 'success');
     } catch (e: any) {
       showToast(e.message || 'Failed to analyze ATS', 'error');
     } finally {
-      setIsAnalyzingChunked(false);
+      setIsAnalyzingATS(false);
+      setLoadingImprovementCount(0);
     }
   };
 
@@ -1123,14 +1147,8 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     setChatInput('');
     setIsChatLoading(true);
     try {
-      const res = await fetch('/api/ollama/update-resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enhancedPrompt: text }),
-      });
-      const data = await res.json();
-      if (res.ok && data.changes) {
-        const { summary: newSummary, experience: newExperience, skills: newSkills } = data.changes;
+      const applyChanges = (changes: any) => {
+        const { summary: newSummary, experience: newExperience, skills: newSkills } = changes;
         if (newSummary) setSummary(newSummary);
         if (newExperience) {
           setExperience((prev: any[]) => {
@@ -1147,10 +1165,42 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           });
         }
         if (newSkills) setSkills(newSkills);
-        setChatMessages(prev => [...prev, { role: 'assistant', content: "I've applied the optimizations to your resume. Check the preview or Manual Edit tab to see the changes." }]);
-      } else {
-        setChatMessages(prev => [...prev, { role: 'assistant', content: data.error || "I couldn't process that request. Try being more specific about what you'd like to improve." }]);
+      };
+
+      const shouldChunk = /\b(improve|optimi[sz]e|ats|resume|rewrite)\b/i.test(text);
+      const prompts = shouldChunk
+        ? [
+          `Only improve the professional summary if needed. User request: ${text}`,
+          `Only improve skills/keywords if needed. User request: ${text}`,
+          `Only improve experience bullets if needed. User request: ${text}`,
+        ]
+        : [text];
+
+      let appliedAny = false;
+      for (let i = 0; i < prompts.length; i++) {
+        if (prompts.length > 1) {
+          setChatMessages(prev => [...prev, { role: 'assistant', content: `Working on chunk ${i + 1}/${prompts.length}...` }]);
+        }
+        const res = await fetch('/api/ollama/update-resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enhancedPrompt: prompts[i] }),
+        });
+        const data = await res.json();
+        if (res.ok && data.changes) {
+          const { summary: newSummary, experience: newExperience, skills: newSkills } = data.changes;
+          applyChanges(data.changes);
+          appliedAny = appliedAny || Boolean(newSummary || newExperience || newSkills);
+        } else if (prompts.length === 1) {
+          setChatMessages(prev => [...prev, { role: 'assistant', content: data.error || "I couldn't process that request. Try being more specific about what you'd like to improve." }]);
+        }
       }
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: appliedAny
+          ? "I've applied the resume updates in smaller chunks."
+          : "I did not find a specific resume change to apply. Try naming the section or bullet you want changed."
+      }]);
     } catch (e: any) {
       setChatMessages(prev => [...prev, { role: 'assistant', content: "Sorry, something went wrong. Please try again." }]);
     } finally {
@@ -1158,56 +1208,175 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     }
   };
 
-  const handleApplyImprovement = (index: number) => {
-    if (appliedImprovementIndices.has(index)) return;
-    const improvement = atsImprovements[index];
-    if (!improvement) return;
+  const scoreResumeAfterApply = async (resume: any, previousScore?: number | null) => {
+    if (!jobDescription.trim()) return;
+    const scoreRes = await fetch('/api/ats-score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resume, jobDescription: jobDescription.trim() })
+    });
+    if (!scoreRes.ok) {
+      const errData = await scoreRes.json().catch(() => null);
+      throw new Error(errData?.error || 'ATS rescore failed');
+    }
+    const scoreData = await scoreRes.json();
+    setPreviousATSScore(previousScore ?? atsResult?.atsScore ?? atsScoreResult?.overall_score ?? null);
+    setAtsScoreResult(scoreData);
+    setAtsResult((prev: any) => ({
+      ...(prev || {}),
+      atsScore: scoreData.overall_score,
+      analysis: {
+        ...(prev?.analysis || {}),
+        atsScore: scoreData.overall_score,
+        keywordAnalysis: {
+          missingSkills: scoreData.missing_keywords || [],
+          strongSkills: scoreData.found_keywords || [],
+        },
+        gapAnalysis: `Recalculated ATS score after applying changes: ${scoreData.overall_score}%`,
+      }
+    }));
+    setAtsChanges(scoreData.missing_keywords || []);
+    return scoreData;
+  };
 
+  const applyImprovementToResume = (resume: TemplateResumeData, improvement: { section: string; before: string; after: string }) => {
+    const next = {
+      ...resume,
+      skills: [...(resume.skills || [])],
+      experience: JSON.parse(JSON.stringify(resume.experience || [])),
+      education: JSON.parse(JSON.stringify(resume.education || [])),
+    };
     const section = improvement.section.toLowerCase();
     const after = typeof improvement.after === 'string' ? improvement.after : String(improvement.after ?? '');
     const before = typeof improvement.before === 'string' ? improvement.before : String(improvement.before ?? '');
 
     if (section.includes('summary')) {
-      setSummary(after);
+      next.summary = after;
     } else if (section.includes('skill')) {
-      setSkills(after.split(',').map(s => s.trim()).filter(Boolean));
+      next.skills = after.split(/,|\n/).map(s => s.trim().replace(/^[-•]\s*/, '')).filter(Boolean);
     } else if (section.includes('experience') || section.includes('project')) {
-      setExperience(prev => {
-        const updated = [...prev];
-        for (let i = 0; i < updated.length; i++) {
-          const bullets = updated[i].bullets || [];
-          const bulletIdx = bullets.findIndex((b: string) =>
-            b.trim() === before.trim() || b.includes(before.trim()) || before.includes(b.trim())
-          );
-          if (bulletIdx >= 0) {
-            const afterBullets = after.split('\n').map((s: string) => s.trim()).filter(Boolean);
-            updated[i] = {
-              ...updated[i],
-              bullets: [...bullets.slice(0, bulletIdx), afterBullets[0] || after, ...bullets.slice(bulletIdx + 1)],
-            };
-            break;
-          }
+      let replaced = false;
+      for (let i = 0; i < next.experience.length; i++) {
+        const bullets = next.experience[i].bullets || [];
+        const bulletIdx = bullets.findIndex((b: string) =>
+          b.trim() === before.trim() || b.includes(before.trim()) || before.includes(b.trim())
+        );
+        if (bulletIdx >= 0) {
+          const afterBullets = after.split('\n').map((s: string) => s.trim().replace(/^[-•]\s*/, '')).filter(Boolean);
+          next.experience[i] = {
+            ...next.experience[i],
+            bullets: [...bullets.slice(0, bulletIdx), afterBullets[0] || after, ...bullets.slice(bulletIdx + 1)],
+          };
+          replaced = true;
+          break;
         }
-        return updated;
-      });
+      }
+      if (!replaced && next.experience[0]) {
+        const afterBullets = after.split('\n').map((s: string) => s.trim().replace(/^[-•]\s*/, '')).filter(Boolean);
+        next.experience[0].bullets = [...(next.experience[0].bullets || []), ...afterBullets];
+      }
     }
-
-    setAppliedImprovementIndices(prev => new Set(prev).add(index));
+    return next;
   };
 
-  const handleApplyAllImprovements = () => {
-    atsImprovements.forEach((_, i) => {
-      if (!appliedImprovementIndices.has(i)) {
-        handleApplyImprovement(i);
+  const commitResumeData = (resume: TemplateResumeData) => {
+    setUserName(resume.name || '');
+    setUserRole(resume.title || '');
+    setSummary(resume.summary || '');
+    setSkills(resume.skills || []);
+    setExperience(resume.experience || []);
+    setEducation(resume.education || []);
+    setEmail(resume.email || '');
+    setPhone(resume.phone || '');
+    setLocation(resume.location || '');
+  };
+
+  const handleApplyImprovement = async (index: number) => {
+    if (appliedImprovementIndices.has(index)) return;
+    const improvement = atsImprovements[index];
+    if (!improvement) return;
+
+    setIsApplyingImprovement(true);
+    setApplyingImprovementIndex(index);
+    try {
+      const nextResume = applyImprovementToResume(resumeData, improvement);
+      commitResumeData(nextResume);
+      setAppliedImprovementIndices(prev => new Set(prev).add(index));
+      const scoreData = await scoreResumeAfterApply(nextResume, atsResult?.atsScore);
+      showToast(`Applied and recalculated ATS: ${scoreData?.overall_score ?? 'updated'}%`, 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Failed to apply improvement', 'error');
+    } finally {
+      setApplyingImprovementIndex(null);
+      setIsApplyingImprovement(false);
+    }
+  };
+
+  const handleApplyAllImprovements = async () => {
+    if (isApplyingImprovement) return;
+    setIsApplyingImprovement(true);
+    try {
+      let nextResume = resumeData;
+      const nextApplied = new Set(appliedImprovementIndices);
+      for (let i = 0; i < atsImprovements.length; i++) {
+        if (nextApplied.has(i)) continue;
+        setApplyingImprovementIndex(i);
+        nextResume = applyImprovementToResume(nextResume, atsImprovements[i]);
+        commitResumeData(nextResume);
+        nextApplied.add(i);
+        setAppliedImprovementIndices(new Set(nextApplied));
+        await new Promise(resolve => setTimeout(resolve, 120));
       }
-    });
+      setApplyingImprovementIndex(null);
+      const scoreData = await scoreResumeAfterApply(nextResume, atsResult?.atsScore);
+      showToast(`Applied all and recalculated ATS: ${scoreData?.overall_score ?? 'updated'}%`, 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Failed to apply all improvements', 'error');
+    } finally {
+      setApplyingImprovementIndex(null);
+      setIsApplyingImprovement(false);
+    }
+  };
+
+  const handleApplyMissingKeyword = async (keyword: string) => {
+    const cleanKeyword = keyword.trim();
+    if (!cleanKeyword || applyingKeyword) return;
+    setApplyingKeyword(cleanKeyword);
+    try {
+      const hasKeyword = skills.some(skill => skill.toLowerCase() === cleanKeyword.toLowerCase());
+      const summaryHasKeyword = (summary || '').toLowerCase().includes(cleanKeyword.toLowerCase());
+      const experienceWithKeyword = JSON.parse(JSON.stringify(experience || []));
+      const firstExperience = experienceWithKeyword[0];
+      if (firstExperience && !JSON.stringify(firstExperience.bullets || []).toLowerCase().includes(cleanKeyword.toLowerCase())) {
+        firstExperience.bullets = [
+          ...(firstExperience.bullets || []),
+          `Applied ${cleanKeyword} in production-focused delivery to improve reliability, scalability, and deployment readiness.`
+        ];
+      }
+      const nextResume = {
+        ...resumeData,
+        skills: hasKeyword ? skills : [...skills, cleanKeyword],
+        summary: summaryHasKeyword
+          ? summary
+          : `${summary || `${userRole || 'Professional'} with hands-on delivery experience.`} Experienced with ${cleanKeyword} across practical engineering workflows.`,
+        experience: experienceWithKeyword,
+      };
+      commitResumeData(nextResume);
+      const scoreData = await scoreResumeAfterApply(nextResume, atsResult?.atsScore);
+      setAtsChanges(prev => prev.filter(item => item.toLowerCase() !== cleanKeyword.toLowerCase()));
+      showToast(`Added keyword and recalculated ATS: ${scoreData?.overall_score ?? 'updated'}%`, 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Failed to apply keyword', 'error');
+    } finally {
+      setApplyingKeyword(null);
+    }
   };
 
   const handleImproveATS = async () => {
     if (!atsResult || isImprovingATS) return;
     setIsImprovingATS(true);
     try {
-      const res = await fetch('/api/improve-resume', {
+      const res = await fetch('/api/optimize-resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1222,31 +1391,53 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
             phone,
             location
           },
-          jobDescription: jobDescription.trim()
+          jobDescription: jobDescription.trim(),
+          currentScore: atsScoreResult?.overall_score || atsResult?.atsScore || 50,
+          missingKeywords: atsScoreResult?.missing_keywords || [],
+          weakSections: atsScoreResult?.weak_sections || ['experience_keywords', 'skills_keywords', 'summary'],
+          titleInJd: atsScoreResult?.title_in_jd || "",
         })
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || 'Optimization failed');
+      }
+
       const data = await res.json();
-      if (res.ok && data.improvedResume) {
-        setPreviousATSScore(data.oldATS?.score ?? null);
-        setAtsChanges([
-          ...(data.analysis?.actionableImprovements?.slice(0, 5).filter((i: any) => typeof i === 'string') || []),
-          ...(data.analysis?.gapAnalysis ? [data.analysis.gapAnalysis] : [])
-        ]);
+      setPreviousATSScore(data.oldScore);
+
+      // Apply improvements to resume state
+      if (data.improvedResume) {
         if (data.improvedResume.summary) setSummary(data.improvedResume.summary);
+        if (data.improvedResume.title) setUserRole(data.improvedResume.title);
         if (data.improvedResume.skills) setSkills(data.improvedResume.skills);
         if (data.improvedResume.experience) setExperience(data.improvedResume.experience);
-
-        setAtsResult({ ...atsResult, atsScore: data.newATS?.score ?? atsResult.atsScore, analysis: data.analysis, weightedATS: data.newATS });
-        if (data.analysis?.autoImprovements) {
-          setAtsImprovements(data.analysis.autoImprovements);
-          setAppliedImprovementIndices(new Set(data.analysis.autoImprovements.map((_: any, i: number) => i)));
-        }
-        showToast('Resume improved! ATS score updated.', 'success');
-      } else {
-        showToast(data.error || 'Failed to improve resume', 'error');
       }
+
+      // Build improvements list for LineByLine display
+      const improvements: Array<{ section: string; before: string; after: string; impact?: number }> =
+        (data.changes || []).map((c: any) => ({
+          section: c.section,
+          before: c.before,
+          after: c.after,
+          impact: Math.round(((data.newScore || data.oldScore) - data.oldScore) / Math.max(data.changes?.length || 1, 1)),
+        }));
+      setAtsImprovements(improvements);
+
+      setAtsResult((prev: any) => ({
+        ...prev,
+        atsScore: data.newScore || prev.atsScore,
+        analysis: {
+          ...prev?.analysis,
+          atsScore: data.newScore || prev?.atsScore,
+          gapAnalysis: `Score improved from ${data.oldScore}% to ${data.newScore || data.oldScore}%`,
+        }
+      }));
+
+      showToast(`Score improved to ${data.newScore || '80+'}!`, 'success');
     } catch (e: any) {
-      showToast('Failed to improve resume', 'error');
+      showToast(e.message || 'Failed to improve resume', 'error');
     } finally {
       setIsImprovingATS(false);
     }
@@ -1319,13 +1510,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full min-w-0 overflow-hidden">
       {/* Main Editor - Takes remaining space */}
-      <section className="flex-1 flex flex-col h-full overflow-hidden bg-background">
+      <section className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-background">
         {/* Sticky Action Bar */}
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-outline-variant/30 px-3 sm:px-4 py-2 sm:py-3">
-          <div className="flex items-center justify-between max-w-3xl mx-auto">
-            <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 max-w-3xl mx-auto">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <div className="hidden sm:flex items-center gap-1.5 text-on-surface-variant">
                 <Cloud className="w-3.5 h-3.5" />
                 <span className="text-[10px] font-semibold uppercase tracking-wider">Synced</span>
@@ -1338,7 +1529,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 <span className="text-[10px] font-semibold uppercase tracking-wider">{versions.length}</span>
               </button>
             </div>
-            <div className="flex items-center gap-0.5 sm:gap-1">
+            <div className="flex flex-wrap items-center justify-end gap-0.5 sm:gap-1">
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
@@ -1399,9 +1590,8 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center gap-1 bg-surface-container-high/50 rounded-xl p-1">
               {([
-                { id: 'ai-chat' as const, label: 'AI Chat', icon: Sparkles },
+                { id: 'optimize' as const, label: 'Optimize', icon: Sparkles },
                 { id: 'manual-edit' as const, label: 'Manual Edit', icon: Edit3 },
-                { id: 'ats-score' as const, label: 'ATS Score', icon: Target },
               ]).map((tab) => (
                 <button
                   key={tab.id}
@@ -1429,7 +1619,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         </div>
 
         {/* Editor Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6">
+        <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar px-4 py-6">
           <div className="max-w-3xl mx-auto space-y-6">
             {/* Shared: file input (always mounted) */}
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif,image/*" />
@@ -1455,118 +1645,215 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               </div>
             )}
 
-            {/* ── AI Chat Tab ─────────────────────────────────────────── */}
-            {activeTab === 'ai-chat' && (
+            {/* ── Optimize Tab (AI Chat + ATS Score merged) ───────────── */}
+            {activeTab === 'optimize' && (
               <AnimatePresence mode="wait">
                 <motion.div
-                  key="ai-chat"
+                  key="optimize"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.15 }}
-                  className="flex flex-col h-full"
+                  className="space-y-6"
                 >
-                  {/* Chat Messages */}
-                  <div className="flex-1 space-y-3 mb-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
-                    {chatMessages.map((msg, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "flex gap-3",
-                          msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                        )}
-                      >
-                        <div className={cn(
-                          "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-1",
-                          msg.role === 'user'
-                            ? 'bg-primary/20 border border-primary/30'
-                            : 'bg-surface-container-highest border border-outline-variant'
-                        )}>
-                          {msg.role === 'user' ? (
-                            <User className="w-4 h-4 text-primary" />
-                          ) : (
-                            <Bot className="w-4 h-4 text-secondary" />
-                          )}
-                        </div>
-                        <div className={cn(
-                          "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
-                          msg.role === 'user'
-                            ? 'bg-primary text-on-primary rounded-tr-md'
-                            : 'bg-surface-container border border-outline-variant/50 rounded-tl-md'
-                        )}>
-                          {msg.content}
-                        </div>
+                  {/* ── AI Chat Section ── */}
+                  <div className="bg-surface-container/30 border border-outline-variant/20 rounded-xl p-4">
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                      <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
+                        <Bot className="w-3.5 h-3.5 text-primary" />
                       </div>
-                    ))}
-                    {isChatLoading && (
-                      <div className="flex gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-surface-container-highest border border-outline-variant flex items-center justify-center shrink-0">
-                          <Bot className="w-4 h-4 text-secondary" />
+                      <h3 className="text-xs font-bold text-on-surface">AI Chat</h3>
+                      <span className="text-[10px] text-on-surface-variant/60">Ask AI to optimize your resume</span>
+                    </div>
+
+                    {/* Chat Messages */}
+                    <div className="space-y-3 mb-4 max-h-[320px] overflow-y-auto custom-scrollbar pr-2">
+                      {chatMessages.map((msg, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "flex gap-3",
+                            msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                          )}
+                        >
+                          <div className={cn(
+                            "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
+                            msg.role === 'user'
+                              ? 'bg-primary/20 border border-primary/30'
+                              : 'bg-surface-container-highest border border-outline-variant'
+                          )}>
+                            {msg.role === 'user' ? (
+                              <User className="w-3.5 h-3.5 text-primary" />
+                            ) : (
+                              <Bot className="w-3.5 h-3.5 text-secondary" />
+                            )}
+                          </div>
+                          <div className={cn(
+                            "max-w-[80%] overflow-hidden break-words rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-wrap",
+                            msg.role === 'user'
+                              ? 'bg-primary text-on-primary rounded-tr-md'
+                              : 'bg-surface-container border border-outline-variant/50 rounded-tl-md'
+                          )}>
+                            {msg.content}
+                          </div>
                         </div>
-                        <div className="bg-surface-container border border-outline-variant/50 rounded-2xl rounded-tl-md px-4 py-3 flex items-center gap-2 text-sm text-on-surface-variant">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Thinking...
+                      ))}
+                      {isChatLoading && (
+                        <div className="flex gap-3">
+                          <div className="w-7 h-7 rounded-lg bg-surface-container-highest border border-outline-variant flex items-center justify-center shrink-0">
+                            <Bot className="w-3.5 h-3.5 text-secondary" />
+                          </div>
+                          <div className="bg-surface-container border border-outline-variant/50 rounded-2xl rounded-tl-md px-3.5 py-2.5 flex items-center gap-2 text-xs text-on-surface-variant">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Thinking...
+                          </div>
                         </div>
+                      )}
+                    </div>
+
+                    {/* Suggested actions */}
+                    {chatMessages.length === 1 && !isChatLoading && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {[
+                          "Improve my summary for ATS",
+                          "Add more keywords from JD",
+                          "Rewrite experience bullets",
+                          "Suggest skill improvements"
+                        ].map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            onClick={() => { setChatInput(suggestion); }}
+                            className="max-w-full text-left text-[10px] px-2.5 py-1.5 bg-surface-container-hover border border-outline-variant/50 rounded-lg text-on-surface-variant hover:text-primary hover:border-primary/30 transition-all"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
                       </div>
                     )}
+
+                    {/* Chat Input */}
+                    <div className="flex items-end gap-2 bg-background border border-outline-variant/30 rounded-lg p-2">
+                      <textarea
+                        rows={1}
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendChatMessage(); } }}
+                        placeholder="Ask AI to optimize your resume..."
+                        className="min-w-0 flex-1 bg-transparent text-xs text-on-background placeholder:text-on-surface-variant/40 outline-none resize-none max-h-20"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSendChatMessage}
+                        disabled={!chatInput.trim() || isChatLoading}
+                        className="h-8 px-3 btn-primary rounded-lg flex items-center gap-1.5 font-bold text-[10px] shadow-lg disabled:opacity-50 shrink-0"
+                      >
+                        {isChatLoading ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Send className="w-3 h-3 fill-white" />
+                        )}
+                        <span>Send</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Suggested actions */}
-                  {chatMessages.length === 1 && !isChatLoading && (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {[
-                        "Improve my summary for ATS",
-                        "Add more keywords from JD",
-                        "Rewrite experience bullets",
-                        "Suggest skill improvements"
-                      ].map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          onClick={() => {
-                            setChatInput(suggestion);
-                          }}
-                          className="text-left text-[11px] px-3 py-2 bg-surface-container-hover border border-outline-variant/50 rounded-xl text-on-surface-variant hover:text-primary hover:border-primary/30 transition-all"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
+                  {/* ── ATS Score Section ── */}
+                  <div className="bg-surface-container/30 border border-outline-variant/20 rounded-xl p-4">
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                      <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
+                        <Target className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <h3 className="text-xs font-bold text-on-surface">ATS Score</h3>
+                      <span className="text-[10px] text-on-surface-variant/60">Analyze resume against job description</span>
                     </div>
-                  )}
 
-                  {/* Input */}
-                  <div className="glass rounded-xl p-2 flex items-center gap-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                    <textarea
-                      rows={1}
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendChatMessage();
-                        }
-                      }}
-                      className="bg-transparent border-none focus:ring-0 text-primary w-full font-medium text-sm sm:text-base placeholder:text-on-surface-variant/60 outline-none resize-none leading-relaxed py-2"
-                      placeholder="Ask me to optimize your resume..."
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSendChatMessage}
-                      disabled={!chatInput.trim() || isChatLoading}
-                      className="h-9 sm:h-10 px-4 btn-primary rounded-lg flex items-center gap-1.5 font-bold text-[10px] sm:text-xs shadow-lg disabled:opacity-50 shrink-0"
-                    >
-                      {isChatLoading ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Send className="w-3 h-3 fill-white" />
-                      )}
-                      <span className="hidden sm:inline">Send</span>
-                    </button>
+                    {/* JD Input */}
+                    <div className="glass rounded-xl p-3 border border-outline-variant/30">
+                      <textarea
+                        value={jobDescription}
+                        onChange={(e) => setJobDescription(e.target.value)}
+                        placeholder="Paste the full job description here to analyze ATS compatibility..."
+                        rows={3}
+                        className="w-full bg-background border border-outline-variant rounded-lg p-2.5 text-xs text-on-background placeholder:text-on-surface-variant/40 outline-none focus:ring-1 focus:ring-primary resize-none transition-all"
+                      />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-[10px] text-on-surface-variant">
+                        <div className="rounded-lg border border-outline-variant/40 bg-background/60 px-2.5 py-2">
+                          <span className="font-bold text-on-surface">{jobDescription.trim() ? jobDescription.trim().split(/\s+/).length : 0}</span> JD words
+                        </div>
+                        <div className="rounded-lg border border-outline-variant/40 bg-background/60 px-2.5 py-2">
+                          <span className="font-bold text-on-surface">{skills.length}</span> skills listed
+                        </div>
+                        <div className="rounded-lg border border-outline-variant/40 bg-background/60 px-2.5 py-2">
+                          <span className="font-bold text-on-surface">{experience.reduce((count, exp) => count + ((exp.bullets || []).length || 0), 0)}</span> impact bullets
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-end gap-2 mt-3">
+                        <button
+                          onClick={handleAnalyzeATS}
+                          disabled={!jobDescription.trim() || isAnalyzingATS}
+                          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-on-primary text-[10px] font-bold uppercase tracking-wider hover:brightness-110 transition-all disabled:opacity-40 shadow-lg shadow-primary/20"
+                        >
+                          {isAnalyzingATS ? <Loader2 className="w-3 h-3 animate-spin" /> : <Target className="w-3 h-3" />}
+                          {isAnalyzingATS ? 'Analyzing...' : 'Analyze'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* ATS Results */}
+                    {isAnalyzingATS && (
+                      <div className="flex flex-col items-center justify-center py-12 mt-4 bg-surface-container/30 border border-outline-variant/20 rounded-xl">
+                        <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
+                        <p className="text-xs text-on-surface-variant">Analyzing resume against job description...</p>
+                      </div>
+                    )}
+
+                    {atsResult && !isAnalyzingATS && (
+                      <div className="mt-4 space-y-4">
+                        <ATSScoreCard
+                          data={{
+                            score: atsResult.atsScore ?? 0,
+                            matched: atsResult.analysis?.keywordAnalysis?.strongSkills ?? atsScoreResult?.found_keywords ?? [],
+                            missing: atsResult.analysis?.keywordAnalysis?.missingSkills ?? atsScoreResult?.missing_keywords ?? [],
+                          }}
+                          onApplyKeyword={handleApplyMissingKeyword}
+                          applyingKeyword={applyingKeyword}
+                          previousScore={previousATSScore}
+                          analysis={atsResult.analysis ? {
+                            gapAnalysis: atsResult.analysis.gapAnalysis,
+                            actionableImprovements: atsResult.analysis.actionableImprovements,
+                          } : undefined}
+                        />
+
+                        {atsImprovements.length > 0 && (
+                          <LineByLineImprovements
+                            improvements={atsImprovements}
+                            onApply={handleApplyImprovement}
+                            onApplyAll={handleApplyAllImprovements}
+                            applying={isApplyingImprovement}
+                            applyingIndex={applyingImprovementIndex}
+                            loadingCount={loadingImprovementCount}
+                            appliedIndices={appliedImprovementIndices}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {!atsImprovements.length && loadingImprovementCount > 0 && (
+                      <div className="mt-4">
+                        <LineByLineImprovements
+                          improvements={atsImprovements}
+                          onApply={handleApplyImprovement}
+                          onApplyAll={handleApplyAllImprovements}
+                          applying={isApplyingImprovement}
+                          applyingIndex={applyingImprovementIndex}
+                          loadingCount={loadingImprovementCount}
+                          appliedIndices={appliedImprovementIndices}
+                        />
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               </AnimatePresence>
             )}
-
-            {/* ── Manual Edit Tab ─────────────────────────────────────── */}
             {activeTab === 'manual-edit' && (
               <AnimatePresence mode="wait">
                 <motion.div
@@ -1708,126 +1995,6 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               </AnimatePresence>
             )}
 
-            {/* ── ATS Score Tab ───────────────────────────────────────── */}
-            {activeTab === 'ats-score' && (
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key="ats-score"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.15 }}
-                  className="space-y-4"
-                >
-                  {/* JD Input */}
-                  <div className="glass rounded-xl p-3 border border-outline-variant/30">
-                    <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">
-                      Paste Job Description
-                    </label>
-                    <textarea
-                      value={jobDescription}
-                      onChange={(e) => setJobDescription(e.target.value)}
-                      placeholder="Paste the full job description here to analyze ATS compatibility..."
-                      rows={4}
-                      className="w-full bg-background border border-outline-variant rounded-lg p-3 text-xs text-on-background placeholder:text-on-surface-variant/40 outline-none focus:ring-1 focus:ring-primary resize-none transition-all"
-                    />
-                    <div className="flex items-center justify-end gap-2 mt-3">
-                      {atsResult && (
-                        <button
-                          onClick={handleImproveATS}
-                          disabled={isImprovingATS}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-40"
-                        >
-                          {isImprovingATS ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                          {isImprovingATS ? 'Improving...' : 'Improve Resume'}
-                        </button>
-                      )}
-                      <button
-                        onClick={handleAnalyzeATS}
-                        disabled={!jobDescription.trim() || isAnalyzingChunked}
-                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-on-primary text-[10px] font-bold uppercase tracking-wider hover:brightness-110 transition-all disabled:opacity-40 shadow-lg shadow-primary/20"
-                      >
-                        {isAnalyzingChunked ? <Loader2 className="w-3 h-3 animate-spin" /> : <Target className="w-3 h-3" />}
-                        {isAnalyzingChunked ? 'Analyzing...' : 'Analyze'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* ATS Results */}
-                  {isAnalyzingChunked && (
-                    <div className="bg-surface-container/50 border border-outline-variant rounded-xl p-6 space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-surface-container-high animate-pulse" />
-                          <div className="h-5 w-36 bg-surface-container-high animate-pulse rounded" />
-                        </div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6">
-                        <div className="w-20 h-14 bg-surface-container-high animate-pulse rounded-lg" />
-                        <div className="space-y-2">
-                          <div className="h-4 w-44 bg-surface-container-high animate-pulse rounded" />
-                          <div className="h-3 w-56 bg-surface-container-high animate-pulse rounded" />
-                        </div>
-                      </div>
-                      <div className="space-y-3 pt-4 border-t border-outline-variant/50">
-                        <div className="h-3 w-28 bg-surface-container-high animate-pulse rounded" />
-                        <div className="flex flex-wrap gap-2">
-                          {[1, 2, 3, 4].map(i => <div key={i} className="h-6 w-20 bg-surface-container-high animate-pulse rounded" />)}
-                        </div>
-                      </div>
-                      <div className="space-y-3 pt-4 border-t border-outline-variant/50">
-                        <div className="h-3 w-24 bg-surface-container-high animate-pulse rounded" />
-                        <div className="h-12 w-full bg-surface-container-high animate-pulse rounded" />
-                      </div>
-                      <div className="flex items-center gap-2 pt-2 text-on-surface-variant">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
-                        <span className="text-xs font-medium">{chunkStatusText}</span>
-                        <span className="text-[10px] text-on-surface-variant/50">
-                          (improvements appearing as they arrive)
-                        </span>
-                      </div>
-                      {/* Incremental improvements */}
-                      {atsImprovements.length > 0 && (
-                        <LineByLineImprovements
-                          improvements={atsImprovements}
-                          onApply={handleApplyImprovement}
-                          onApplyAll={handleApplyAllImprovements}
-                          applying={isApplyingImprovement}
-                          appliedIndices={appliedImprovementIndices}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  {atsResult && !isAnalyzingChunked && (
-                    <>
-                      <ATSScoreCard
-                        data={atsResult.analysis ? { ...atsResult.analysis, score: atsResult.analysis.atsScore ?? atsResult.analysis.score } : atsResult.weightedATS || { score: atsResult.atsScore ?? 0, matched: [], missing: [] }}
-                        onImprove={handleImproveATS}
-                        improving={isImprovingATS}
-                        changes={atsChanges.length > 0 ? atsChanges : undefined}
-                        previousScore={previousATSScore}
-                        analysis={atsResult.analysis ? {
-                          gapAnalysis: atsResult.analysis.gapAnalysis,
-                          actionableImprovements: atsResult.analysis.actionableImprovements
-                        } : undefined}
-                      />
-
-                      {/* Line-by-line improvements */}
-                      {atsImprovements.length > 0 && (
-                        <LineByLineImprovements
-                          improvements={atsImprovements}
-                          onApply={handleApplyImprovement}
-                          onApplyAll={handleApplyAllImprovements}
-                          applying={isApplyingImprovement}
-                          appliedIndices={appliedImprovementIndices}
-                        />
-                      )}
-                    </>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            )}
           </div>
         </div>
       </section>
@@ -1892,13 +2059,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <motion.div
                 id="resume-preview"
                 className={cn(
-                  "rounded-lg shadow-2xl transition-all overflow-hidden",
+                  "rounded-lg shadow-2xl transition-all overflow-visible",
                   previewMode === 'mobile' ? "w-[320px]" : "w-[800px]"
                 )}
                 style={{
                   transform: `scale(${zoom / 100})`,
                   transformOrigin: 'top center',
-                  minHeight: '900px',
+                  minHeight: '1123px',
                 }}
               >
                 {template === 'classic' && (

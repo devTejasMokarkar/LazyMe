@@ -9,16 +9,16 @@ export function ModernTemplate({ data, color, theme }: TemplateProps) {
   const bg = isDark ? '#1a1b1f' : '#ffffff';
 
   return (
-    <div style={{ backgroundColor: bg, color: c, fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", padding: '40px 36px', minHeight: '100%' }}>
+    <div style={{ backgroundColor: bg, color: c, fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif", padding: '28px 30px', minHeight: '1123px', height: 'auto' }}>
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 24, paddingBottom: 16 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', margin: 0, color: color === '#000000' ? (isDark ? '#f1f5f9' : '#1e1e2e') : color }}>
+      <div style={{ textAlign: 'center', marginBottom: 14, paddingBottom: 8 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: color === '#000000' ? (isDark ? '#f1f5f9' : '#1e1e2e') : color }}>
           {data.name || 'Your Name'}
         </h1>
-        <p style={{ fontSize: 14, margin: '4px 0 0', color: color === '#000000' ? subtle : color, fontWeight: 500 }}>
+        <p style={{ fontSize: 12, margin: '3px 0 0', color: color === '#000000' ? subtle : color, fontWeight: 500 }}>
           {data.title || 'Your Title'}
         </p>
-        <div style={{ fontSize: 11, marginTop: 8, color: muted, display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 10, marginTop: 6, color: muted, display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
           {data.email && <span>{data.email}</span>}
           {data.phone && <span>{data.phone}</span>}
           {data.location && <span>{data.location}</span>}
@@ -27,25 +27,25 @@ export function ModernTemplate({ data, color, theme }: TemplateProps) {
 
       {/* Summary */}
       {data.summary && (
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 14, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
           <h2 style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, margin: '0 0 8px', color: color === '#000000' ? muted : color }}>
             Summary
           </h2>
-          <p style={{ fontSize: 12, lineHeight: '1.65', margin: 0, color: subtle }}>{data.summary}</p>
+          <p style={{ fontSize: 11, lineHeight: '1.42', margin: 0, color: subtle }}>{data.summary}</p>
         </div>
       )}
 
       {/* Skills */}
       {data.skills.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 14, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
           <h2 style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, margin: '0 0 8px', color: color === '#000000' ? muted : color }}>
             Skills
           </h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             {data.skills.map((s, i) => (
               <span key={i} style={{
-                fontSize: 11,
-                padding: '3px 10px',
+                fontSize: 10,
+                padding: '2px 7px',
                 borderRadius: 4,
                 backgroundColor: color === '#000000'
                   ? (isDark ? '#2a2b2f' : '#f5f5f5')
@@ -62,21 +62,21 @@ export function ModernTemplate({ data, color, theme }: TemplateProps) {
 
       {/* Experience */}
       {data.experience.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 14 }}>
           <h2 style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, margin: '0 0 12px', color: color === '#000000' ? muted : color }}>
             Experience
           </h2>
           {data.experience.map((exp, i) => (
-            <div key={i} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: i < data.experience.length - 1 ? `1px solid ${border}` : 'none' }}>
+            <div key={i} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: i < data.experience.length - 1 ? `1px solid ${border}` : 'none', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>{exp.role}</span>
-                  <span style={{ fontSize: 12, color: muted }}> — {exp.company}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700 }}>{exp.role}</span>
+                  <span style={{ fontSize: 11, color: muted }}> — {exp.company}</span>
                 </div>
                 <span style={{ fontSize: 10, color: muted, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{exp.duration}</span>
               </div>
-              <ul style={{ margin: '4px 0 0', paddingLeft: 16, fontSize: 12, lineHeight: '1.65', color: subtle, listStyle: 'disc' }}>
-                {exp.bullets.slice(0, 4).map((b, j) => (
+              <ul style={{ margin: '3px 0 0', paddingLeft: 14, fontSize: 11, lineHeight: '1.35', color: subtle, listStyle: 'disc' }}>
+                {(exp.bullets || []).map((b, j) => (
                   <li key={j} style={{ marginBottom: 1 }}>{b}</li>
                 ))}
               </ul>
@@ -92,7 +92,7 @@ export function ModernTemplate({ data, color, theme }: TemplateProps) {
             Education
           </h2>
           {data.education.map((edu, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, paddingBottom: 6, borderBottom: i < data.education.length - 1 ? `1px solid ${border}` : 'none' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5, paddingBottom: 5, borderBottom: i < data.education.length - 1 ? `1px solid ${border}` : 'none', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <div>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>{edu.degree}</span>
                 <span style={{ fontSize: 12, color: muted }}> — {edu.school}</span>
