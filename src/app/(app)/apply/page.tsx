@@ -943,16 +943,24 @@ export default function ApplyPage() {
   };
 
   return (
-    <div className="scrollable-page bg-background py-6 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-5">
-          <h1 className="text-3xl font-semibold text-on-background">Job Search</h1>
-          <p className="text-sm text-on-surface-variant mt-1">Find and apply to relevant jobs</p>
+    <div className="scrollable-page bg-background px-4 py-4 sm:px-6">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-on-background">Job Search</h1>
+            <p className="text-sm text-on-surface-variant mt-0.5">Search roles, email HR, and run auto-pilot from one workspace.</p>
+          </div>
+          {resumePrefill && (
+            <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              Prefilled from resume
+            </span>
+          )}
         </div>
 
-        <form onSubmit={handleSearch} className="bg-surface-container border border-outline-variant/50 rounded-xl p-4 mb-5 shadow-sm">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div>
+        <div className="mb-4 rounded-lg border border-outline-variant/50 bg-surface-container p-3 shadow-sm">
+          <form onSubmit={handleSearch}>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
+            <div className="md:col-span-4">
               <label className="block text-xs font-medium text-on-surface-variant mb-1">
                 Job Title <span className="text-red-500 dark:text-red-400">*</span>
               </label>
@@ -962,20 +970,20 @@ export default function ApplyPage() {
                 required
                 list="job-title-suggestions"
                 placeholder="Job title"
-                className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-background text-on-background text-sm"
+                className="h-10 w-full rounded-md border border-outline-variant bg-background px-3 text-sm text-on-background"
               />
               <datalist id="job-title-suggestions">
                 {JOB_TITLES.map((t) => <option key={t} value={t} />)}
               </datalist>
             </div>
-            <div>
+            <div className="md:col-span-3">
               <label className="block text-xs font-medium text-on-surface-variant mb-1">Location</label>
               <select
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 disabled={tab === 'indeed' && locationDisabled}
                 title={tab === 'indeed' && locationDisabled ? "Disabled when Indeed/Remotive is selected (remote-only)" : ""}
-                className={`w-full h-10 px-3 rounded-lg border text-sm cursor-pointer appearance-none ${
+                className={`h-10 w-full rounded-md border px-3 text-sm cursor-pointer appearance-none ${
                   tab === 'indeed' && locationDisabled
                     ? "bg-surface-container-high/50 text-on-surface-variant/50 cursor-not-allowed"
                     : "bg-background text-on-background"
@@ -987,13 +995,13 @@ export default function ApplyPage() {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-medium text-on-surface-variant mb-1">Experience</label>
               <div className="relative">
                 <select
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
-                  className="w-full h-10 px-3 pr-8 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
+                  className="h-10 w-full rounded-md border border-outline-variant bg-background px-3 pr-8 text-sm text-on-background cursor-pointer appearance-none"
                 >
                   {EXPERIENCE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -1002,67 +1010,65 @@ export default function ApplyPage() {
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
               </div>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-medium text-on-surface-variant mb-1">Job Type</label>
               <div className="relative">
                 <select
                   value={jobType}
                   onChange={(e) => setJobType(e.target.value)}
-                  className="w-full h-10 px-3 pr-8 rounded-lg border border-outline-variant bg-background text-on-background text-sm cursor-pointer appearance-none"
+                  className="h-10 w-full rounded-md border border-outline-variant bg-background px-3 pr-8 text-sm text-on-background cursor-pointer appearance-none"
                 >
                   {JOB_TYPE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-outline-variant pointer-events-none" />
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-3 mt-3">
-            <button
-              type="submit"
-              disabled={isSearching || !keyword.trim()}
-              className="flex items-center justify-center gap-2 h-10 px-7 rounded-lg bg-primary text-on-primary font-medium text-sm hover:bg-primary/90 disabled:opacity-50 transition-all whitespace-nowrap shadow-[0_4px_14px_rgba(61,82,160,0.35)]"
-            >
-              {isSearching ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
-              ) : (
-                <><Search className="w-4 h-4" /> Search Jobs</>
-              )}
-            </button>
-            {tab === 'indeed' && (
-              <span className="text-[11px] text-on-surface-variant/60">
-                {locationDisabled ? "Remote only — location disabled" : "Results from Indeed & Remotive"}
-              </span>
-            )}
-            {resumePrefill && (
-              <span className="text-[11px] text-primary/80">
-                Prefilled from resume
-              </span>
-            )}
-          </div>
-        </form>
-
-        <DirectMailToHR jobTitle={keyword} />
-
-        <div className="flex items-center gap-2 mb-5">
-          {TABS.map((t) => {
-            const Icon = t.icon;
-            return (
+            <div className="flex items-end md:col-span-1">
               <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors shrink-0 ${
-                  tab === t.key
-                    ? 'bg-primary text-on-primary'
-                    : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
-                }`}
+                type="submit"
+                disabled={isSearching || !keyword.trim()}
+                className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-on-primary shadow-[0_4px_14px_rgba(61,82,160,0.25)] transition-all hover:bg-primary/90 disabled:opacity-50"
+                title="Search jobs"
               >
-                <Icon className="w-4 h-4" />
-                {t.label}
+                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                <span className="sr-only">Search Jobs</span>
               </button>
-            );
-          })}
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {TABS.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setTab(t.key)}
+                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      tab === t.key
+                        ? 'bg-primary text-on-primary'
+                        : 'bg-background text-on-surface-variant hover:bg-surface-container-high'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-on-surface-variant/70">
+              {tab === 'indeed' && (
+                <span>{locationDisabled ? "Remote only: location disabled" : "Indeed and Remotive results"}</span>
+              )}
+            </div>
+          </div>
+          </form>
+        </div>
+
+        <div className="mb-4">
+          <DirectMailToHR jobTitle={keyword} />
         </div>
 
         {tab === 'linkedin' && (

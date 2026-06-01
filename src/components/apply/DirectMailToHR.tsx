@@ -80,23 +80,26 @@ export default function DirectMailToHR({ jobTitle = "" }: { jobTitle?: string })
   const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
 
   return (
-    <div className="mb-5 flex items-start gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-xl px-4 py-3 relative">
-      <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">
-          Mail HR
-        </p>
-        <div className="mt-2 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+    <div className="flex items-center gap-3 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <Mail className="w-4 h-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">Mail HR</p>
+          <p className="truncate text-[11px] text-on-surface-variant">Application for {role}</p>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto]">
           <input
             value={to}
             onChange={(e) => setManualEmail(e.target.value)}
-            className="h-9 rounded-lg border border-blue-300/70 bg-white/70 px-3 text-xs text-blue-950 outline-none dark:bg-blue-950/30 dark:text-blue-100"
+            className="h-9 rounded-md border border-outline-variant bg-background px-3 text-xs text-on-background outline-none"
             placeholder="careers@gmail.com"
             type="email"
           />
           <a
             href={mailtoUrl}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-on-primary transition-colors hover:bg-primary/90"
           >
             <Mail className="w-3.5 h-3.5" />
             Mail App
@@ -105,19 +108,16 @@ export default function DirectMailToHR({ jobTitle = "" }: { jobTitle?: string })
             href={gmailUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-blue-400/60 px-3 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:text-blue-300 dark:hover:bg-blue-900/40"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-outline-variant px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             Gmail
           </a>
         </div>
-        <p className="mt-1.5 text-[11px] text-blue-700/80 dark:text-blue-300/80">
-          Subject: Application for {role}
-        </p>
       </div>
       <button
         onClick={() => setDismissed(true)}
-        className="shrink-0 p-1 rounded-md hover:bg-blue-200/50 dark:hover:bg-blue-800/50 text-blue-500 transition-colors"
+        className="shrink-0 rounded-md p-1 text-on-surface-variant transition-colors hover:bg-primary/10 hover:text-primary"
         title="Dismiss"
       >
         <X className="w-4 h-4" />
