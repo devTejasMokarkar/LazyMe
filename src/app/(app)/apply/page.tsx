@@ -950,8 +950,6 @@ export default function ApplyPage() {
           <p className="text-sm text-on-surface-variant mt-1">Find and apply to relevant jobs</p>
         </div>
 
-        <DirectMailToHR />
-
         <form onSubmit={handleSearch} className="bg-surface-container border border-outline-variant/50 rounded-xl p-4 mb-5 shadow-sm">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
@@ -1044,6 +1042,8 @@ export default function ApplyPage() {
             )}
           </div>
         </form>
+
+        <DirectMailToHR jobTitle={keyword} />
 
         <div className="flex items-center gap-2 mb-5">
           {TABS.map((t) => {

@@ -1778,13 +1778,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                       />
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-[10px] text-on-surface-variant">
                         <div className="rounded-lg border border-outline-variant/40 bg-background/60 px-2.5 py-2">
-                          <span className="font-bold text-on-surface">{jobDescription.trim() ? jobDescription.trim().split(/\s+/).length : 0}</span> JD words
+                          <span className="font-bold text-on-surface">{jobDescription.trim() ? jobDescription.trim().split(/\s+/).length : 0}</span> words in JD
                         </div>
                         <div className="rounded-lg border border-outline-variant/40 bg-background/60 px-2.5 py-2">
-                          <span className="font-bold text-on-surface">{skills.length}</span> skills listed
+                          <span className="font-bold text-on-surface">{skills.length}</span> resume skills
                         </div>
                         <div className="rounded-lg border border-outline-variant/40 bg-background/60 px-2.5 py-2">
-                          <span className="font-bold text-on-surface">{experience.reduce((count, exp) => count + ((exp.bullets || []).length || 0), 0)}</span> impact bullets
+                          <span className="font-bold text-on-surface">{experience.reduce((count, exp) => count + ((exp.bullets || []).length || 0), 0)}</span> resume bullets
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center justify-end gap-2 mt-3">
