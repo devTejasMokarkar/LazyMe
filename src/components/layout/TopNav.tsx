@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useSession } from 'next-auth/react';
-import { Bell, Menu, Sun, Moon, Sparkles, X } from 'lucide-react';
+import { Menu, Sun, Moon, Sparkles, X } from 'lucide-react';
 import { signInAction } from '@/app/actions';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -58,12 +58,6 @@ export default function TopNav() {
 
         {(status === "authenticated" && session) ? (
           <>
-            {/* Notifications */}
-            <button className="relative w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all">
-              <Bell className="w-4.5 h-4.5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-on-surface"></span>
-            </button>
-
             {/* User Avatar */}
             <div className="h-8 w-8 rounded-lg glass border border-outline-variant overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
               {session?.user?.image ? (

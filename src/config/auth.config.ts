@@ -33,6 +33,7 @@ export const authConfig = {
         await initializeCredits(user.id).catch(() => {});
       }
     },
+
   },
   pages: {
     signIn: "/",

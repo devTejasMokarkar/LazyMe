@@ -647,10 +647,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  resumes       UserResume[]
-  applications  Application[]
+  accounts       Account[]
+  sessions       Session[]
+  resumes        UserResume[]
+  applications   Application[]
+  loginActivity  LoginActivity[]
   apiKeys       UserApiKey[]
   creditBalance CreditBalance?
   credits       CreditTransaction[]
@@ -780,6 +781,20 @@ model Job {
 
   @@schema("public")
   @@map("lazyme_jobs")
+}
+
+model LoginActivity {
+  id        String   @id @default(cuid())
+  userId    String
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@schema("public")
+  @@map("lazyme_login_activity")
 }
 
 model Application {

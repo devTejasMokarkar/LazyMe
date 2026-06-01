@@ -970,6 +970,7 @@ export default function ApplyPage() {
                 required
                 list="job-title-suggestions"
                 placeholder="Job title"
+                autoComplete="organization-title"
                 className="h-10 w-full rounded-md border border-outline-variant bg-background px-3 text-sm text-on-background"
               />
               <datalist id="job-title-suggestions">
@@ -978,22 +979,25 @@ export default function ApplyPage() {
             </div>
             <div className="md:col-span-3">
               <label className="block text-xs font-medium text-on-surface-variant mb-1">Location</label>
-              <select
+              <input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
+                list="city-suggestions"
+                placeholder="City"
+                autoComplete="address-level2"
                 disabled={tab === 'indeed' && locationDisabled}
                 title={tab === 'indeed' && locationDisabled ? "Disabled when Indeed/Remotive is selected (remote-only)" : ""}
-                className={`h-10 w-full rounded-md border px-3 text-sm cursor-pointer appearance-none ${
+                className={`h-10 w-full rounded-md border px-3 text-sm ${
                   tab === 'indeed' && locationDisabled
                     ? "bg-surface-container-high/50 text-on-surface-variant/50 cursor-not-allowed"
                     : "bg-background text-on-background"
                 } border-outline-variant`}
-              >
-                <option value="">Select city</option>
+              />
+              <datalist id="city-suggestions">
                 {INDIAN_CITIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c} />
                 ))}
-              </select>
+              </datalist>
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-on-surface-variant mb-1">Experience</label>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,6 +26,13 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const loggedSession = useRef(false);
+
+  useEffect(() => {
+    if (loggedSession.current) return;
+    loggedSession.current = true;
+    fetch("/api/auth/log-session", { method: "POST" }).catch(() => {});
+  }, []);
 
   const navItems = [
     { id: 'resume', label: 'Resume Builder', icon: FileText, href: '/resume' },
@@ -72,7 +79,7 @@ export default function Sidebar() {
         style={{
           width: isExpanded ? SIDEBAR_WIDTH : COLLAPSED_WIDTH,
         }}
-        onMouseEnter={() => setIsExpanded(false)}
+        onMouseEnter={() => setIsExpanded(true)}
         onMouseLeave={() => setIsExpanded(false)}
       >
         {/* Logo Section */}
