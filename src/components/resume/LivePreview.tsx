@@ -1,14 +1,43 @@
 "use client";
 
 import { ResumeData } from "@/features/ai/prompts/resume.prompts";
+import type { ResumeWordedData, TemplateType } from "@/components/resume/templates/index";
 import { resumeToLatex, latexToHtml } from "@/features/ai/latex.service";
 import { FileText } from "lucide-react";
+import { ResumeWordedTemplate } from "./templates/ResumeWordedTemplate";
 
 interface LivePreviewProps {
   data: ResumeData;
+  wordedData?: ResumeWordedData;
+  template?: TemplateType;
 }
 
-export function LivePreview({ data }: LivePreviewProps) {
+export function LivePreview({ data, wordedData, template = 'resumeworded' }: LivePreviewProps) {
+  if (template === 'resumeworded' && wordedData) {
+    const hasContent = wordedData.name || wordedData.experience.length > 0;
+    if (!hasContent) {
+      return (
+        <div className="w-full overflow-x-auto">
+          <div className="bg-white w-[794px] h-[1123px] shadow-2xl flex items-center justify-center p-12 mx-auto">
+            <div className="text-center text-slate-300">
+              <FileText className="w-16 h-16 mx-auto mb-6 opacity-20" />
+              <p className="text-xl font-bold">Resume Preview</p>
+              <p className="text-sm mt-2 text-slate-400">Content will appear as you type or upload.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full overflow-x-auto">
+        <div className="bg-white w-[794px] min-h-[1123px] shadow-[0_0_20px_rgba(0,0,0,0.5)] mx-auto">
+          <ResumeWordedTemplate data={wordedData} />
+        </div>
+      </div>
+    );
+  }
+
   const latex = resumeToLatex(data);
   const html = latexToHtml(latex);
 

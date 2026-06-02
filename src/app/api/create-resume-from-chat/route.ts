@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       location: resume.location || "",
       title: resume.title || "",
       summary: resume.summary || "",
-      skills: Array.isArray(resume.skills) ? resume.skills : [],
+      skills: Array.isArray(resume.skills) ? resume.skills : (typeof resume.skills === 'object' ? resume.skills : []),
       experience: Array.isArray(resume.experience) ? resume.experience : [],
       education: Array.isArray(resume.education) ? resume.education : [],
       projects: Array.isArray(resume.projects) ? resume.projects : [],

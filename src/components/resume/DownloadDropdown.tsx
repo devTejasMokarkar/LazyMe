@@ -12,9 +12,17 @@ interface DownloadDropdownProps {
   resumeData: any;
   latex: string;
   resumePreviewId?: string;
+  wordedData?: {
+    name: string;
+    title: string;
+    contact: { location: string; phone: string; email: string; linkedin: string };
+    skills: { technicalSkills: string[]; frameworks: string[]; databases: string[]; cloudDevOps: string[]; industryKnowledge: string[] };
+    experience: Array<{ company: string; dates: string; title: string; companyDescription?: string; bullets: string[] }>;
+    education: Array<{ institution: string; degree: string; graduationDate: string }>;
+  };
 }
 
-export default function DownloadDropdown({ resumeData, latex, resumePreviewId = "resume-preview" }: DownloadDropdownProps) {
+export default function DownloadDropdown({ resumeData, latex, resumePreviewId = "resume-preview", wordedData }: DownloadDropdownProps) {
   const [open, setOpen] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const { showToast } = useToast();
@@ -39,27 +47,36 @@ export default function DownloadDropdown({ resumeData, latex, resumePreviewId = 
       switch (type) {
         case "ats-pdf":
           showToast("Generating ATS-optimized PDF...", "info");
+          const wd = wordedData;
           const atsData = transformResumeData({
-            userName: resumeData.name || '',
-            userRole: resumeData.title || '',
-            email: resumeData.email || '',
-            phone: resumeData.phone || '',
-            location: resumeData.location || '',
+            userName: wd?.name || resumeData.name || '',
+            userRole: wd?.title || resumeData.title || '',
+            email: wd?.contact.email || resumeData.email || '',
+            phone: wd?.contact.phone || resumeData.phone || '',
+            location: wd?.contact.location || resumeData.location || '',
+            linkedin: wd?.contact.linkedin || '',
             summary: resumeData.summary || '',
             skills: resumeData.skills || [],
-            experience: (resumeData.experience || []).map((e: any) => ({
+            categorizedSkills: wd ? {
+              technicalSkills: wd.skills.technicalSkills || [],
+              frameworks: wd.skills.frameworks || [],
+              databases: wd.skills.databases || [],
+              cloudDevOps: wd.skills.cloudDevOps || [],
+              industryKnowledge: wd.skills.industryKnowledge || [],
+            } : undefined,
+            experience: (wd?.experience || resumeData.experience || []).map((e: any) => ({
               company: e.company || '',
-              role: e.role || '',
-              duration: e.duration || '',
+              role: e.title || e.role || '',
+              duration: e.dates || e.duration || '',
               bullets: e.bullets || [],
               sections: e.sections || [],
               stack: e.stack || '',
               location: e.location || '',
             })),
-            education: (resumeData.education || []).map((e: any) => ({
-              school: e.school || '',
+            education: (wd?.education || resumeData.education || []).map((e: any) => ({
+              school: e.institution || e.school || '',
               degree: e.degree || '',
-              year: e.year || '',
+              year: e.graduationDate || e.year || '',
             })),
           });
 

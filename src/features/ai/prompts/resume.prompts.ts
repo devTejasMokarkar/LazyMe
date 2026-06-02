@@ -25,7 +25,7 @@ export interface ResumeData {
 }
 
 export function buildResumePrompt(data: Partial<ResumeData>, jobDescription?: string): string {
-  const basePrompt = `Generate a professional resume in JSON format. No explanation, only valid JSON.
+  const basePrompt = `Generate a professional Resume Worded style resume in JSON format. No explanation, only valid JSON.
 
 Candidate Info:
 ${JSON.stringify(data, null, 2)}
@@ -39,17 +39,25 @@ Rules:
   "email": "",
   "phone": "",
   "location": "",
+  "linkedin": "",
   "title": "",
   "summary": "",
-  "skills": [""],
-  "experience": [{"company":"","role":"","duration":"","bullets":[""]}],
-  "education": [{"school":"","degree":"","year":""}],
-  "projects": [{"name":"","description":"","tech":[""]}]
+  "skills": {
+    "technicalSkills": [""],
+    "frameworks": [""],
+    "databases": [""],
+    "cloudDevOps": [""],
+    "industryKnowledge": [""]
+  },
+  "experience": [{"company":"","role":"","duration":"","bullets":[""],"companyDescription":""}],
+  "education": [{"school":"","degree":"","year":""}]
 }
+- Resume Worded Style: Clean single-column ATS-optimized format.
+- NO multi-column layouts, NO tables, NO graphics.
+- Section order: WORK EXPERIENCE, EDUCATION, SKILLS.
+- Experience bullets use action verbs and measurable results (e.g., "Reduced API response times by 87%").
+- Skills grouped into categories: Technical Skills, Frameworks, Databases, Cloud & DevOps, Industry Knowledge.
 - Summary must be 2-3 sentences, impactful.
-- Skills must be 8-12 relevant items.
-- Experience bullets must use action verbs and metrics where possible.
-- Tailor to the job description if provided.
 - Fill in any missing fields with realistic, professional content.`;
 
   return basePrompt;
@@ -140,14 +148,14 @@ Return ONLY valid JSON with this exact structure:
   }
 }
 
-## SCORING LOGIC
+## SCORING LOGIC (5 Category Breakdown)
 
-Use weighted logic:
-- Skills match (40%)
-- Experience relevance (25%)
-- Keyword coverage (15%)
-- Role alignment (10%)
-- Formatting & clarity (10%)
+Use weighted logic with these 5 categories:
+- Keyword Match (20%) - How many JD keywords appear in resume
+- Experience Relevance (25%) - How well experience bullets match the JD
+- Job Title Match (15%) - How closely the resume title matches the target role
+- Formatting (10%) - Clean single-column, proper section headers, consistent dates
+- Skills Coverage (30%) - How many required technical skills are present
 
 ## KEYWORD ANALYSIS (SMART FILTERING)
 
@@ -232,19 +240,26 @@ Output ONLY valid JSON with this exact shape:
   "email": "",
   "phone": "",
   "location": "",
+  "linkedin": "",
   "title": "",
   "summary": "",
-  "skills": [""],
-  "experience": [{"company":"","role":"","duration":"","bullets":[""]}],
-  "education": [{"school":"","degree":"","year":""}],
-  "projects": [{"name":"","description":"","tech":[""]}]
+  "skills": {
+    "technicalSkills": [""],
+    "frameworks": [""],
+    "databases": [""],
+    "cloudDevOps": [""],
+    "industryKnowledge": [""]
+  },
+  "experience": [{"company":"","role":"","duration":"","bullets":[""],"companyDescription":""}],
+  "education": [{"school":"","degree":"","year":""}]
 }
 
 STRICT RULES:
 - Output ONLY valid JSON, no markdown, no explanation, no preamble.
 - Every field must be present in the output.
-- Skills array must have 8-12 items.
-- Experience must have at least 1 entry with 2-3 bullets each.
+- Skills should be categorized into the 5 groups.
+- Experience must have at least 1 entry with 3-5 achievement bullets each using action verbs and metrics.
 - Education must have at least 1 entry.
-- Summary must be 2-3 impactful sentences.`;
+- Summary must be 2-3 impactful sentences.
+- Resume Worded Style: Clean single-column, no tables, no multi-column.`;
 }

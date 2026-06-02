@@ -18,7 +18,8 @@ import { LineByLineImprovements } from '@/components/resume/LineByLineImprovemen
 import { ClassicTemplate } from '@/components/resume/templates/ClassicTemplate';
 import { ModernTemplate } from '@/components/resume/templates/ModernTemplate';
 import { MinimalistTemplate } from '@/components/resume/templates/MinimalistTemplate';
-import type { TemplateType, ResumeData as TemplateResumeData } from '@/components/resume/templates/index';
+import type { TemplateType, ResumeData as TemplateResumeData, ResumeWordedData } from '@/components/resume/templates/index';
+import { ResumeWordedTemplate } from '@/components/resume/templates/ResumeWordedTemplate';
 import { resumeToLatex } from '@/features/ai/latex.service';
 
 interface ResumeVersion {
@@ -49,12 +50,14 @@ function normalizeSkills(skills: any): string[] {
   if (!skills) return [];
   if (Array.isArray(skills)) return skills;
   if (typeof skills === 'object') {
-    return [
-      ...(skills.technical || []),
-      ...(skills.soft || []),
-      ...(skills.tools || []),
-      ...(skills.languages || []),
-    ];
+    const catKeys = ['technicalSkills', 'frameworks', 'databases', 'cloudDevOps', 'industryKnowledge', 'technical', 'soft', 'tools', 'languages'];
+    const result: string[] = [];
+    for (const key of catKeys) {
+      if (Array.isArray(skills[key])) {
+        result.push(...skills[key]);
+      }
+    }
+    return result;
   }
   return [];
 }
@@ -115,9 +118,146 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const [applyingImprovementIndex, setApplyingImprovementIndex] = useState<number | null>(null);
   const [applyingKeyword, setApplyingKeyword] = useState<string | null>(null);
   const [loadingImprovementCount, setLoadingImprovementCount] = useState(0);
+  const [isAutoFixing, setIsAutoFixing] = useState(false);
+  const [estimatedScore, setEstimatedScore] = useState<number | null>(null);
+
+  // Calculate estimated score based on missing keywords
+  const calculateEstimatedScore = () => {
+    if (!atsResult) return null;
+    const currentScore = atsResult.atsScore ?? 0;
+    const missingKeywords = atsResult.analysis?.keywordAnalysis?.missingSkills ?? atsScoreResult?.missing_keywords ?? [];
+    const actionableCount = atsResult.analysis?.actionableImprovements?.length ?? 0;
+    
+    // Estimate: each missing keyword adds ~3-5% if added, each actionable improvement adds ~2-4%
+    const keywordImprovement = Math.min(missingKeywords.length * 4, 20); // Max 20% from keywords
+    const actionImprovement = Math.min(actionableCount * 3, 15); // Max 15% from actions
+    const estimated = Math.min(currentScore + keywordImprovement + actionImprovement, 95); // Cap at 95%
+    
+    return estimated > currentScore ? estimated : null;
+  };
+
+  // Update estimated score when ATS result changes
+  useEffect(() => {
+    if (atsResult) {
+      setEstimatedScore(calculateEstimatedScore());
+    }
+  }, [atsResult, atsScoreResult]);
+
+  // ATS step indicator
+  const ATS_STEPS = [
+    { key: 'parsing', label: 'Parsing resume & extracting job requirements' },
+    { key: 'matching', label: 'Matching keywords across all sections' },
+    { key: 'scoring', label: 'Computing section scores' },
+    { key: 'optimizing', label: 'Generating targeted improvement suggestions' },
+  ] as const;
+  type AtsStepKey = (typeof ATS_STEPS)[number]['key'];
+  const [atsCurrentStep, setAtsCurrentStep] = useState<AtsStepKey | null>(null);
 
   // Template state
-  const [template, setTemplate] = useState<TemplateType>('modern');
+  const [template, setTemplate] = useState<TemplateType>('resumeworded');
+
+  // ResumeWorded data state
+  const [wordedContact, setWordedContact] = useState({ location: '', phone: '', email: '', linkedin: '' });
+  const [wordedSkills, setWordedSkills] = useState({
+    technicalSkills: [] as string[],
+    frameworks: [] as string[],
+    databases: [] as string[],
+    cloudDevOps: [] as string[],
+    industryKnowledge: [] as string[],
+  });
+  const [wordedExperience, setWordedExperience] = useState<Array<{
+    company: string; dates: string; title: string; companyDescription?: string; bullets: string[];
+  }>>([]);
+  const [wordedEducation, setWordedEducation] = useState<Array<{
+    institution: string; degree: string; graduationDate: string;
+  }>>([]);
+  const [wordedName, setWordedName] = useState('');
+  const [wordedTitle, setWordedTitle] = useState('');
+
+  // Convert flat skills to worded skills on initial load when wordedSkills is empty
+  useEffect(() => {
+    if (!loading && skills.length > 0 &&
+        wordedSkills.technicalSkills.length === 0 &&
+        wordedSkills.frameworks.length === 0 &&
+        wordedSkills.databases.length === 0 &&
+        wordedSkills.cloudDevOps.length === 0 &&
+        wordedSkills.industryKnowledge.length === 0) {
+      setWordedSkills({
+        technicalSkills: skills.filter(s => /^(python|javascript|typescript|java|rust|go|c\+\+|c#|php|ruby|swift|kotlin|scala|html|css)$/i.test(s)),
+        frameworks: skills.filter(s => /^(react|vue|angular|svelte|next|nuxt|express|django|flask|spring|rails|node|tensorflow|pytorch|langchain)$/i.test(s)),
+        databases: skills.filter(s => /^(sql|nosql|mongodb|postgresql|mysql|sqlite|redis|elasticsearch|dynamodb|cosmos)/i.test(s)),
+        cloudDevOps: skills.filter(s => /^(aws|azure|gcp|docker|kubernetes|terraform|ansible|jenkins|ci\/cd)/i.test(s)),
+        industryKnowledge: skills.filter(s => !/^(python|javascript|typescript|java|react|vue|angular|aws|docker|kubernetes|sql|mongodb|postgresql|mysql)/i.test(s)),
+      });
+    }
+  }, [loading, skills]);
+
+  // Sync worded data back to flat state for ATS compatibility
+  useEffect(() => {
+    if (wordedContact.email) setEmail(wordedContact.email);
+    if (wordedContact.phone) setPhone(wordedContact.phone);
+    if (wordedContact.location) setLocation(wordedContact.location);
+  }, [wordedContact]);
+
+  useEffect(() => {
+    if (wordedName) setUserName(wordedName);
+    if (wordedTitle) setUserRole(wordedTitle);
+  }, [wordedName, wordedTitle]);
+
+  useEffect(() => {
+    if (wordedSkills.technicalSkills.length > 0 || wordedSkills.frameworks.length > 0) {
+      const all = [
+        ...wordedSkills.technicalSkills,
+        ...wordedSkills.frameworks,
+        ...wordedSkills.databases,
+        ...wordedSkills.cloudDevOps,
+        ...wordedSkills.industryKnowledge,
+      ];
+      if (all.length > 0) setSkills(all);
+    }
+  }, [wordedSkills]);
+
+  useEffect(() => {
+    if (wordedExperience.length > 0) {
+      setExperience(wordedExperience.map(e => ({
+        company: e.company,
+        role: e.title,
+        duration: e.dates,
+        bullets: e.bullets,
+        companyDescription: e.companyDescription,
+      })));
+    }
+  }, [wordedExperience]);
+
+  useEffect(() => {
+    if (wordedEducation.length > 0) {
+      setEducation(wordedEducation.map(e => ({
+        school: e.institution,
+        degree: e.degree,
+        year: e.graduationDate,
+      })));
+    }
+  }, [wordedEducation]);
+
+  function toWordedData(): ResumeWordedData {
+    return {
+      name: wordedName || userName,
+      title: wordedTitle || userRole,
+      contact: wordedContact,
+      experience: wordedExperience.length > 0 ? wordedExperience : experience.map(e => ({
+        company: e.company,
+        dates: e.duration,
+        title: e.role,
+        bullets: e.bullets || [],
+      })),
+      education: wordedEducation.length > 0 ? wordedEducation : education.map(e => ({
+        institution: e.school,
+        degree: e.degree,
+        graduationDate: e.year,
+      })),
+      skills: wordedSkills,
+    };
+  }
 
   // Line-by-line improvements
   const [atsImprovements, setAtsImprovements] = useState<Array<{ section: string; before: string; after: string; impact?: number }>>([]);
@@ -799,8 +939,10 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       const isChanged = JSON.stringify(currentHistoryItem) !== JSON.stringify(stateToSave);
       if (isChanged) {
         const newHistory = history.slice(0, historyIndex + 1);
-        setHistory([...newHistory, stateToSave]);
-        setHistoryIndex(newHistory.length);
+        const trimmed = [...newHistory, stateToSave];
+        if (trimmed.length > 10) trimmed.splice(0, trimmed.length - 10);
+        setHistory(trimmed);
+        setHistoryIndex(trimmed.length - 1);
       }
     }
   }, [userName, userRole, experience, skills, email, phone, location, summary, education, loading]);
@@ -1022,6 +1164,10 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     }
   };
 
+  const setStep = (key: AtsStepKey) => {
+    setAtsCurrentStep(key);
+  };
+
   const handleAnalyzeATS = async () => {
     if (!jobDescription.trim() || isAnalyzingATS) return;
     setIsAnalyzingATS(true);
@@ -1031,9 +1177,22 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     setAtsImprovements([]);
     setAppliedImprovementIndices(new Set());
     setPreviousATSScore(null);
+    setAtsCurrentStep('parsing');
 
     try {
-      // STEP 1 — Score first
+      // Quick client-side pre-score (instant, before API call)
+      const jdWords = jobDescription.trim().toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 2);
+      const resumeWords = new Set([
+        ...(userRole || '').toLowerCase().split(/\s+/),
+        ...(summary || '').toLowerCase().split(/\s+/),
+        ...skills.flatMap(s => s.toLowerCase().split(/\s+/)),
+      ]);
+      const quickMatchCount = jdWords.filter(w => resumeWords.has(w)).length;
+      const quickScore = jdWords.length > 0 ? Math.round((quickMatchCount / jdWords.length) * 100) : 0;
+
+      await new Promise(r => setTimeout(r, 300));
+      setStep('matching');
+
       const scoreRes = await fetch('/api/ats-score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1052,6 +1211,9 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           jobDescription: jobDescription.trim()
         })
       });
+
+      setStep('scoring');
+      await new Promise(r => setTimeout(r, 200));
 
       if (!scoreRes.ok) {
         const errData = await scoreRes.json().catch(() => null);
@@ -1075,15 +1237,16 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         },
         atsScore: score,
       });
-      setIsAnalyzingATS(false);
 
       // STEP 2 — Check if improvement needed
       if (score >= 75) {
+        setAtsCurrentStep(null);
         showToast(`ATS Score: ${score}% — Resume is already well-optimized!`, 'success');
         return;
       }
 
       // STEP 3 — Generate suggestions one weak section at a time.
+      setStep('optimizing');
       const weakSections = Array.isArray(scoreData.weak_sections) && scoreData.weak_sections.length
         ? scoreData.weak_sections.slice(0, 4)
         : ['summary', 'skills', 'experience'];
@@ -1131,14 +1294,17 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         }
       }
 
+      setAtsCurrentStep(null);
       showToast('Suggestions ready. Apply one or apply all to rescore.', 'success');
     } catch (e: any) {
       showToast(e.message || 'Failed to analyze ATS', 'error');
     } finally {
       setIsAnalyzingATS(false);
+      setAtsCurrentStep(null);
       setLoadingImprovementCount(0);
     }
   };
+
 
   const handleSendChatMessage = async () => {
     const text = chatInput.trim();
@@ -1434,12 +1600,85 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           gapAnalysis: `Score improved from ${data.oldScore}% to ${data.newScore || data.oldScore}%`,
         }
       }));
+      setEstimatedScore(null);
 
       showToast(`Score improved to ${data.newScore || '80+'}!`, 'success');
     } catch (e: any) {
       showToast(e.message || 'Failed to improve resume', 'error');
     } finally {
       setIsImprovingATS(false);
+    }
+  };
+
+  const handleAutoFix = async () => {
+    if (!atsResult || isAutoFixing) return;
+    setIsAutoFixing(true);
+    try {
+      const res = await fetch('/api/optimize-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resume: {
+            name: userName,
+            title: userRole,
+            summary,
+            skills,
+            experience,
+            education,
+            email,
+            phone,
+            location
+          },
+          jobDescription: jobDescription.trim(),
+          currentScore: atsScoreResult?.overall_score || atsResult?.atsScore || 50,
+          missingKeywords: atsScoreResult?.missing_keywords || [],
+          weakSections: atsScoreResult?.weak_sections || ['experience_keywords', 'skills_keywords', 'summary'],
+          titleInJd: atsScoreResult?.title_in_jd || "",
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || 'Optimization failed');
+      }
+
+      const data = await res.json();
+      setPreviousATSScore(data.oldScore);
+
+      // Apply improvements to resume state
+      if (data.improvedResume) {
+        if (data.improvedResume.summary) setSummary(data.improvedResume.summary);
+        if (data.improvedResume.title) setUserRole(data.improvedResume.title);
+        if (data.improvedResume.skills) setSkills(data.improvedResume.skills);
+        if (data.improvedResume.experience) setExperience(data.improvedResume.experience);
+      }
+
+      // Build improvements list for LineByLine display
+      const improvements: Array<{ section: string; before: string; after: string; impact?: number }> =
+        (data.changes || []).map((c: any) => ({
+          section: c.section,
+          before: c.before,
+          after: c.after,
+          impact: Math.round(((data.newScore || data.oldScore) - data.oldScore) / Math.max(data.changes?.length || 1, 1)),
+        }));
+      setAtsImprovements(improvements);
+
+      setAtsResult((prev: any) => ({
+        ...prev,
+        atsScore: data.newScore || prev.atsScore,
+        analysis: {
+          ...prev?.analysis,
+          atsScore: data.newScore || prev?.atsScore,
+          gapAnalysis: `Score improved from ${data.oldScore}% to ${data.newScore || data.oldScore}%`,
+        }
+      }));
+      setEstimatedScore(null);
+
+      showToast(`Resume auto-fixed! Score improved to ${data.newScore || '80+'}%`, 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Failed to auto-fix resume', 'error');
+    } finally {
+      setIsAutoFixing(false);
     }
   };
 
@@ -1799,11 +2038,38 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                       </div>
                     </div>
 
-                    {/* ATS Results */}
+                    {/* ATS Step Indicator */}
                     {isAnalyzingATS && (
-                      <div className="flex flex-col items-center justify-center py-12 mt-4 bg-surface-container/30 border border-outline-variant/20 rounded-xl">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
-                        <p className="text-xs text-on-surface-variant">Analyzing resume against job description...</p>
+                      <div className="mt-4 bg-surface-container/30 border border-outline-variant/20 rounded-xl p-5 space-y-3">
+                        <div className="text-xs font-bold text-on-surface uppercase tracking-wider mb-2">Analyzing Resume</div>
+                        {ATS_STEPS.map((step, i) => {
+                          const stepKeys = ATS_STEPS.map(s => s.key);
+                          const currentIdx = atsCurrentStep ? stepKeys.indexOf(atsCurrentStep) : -1;
+                          const stepIdx = stepKeys.indexOf(step.key);
+                          const isDone = currentIdx > stepIdx;
+                          const isActive = stepKeys.indexOf(step.key) === currentIdx;
+                          return (
+                            <div key={step.key} className="flex items-center gap-3">
+                              <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                                {isDone ? (
+                                  <CheckCircle2 className="w-4 h-4 text-success" />
+                                ) : isActive ? (
+                                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                                ) : (
+                                  <div className="w-4 h-4 rounded-full border-2 border-outline-variant/40" />
+                                )}
+                              </div>
+                              <span className={cn(
+                                "text-xs transition-all",
+                                isDone && "text-success line-through decoration-success/40",
+                                isActive && "text-primary font-medium",
+                                !isDone && !isActive && "text-outline-variant/60"
+                              )}>
+                                {step.label}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
@@ -1822,6 +2088,9 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                             gapAnalysis: atsResult.analysis.gapAnalysis,
                             actionableImprovements: atsResult.analysis.actionableImprovements,
                           } : undefined}
+                          estimatedScore={estimatedScore}
+                          onAutoFix={handleAutoFix}
+                          autoFixing={isAutoFixing}
                         />
 
                         {atsImprovements.length > 0 && (
@@ -1864,56 +2133,148 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                   transition={{ duration: 0.15 }}
                   className="space-y-6"
                 >
-                  {/* Name & Role Card */}
-                  <div className="glass rounded-xl p-4 sm:p-5 group relative">
-                    <h1 className="text-xl sm:text-2xl font-bold text-on-surface outline-none focus:text-primary transition-colors" contentEditable suppressContentEditableWarning onBlur={(e) => setUserName(e.currentTarget.innerText)}>{userName || 'Your Name'}</h1>
-                    <p className="text-on-surface-variant text-xs sm:text-sm font-medium mt-1 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setUserRole(e.currentTarget.innerText)}>{userRole || 'Your Title'}</p>
+                  {/* Header - Name, Title, Contact */}
+                  <div className="glass rounded-xl p-4 sm:p-5">
+                    <h1 className="text-xl sm:text-2xl font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { setWordedName(e.currentTarget.innerText); setUserName(e.currentTarget.innerText); }}>
+                      {wordedName || userName || 'Your Name'}
+                    </h1>
+                    <p className="text-on-surface-variant text-xs sm:text-sm font-medium mt-1 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { setWordedTitle(e.currentTarget.innerText); setUserRole(e.currentTarget.innerText); }}>
+                      {wordedTitle || userRole || 'Professional Title'}
+                    </p>
                     <div className="flex flex-wrap gap-3 sm:gap-4 mt-3 text-[10px] sm:text-xs text-on-surface-variant/70">
-                      <span className="flex items-center gap-1"><Mail className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setEmail(e.currentTarget.innerText)}>{email || 'email'}</span></span>
-                      <span className="flex items-center gap-1"><Phone className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setPhone(e.currentTarget.innerText)}>{phone || 'phone'}</span></span>
-                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /><span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setLocation(e.currentTarget.innerText)}>{location || 'location'}</span></span>
+                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />
+                        <span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { setWordedContact(c => ({ ...c, location: e.currentTarget.innerText })); setLocation(e.currentTarget.innerText); }}>
+                          {wordedContact.location || location || 'Location'}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1"><Phone className="w-3 h-3" />
+                        <span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { setWordedContact(c => ({ ...c, phone: e.currentTarget.innerText })); setPhone(e.currentTarget.innerText); }}>
+                          {wordedContact.phone || phone || 'Phone'}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1"><Mail className="w-3 h-3" />
+                        <span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { setWordedContact(c => ({ ...c, email: e.currentTarget.innerText })); setEmail(e.currentTarget.innerText); }}>
+                          {wordedContact.email || email || 'Email'}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />
+                        <span className="outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => setWordedContact(c => ({ ...c, linkedin: e.currentTarget.innerText }))}>
+                          {wordedContact.linkedin || 'LinkedIn'}
+                        </span>
+                      </span>
                     </div>
-                    <button className="absolute -right-2 top-4 w-8 h-8 flex items-center justify-center bg-primary/10 border border-primary/20 text-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"><Sparkles className="w-4 h-4" /></button>
                   </div>
 
-                  {/* Summary Section */}
+                  {/* WORK EXPERIENCE - First section */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Summary</h3>
+                      <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Work Experience</h3>
+                      <button onClick={() => {
+                        setWordedExperience([...wordedExperience, { company: 'Company Name', dates: 'Jun 2020 - Present', title: 'Job Title', bullets: ['Achievement with measurable results'] }]);
+                      }} className="p-1 text-on-surface-variant hover:text-primary transition-colors">
+                        <PlusCircle className="w-5 h-5" />
+                      </button>
                     </div>
-                    <div className="glass rounded-xl p-4 group">
-                      <div
-                        className="text-sm text-on-surface outline-none min-h-[80px]"
-                        contentEditable
-                        suppressContentEditableWarning
-                        onBlur={(e) => setSummary(e.currentTarget.innerText)}
-                      >
-                        {summary || 'Write a brief professional summary about yourself...'}
+                    {(wordedExperience.length > 0 ? wordedExperience : experience).map((exp, i) => (
+                      <div key={i} className="glass rounded-xl p-4 group hover:border-primary/50 transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning
+                              onBlur={(e) => {
+                                const n = [...wordedExperience]; if (!n[i]) return;
+                                n[i].company = e.currentTarget.innerText; setWordedExperience(n);
+                              }}>
+                              {exp.company}
+                            </h4>
+                            <p className="text-xs font-semibold text-on-surface-variant mt-0.5 outline-none" contentEditable suppressContentEditableWarning
+                              onBlur={(e) => {
+                                const n = [...wordedExperience]; if (!n[i]) return;
+                                n[i].title = e.currentTarget.innerText; setWordedExperience(n);
+                              }}>
+                              {exp.title}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning
+                              onBlur={(e) => {
+                                const n = [...wordedExperience]; if (!n[i]) return;
+                                n[i].dates = e.currentTarget.innerText; setWordedExperience(n);
+                              }}>
+                              {exp.dates}
+                            </span>
+                            <button onClick={() => setWordedExperience(wordedExperience.filter((_, idx) => idx !== i))}
+                              className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        {exp.companyDescription !== undefined && (
+                          <div className="text-[10px] italic text-on-surface-variant/60 outline-none mb-1" contentEditable suppressContentEditableWarning
+                            onBlur={(e) => {
+                              const n = [...wordedExperience]; if (!n[i]) return;
+                              n[i].companyDescription = e.currentTarget.innerText; setWordedExperience(n);
+                            }}>
+                            {exp.companyDescription || 'Company description (optional)'}
+                          </div>
+                        )}
+                        <ul className="list-disc ml-4 text-xs text-on-surface-variant space-y-1.5">
+                          {(exp.bullets || []).map((b: string, j: number) => (
+                            <li key={j} className="outline-none leading-relaxed" contentEditable suppressContentEditableWarning
+                              onBlur={(e) => {
+                                const n = [...wordedExperience]; if (!n[i]) return;
+                                n[i].bullets[j] = e.currentTarget.innerText; setWordedExperience(n);
+                              }}>
+                              {b}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
+                    ))}
                   </div>
 
-                  {/* Education Section */}
+                  {/* EDUCATION - Second section */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Education</h3>
-                      <button onClick={addEducation} className="p-1 text-on-surface-variant hover:text-primary transition-colors"><PlusCircle className="w-5 h-5" /></button>
+                      <button onClick={() => {
+                        setWordedEducation([...wordedEducation, { institution: 'University Name', degree: 'Bachelor of Science in Computer Science', graduationDate: 'May 2020' }]);
+                      }} className="p-1 text-on-surface-variant hover:text-primary transition-colors">
+                        <PlusCircle className="w-5 h-5" />
+                      </button>
                     </div>
-                    {education.length === 0 ? (
+                    {(wordedEducation.length > 0 ? wordedEducation : education).length === 0 ? (
                       <div className="glass rounded-xl p-4 text-center text-on-surface-variant text-sm">
                         No education added yet
                       </div>
                     ) : (
-                      education.map((edu, i) => (
+                      (wordedEducation.length > 0 ? wordedEducation : education).map((edu: any, i: number) => (
                         <div key={i} className="glass rounded-xl p-4 group hover:border-primary/50 transition-colors">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h4 className="text-base font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].school = e.currentTarget.innerText; setEducation(n); }}>{edu.school}</h4>
-                              <p className="text-xs font-semibold text-on-surface-variant mt-0.5 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].degree = e.currentTarget.innerText; setEducation(n); }}>{edu.degree}</p>
+                          <div className="flex justify-between items-start mb-1">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning
+                                onBlur={(e) => {
+                                  const n = [...wordedEducation]; n[i].institution = e.currentTarget.innerText; setWordedEducation(n);
+                                }}>
+                                {edu.institution || edu.school}
+                              </h4>
+                              <p className="text-xs text-on-surface-variant mt-0.5 outline-none" contentEditable suppressContentEditableWarning
+                                onBlur={(e) => {
+                                  const n = [...wordedEducation]; n[i].degree = e.currentTarget.innerText; setWordedEducation(n);
+                                }}>
+                                {edu.degree}
+                              </p>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...education]; n[i].year = e.currentTarget.innerText; setEducation(n); }}>{edu.year}</span>
-                              <button onClick={() => setEducation(education.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning
+                                onBlur={(e) => {
+                                  const n = [...wordedEducation]; n[i].graduationDate = e.currentTarget.innerText; setWordedEducation(n);
+                                }}>
+                                {edu.graduationDate || edu.year}
+                              </span>
+                              <button onClick={() => setWordedEducation(wordedEducation.filter((_, idx) => idx !== i))}
+                                className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -1921,75 +2282,79 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                     )}
                   </div>
 
-                  {/* Experience Section */}
+                  {/* SKILLS - Third section, categorized */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Experience</h3>
-                      <button onClick={addExperience} className="p-1 text-on-surface-variant hover:text-primary transition-colors"><PlusCircle className="w-5 h-5" /></button>
+                      <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Skills</h3>
                     </div>
-                    {experience.map((exp, i) => (
-                      <div key={i} className="glass rounded-xl p-4 group hover:border-primary/50 transition-colors">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h4 className="text-base font-bold text-on-surface outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].company = e.currentTarget.innerText; setExperience(n); }}>{exp.company}</h4>
-                            <p className="text-xs font-semibold text-on-surface-variant uppercase mt-0.5 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].role = e.currentTarget.innerText; setExperience(n); }}>{exp.role}</p>
+                    {[
+                      { key: 'technicalSkills', label: 'Technical Skills' },
+                      { key: 'frameworks', label: 'Frameworks' },
+                      { key: 'databases', label: 'Databases' },
+                      { key: 'cloudDevOps', label: 'Cloud & DevOps' },
+                      { key: 'industryKnowledge', label: 'Industry Knowledge' },
+                    ].map((cat) => {
+                      const items = (wordedSkills as any)[cat.key] as string[];
+                      return (
+                        <div key={cat.key} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-[9px] font-semibold text-primary/70 uppercase tracking-wider">{cat.label}</h4>
+                            <button
+                              onClick={() => {
+                                setWordedSkills(s => ({
+                                  ...s,
+                                  [cat.key]: [...(s as any)[cat.key], 'New Skill'],
+                                }));
+                              }}
+                              className="text-[10px] text-primary hover:text-primary/80 font-medium"
+                            >
+                              + Add
+                            </button>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono text-on-surface-variant/60 outline-none" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].duration = e.currentTarget.innerText; setExperience(n); }}>{exp.duration || exp.period}</span>
-                            <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))} className="p-1 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
+                          <div className="flex flex-wrap gap-2">
+                            {items.map((skill, i) => (
+                              <div key={i} className="glass rounded-full px-3 py-1.5 flex items-center gap-2 group transition-all hover:bg-surface-container-highest">
+                                <span
+                                  className="text-xs font-semibold text-on-surface outline-none min-w-[40px] cursor-text"
+                                  contentEditable
+                                  suppressContentEditableWarning
+                                  onBlur={(e) => {
+                                    const val = e.currentTarget.innerText.trim();
+                                    if (val) {
+                                      setWordedSkills(s => ({
+                                        ...s,
+                                        [cat.key]: (s as any)[cat.key].map((x: string, idx: number) => idx === i ? val : x),
+                                      }));
+                                    } else {
+                                      setWordedSkills(s => ({
+                                        ...s,
+                                        [cat.key]: (s as any)[cat.key].filter((_: string, idx: number) => idx !== i),
+                                      }));
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+                                  }}
+                                >
+                                  {skill}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setWordedSkills(s => ({
+                                      ...s,
+                                      [cat.key]: (s as any)[cat.key].filter((_: string, idx: number) => idx !== i),
+                                    }));
+                                  }}
+                                  className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                        <ul className="list-disc ml-4 text-sm text-on-surface-variant space-y-1.5">
-                          {(exp.bullets || []).map((b: string, j: number) => (<li key={j} className="outline-none leading-relaxed" contentEditable suppressContentEditableWarning onBlur={(e) => { const n = [...experience]; n[i].bullets[j] = e.currentTarget.innerText; setExperience(n); }}>{b}</li>))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Skills Section */}
-                  <div className="space-y-3">
-                    <h3 className="text-[10px] font-bold text-primary tracking-[0.15em] uppercase">Skills & Tools</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {skills.map((skill, i) => (
-                        <div key={i} className="glass rounded-full px-3 py-1.5 flex items-center gap-2 group transition-all hover:bg-surface-container-highest">
-                          <span
-                            className="text-xs font-semibold text-on-surface outline-none min-w-[40px] cursor-text"
-                            contentEditable
-                            suppressContentEditableWarning
-                            onBlur={(e) => {
-                              const newSkills = [...skills];
-                              const val = e.currentTarget.innerText.trim();
-                              if (val) {
-                                newSkills[i] = val;
-                                setSkills(newSkills);
-                              } else {
-                                setSkills(skills.filter((_, idx) => idx !== i));
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.currentTarget.blur();
-                              }
-                            }}
-                          >
-                            {skill}
-                          </span>
-                          <button
-                            onClick={() => setSkills(skills.filter((_, idx) => idx !== i))}
-                            className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        onClick={() => setSkills([...skills, 'New Skill'])}
-                        className="bg-primary/10 border border-primary/30 text-primary rounded-full px-3 py-1.5 text-xs font-semibold hover:bg-primary/15 transition-all"
-                      >
-                        + Add
-                      </button>
-                    </div>
+                      );
+                    })}
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -2018,7 +2383,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               <div className="flex items-center gap-2">
                 {/* Template Selector */}
                 <div className="flex items-center gap-0.5 bg-surface-container-high px-1 py-1 rounded-lg border border-outline-variant">
-                  {(['classic', 'modern', 'minimalist'] as const).map((t) => (
+                  {(['resumeworded', 'classic', 'modern', 'minimalist'] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => setTemplate(t)}
@@ -2068,21 +2433,23 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                   minHeight: '1123px',
                 }}
               >
-                {template === 'classic' && (
+                {template === 'resumeworded' ? (
+                  <div style={{ background: '#ffffff', borderRadius: 8, overflow: 'hidden' }}>
+                    <ResumeWordedTemplate data={toWordedData()} />
+                  </div>
+                ) : template === 'classic' ? (
                   <ClassicTemplate data={resumeData} color={resumeColor} theme={resumeTheme} />
-                )}
-                {template === 'modern' && (
+                ) : template === 'modern' ? (
                   <ModernTemplate data={resumeData} color={resumeColor} theme={resumeTheme} />
-                )}
-                {template === 'minimalist' && (
+                ) : template === 'minimalist' ? (
                   <MinimalistTemplate data={resumeData} color={resumeColor} theme={resumeTheme} />
-                )}
+                ) : null}
               </motion.div>
             </div>
 
             {/* Download Action */}
             <div className="p-4 border-t border-white/5 glass-dark flex justify-center">
-              <DownloadDropdown resumeData={resumeData} latex={latex} resumePreviewId="resume-preview" />
+              <DownloadDropdown resumeData={resumeData} latex={latex} resumePreviewId="resume-preview" wordedData={toWordedData()} />
             </div>
           </motion.aside>
         )}

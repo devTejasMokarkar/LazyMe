@@ -145,7 +145,6 @@ async function callOllamaFallback(prompt: string): Promise<string | null> {
   const ollamaModels = [
     preferredOllamaModel,
     ...(preferredOllamaModel !== 'llama3.2' ? ['llama3.2'] : []),
-    ...(preferredOllamaModel !== 'deepseek-coder:6.7b' ? ['deepseek-coder:6.7b'] : []),
   ].filter(Boolean) as string[];
   const installedModels = await getInstalledOllamaModels();
 
@@ -278,48 +277,61 @@ export async function generateText(prompt: string): Promise<string> {
   const localResult = await callOllamaFallback(prompt);
   if (localResult) return localResult;
 
-    try {
-      logger.info({ 
-        message: "Calling Gemini text model", 
-        promptLength: prompt.length 
-      });
-      const result = await getModel().generateContent(prompt);
-      logger.info({ message: "Gemini result received, checking response" });
-      const response = await result.response;
-      logger.info({ 
-        message: "Gemini response text length", 
-        length: response.text().length 
-      });
-      return response.text();
-    } catch (error: any) {
-      const shouldFallback = error.status === 429 || isGeminiNetworkError(error);
-      logger.warn({ 
-        message: "Gemini text generation failed",
-        status: error.status || "network",
-        messageDetails: String(error.message || "").slice(0, 180)
-      });
+    const maxRetries = 2;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.info({ 
+          message: "Calling Gemini text model", 
+          promptLength: prompt.length,
+          attempt 
+        });
+        const result = await getModel().generateContent(prompt);
+        logger.info({ message: "Gemini result received, checking response" });
+        const response = await result.response;
+        logger.info({ 
+          message: "Gemini response text length", 
+          length: response.text().length 
+        });
+        return response.text();
+      } catch (error: any) {
+        const isRetryable = error.status === 429 || error.status === 503 || isGeminiNetworkError(error);
+        logger.warn({ 
+          message: "Gemini text generation failed",
+          status: error.status || "network",
+          attempt,
+          messageDetails: String(error.message || "").slice(0, 180)
+        });
 
-      if (shouldFallback) {
-         try {
-           logger.info({ message: "Trying OpenRouter fallback" });
-           return await callOpenRouter(prompt);
-         } catch (fallbackError: any) {
-           logger.error({ 
-             message: "OpenRouter fallback failed",
-             error: fallbackError.message 
-           });
-          const finalError = new GeminiServiceError(
-            isGeminiNetworkError(error)
-              ? "AI service is temporarily unreachable. Please try again in a moment."
-              : "All AI services are currently at capacity. Please try again in a few minutes.",
-            error.status || 503,
-            { type: "UNKNOWN", message: "All AI services exhausted or unreachable" }
-          );
-          throw finalError;
+        if (isRetryable && attempt < maxRetries) {
+          const delay = attempt * 2000;
+          logger.info({ message: `Retrying Gemini in ${delay}ms`, attempt });
+          await new Promise(r => setTimeout(r, delay));
+          continue;
         }
+
+        if (isRetryable) {
+           try {
+             logger.info({ message: "Trying OpenRouter fallback" });
+             return await callOpenRouter(prompt);
+           } catch (fallbackError: any) {
+             logger.error({ 
+               message: "OpenRouter fallback failed",
+               error: fallbackError.message 
+             });
+            const finalError = new GeminiServiceError(
+              isGeminiNetworkError(error)
+                ? "AI service is temporarily unreachable. Please try again in a moment."
+                : "All AI services are currently at capacity. Please try again in a few minutes.",
+              error.status || 503,
+              { type: "UNKNOWN", message: "All AI services exhausted or unreachable" }
+            );
+            throw finalError;
+          }
+        }
+        return handleGeminiError(error);
       }
-      return handleGeminiError(error);
     }
+    throw new GeminiServiceError("AI service failed after all retries", 503);
 }
 
 export async function generateTextFromMultiModal(

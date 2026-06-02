@@ -1,3 +1,5 @@
+import { genericWords } from '@/features/ai/utils/ats-words';
+
 const synonyms: Record<string, string[]> = {
   react: ["frontend", "ui", "javascript", "jsx", "reactjs", "react.js"],
   node: ["backend", "api", "nodejs", "node.js", "express"],
@@ -10,19 +12,6 @@ const synonyms: Record<string, string[]> = {
   communication: ["collaborative", "teamwork", "presentation"],
   leadership: ["management", "mentoring", "lead"]
 };
-
-// Generic words to ignore in ATS analysis
-const genericWords = new Set([
-  "job", "role", "team", "company", "india", "bangalore", "looking", "join", "our",
-  "location", "employment", "type", "full", "time", "part", "skilled", "work",
-  "position", "opportunity", "career", "growth", "environment", "dynamic",
-  "the", "and", "a", "to", "of", "in", "i", "is", "that", "it", "on", "you",
-  "this", "for", "but", "with", "are", "have", "be", "at", "or", "as", "was",
-  "so", "if", "out", "not", "we", "us", "your", "my", "their", "who", "what",
-  "when", "where", "how", "why", "which", "about", "into", "through", "during",
-  "before", "after", "above", "below", "from", "up", "down", "off", "over",
-  "under", "again", "further", "then", "once", "here", "there", "when", "where"
-]);
 
 export function extractKeywords(text: string): string[] {
   if (!text) return [];

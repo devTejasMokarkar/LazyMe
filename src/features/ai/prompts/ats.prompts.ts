@@ -21,6 +21,12 @@ export interface AtsScoreResult {
 export function buildATSScorerPrompt(resumeText: string, jdText: string): string {
   return `You are an ATS scoring engine. Score this resume against the job description.
 
+Resume Worded Style - Clean single-column ATS-optimized format with:
+- Header: Name, title, contact (Location | Phone | Email | LinkedIn)
+- Sections ordered: WORK EXPERIENCE, EDUCATION, SKILLS
+- Categorized skills (Technical Skills, Frameworks, Databases, Cloud & DevOps, Industry Knowledge)
+- Achievement bullets with action verbs and measurable results
+
 RESUME:
 ${resumeText}
 

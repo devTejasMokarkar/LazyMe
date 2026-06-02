@@ -212,3 +212,29 @@ Do NOT set OLLAMA_BASE_URL or OLLAMA_MODEL — they default, fail silently, and 
 
 
  i want to add something likethe data which is extracted from resume we save to googles browser saved data and  when user gets redirected he can prefilled data easily
+
+
+
+
+
+
+
+
+
+
+ //---
+ Here's exactly how ATS systems score a resume, ranked by impact:Click any row to see exactly what ATS checks for in that section.
+
+**The short answer ranked by impact:**
+
+**#1 — Keywords in your experience bullets (25%)** — this is the biggest lever. ATS weights keywords found inside bullet points 2–3× more than the same keyword in a skills list. "Built RAG pipelines" in a bullet beats "RAG" in a skills row every time.
+
+**#2 — Job title match (30%)** — many ATS systems hard-filter on this before anything else. Your title needs to mirror the job posting. "Software Developer" vs "Software Engineer" can cause an automatic reject.
+
+**#3 — Skills section (15%)** — a clean, machine-readable label-value table (like what I built for you) is what ATS parses. No tables with merged cells, no icons, no columns.
+
+**#4 — Summary (10%)** — ATS reads this early and indexes it heavily. Your 3–4 line summary should contain your title, years of experience, and your top 5 keywords naturally.
+
+**#5 — File structure (8%)** — the silent killer. Two-column layouts, text in tables, headers/footers, and decorative fonts break parsers silently. The resume I built uses single-column, Helvetica, plain bullets — which is why it passes.
+
+The bottom of the list (education, gaps, metrics) matters mostly for the human reviewer *after* ATS passes you — not for the ATS score itself.

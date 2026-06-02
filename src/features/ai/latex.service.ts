@@ -1,6 +1,6 @@
 import { ResumeData } from "@/components/resume/templates/index";
 
-export function resumeToLatex(data: ResumeData, template: 'classic' | 'modern' | 'minimalist' = 'modern'): string {
+export function resumeToLatex(data: ResumeData, template: 'classic' | 'modern' | 'minimalist' | 'resumeworded' = 'modern'): string {
   const escapeLatex = (str: string | null | undefined = "") =>
     (str || "")
       .replace(/\\/g, "\\\\")

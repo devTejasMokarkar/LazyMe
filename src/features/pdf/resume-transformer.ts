@@ -85,30 +85,49 @@ function calcDurationYearsMonths(start: string, end: string): string {
 function inferSkillLabel(skill: string): string {
   const lower = skill.toLowerCase();
   const labelMap: Record<string, string> = {
-    'python': 'Languages',
-    'javascript': 'Languages',
-    'typescript': 'Languages',
-    'java': 'Languages',
-    'c\\+\\+': 'Languages',
-    'rust': 'Languages',
-    'go': 'Languages',
+    'python': 'Technical Skills',
+    'javascript': 'Technical Skills',
+    'typescript': 'Technical Skills',
+    'java': 'Technical Skills',
+    'c\\+\\+': 'Technical Skills',
+    'rust': 'Technical Skills',
+    'go': 'Technical Skills',
+    'swift': 'Technical Skills',
+    'kotlin': 'Technical Skills',
     'react': 'Frameworks',
     'next\\.?js': 'Frameworks',
+    'vue': 'Frameworks',
+    'angular': 'Frameworks',
     'node': 'Frameworks',
-    'tensorflow': 'AI/ML',
-    'pytorch': 'AI/ML',
-    'transformers': 'AI/ML',
-    'llm': 'AI/ML',
-    'rag': 'AI/ML',
-    'langchain': 'AI/ML',
-    'docker': 'DevOps',
-    'kubernetes': 'DevOps',
-    'aws': 'Cloud',
-    'gcp': 'Cloud',
-    'azure': 'Cloud',
+    'express': 'Frameworks',
+    'django': 'Frameworks',
+    'spring': 'Frameworks',
+    'flask': 'Frameworks',
+    'tensorflow': 'Frameworks',
+    'pytorch': 'Frameworks',
+    'transformers': 'Frameworks',
+    'llm': 'Frameworks',
+    'rag': 'Frameworks',
+    'langchain': 'Frameworks',
+    'docker': 'Cloud & DevOps',
+    'kubernetes': 'Cloud & DevOps',
+    'aws': 'Cloud & DevOps',
+    'gcp': 'Cloud & DevOps',
+    'azure': 'Cloud & DevOps',
+    'terraform': 'Cloud & DevOps',
+    'ci/cd': 'Cloud & DevOps',
+    'jenkins': 'Cloud & DevOps',
     'postgresql': 'Databases',
     'mongodb': 'Databases',
     'redis': 'Databases',
+    'mysql': 'Databases',
+    'sqlite': 'Databases',
+    'elasticsearch': 'Databases',
+    'agile': 'Industry Knowledge',
+    'scrum': 'Industry Knowledge',
+    'leadership': 'Industry Knowledge',
+    'communication': 'Industry Knowledge',
+    'project management': 'Industry Knowledge',
     'git': 'Tools',
   };
   for (const [pattern, label] of Object.entries(labelMap)) {
@@ -119,7 +138,7 @@ function inferSkillLabel(skill: string): string {
 
 function groupSkillsByLabel(skills: string[]): ATSSkill[] {
   const grouped: Record<string, string[]> = {};
-  const priority = ['Languages', 'AI/ML', 'Frameworks', 'Cloud', 'DevOps', 'Databases', 'Tools', 'Other'];
+  const priority = ['Technical Skills', 'Frameworks', 'Databases', 'Cloud & DevOps', 'Industry Knowledge', 'Tools', 'Other'];
 
   for (const skill of skills) {
     const label = inferSkillLabel(skill);
@@ -138,8 +157,16 @@ export function transformResumeData(data: {
   email: string;
   phone: string;
   location?: string;
+  linkedin?: string;
   summary: string;
   skills: string[];
+  categorizedSkills?: {
+    technicalSkills: string[];
+    frameworks: string[];
+    databases: string[];
+    cloudDevOps: string[];
+    industryKnowledge: string[];
+  };
   experience: AppExperience[];
   education: AppEducation[];
   aiProjects?: AppExperience[];
@@ -149,6 +176,7 @@ export function transformResumeData(data: {
     location: data.location || '',
     phone: data.phone || '',
     email: data.email || '',
+    linkedin: data.linkedin || '',
   };
 
   const experience: ATSExperience[] = data.experience.map((exp) => {
@@ -181,7 +209,15 @@ export function transformResumeData(data: {
     bullets: p.bullets || [],
   }));
 
-  const skills = groupSkillsByLabel(data.skills);
+  const skills = data.categorizedSkills
+    ? [
+        ...(data.categorizedSkills.technicalSkills.length > 0 ? [{ label: 'Technical Skills', value: data.categorizedSkills.technicalSkills.join(', ') }] : []),
+        ...(data.categorizedSkills.frameworks.length > 0 ? [{ label: 'Frameworks', value: data.categorizedSkills.frameworks.join(', ') }] : []),
+        ...(data.categorizedSkills.databases.length > 0 ? [{ label: 'Databases', value: data.categorizedSkills.databases.join(', ') }] : []),
+        ...(data.categorizedSkills.cloudDevOps.length > 0 ? [{ label: 'Cloud & DevOps', value: data.categorizedSkills.cloudDevOps.join(', ') }] : []),
+        ...(data.categorizedSkills.industryKnowledge.length > 0 ? [{ label: 'Industry Knowledge', value: data.categorizedSkills.industryKnowledge.join(', ') }] : []),
+      ]
+    : groupSkillsByLabel(data.skills);
 
   const achievements = data.achievements || [];
 

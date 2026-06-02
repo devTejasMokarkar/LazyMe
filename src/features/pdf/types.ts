@@ -2,6 +2,7 @@ export interface ATSContact {
   location: string;
   phone: string;
   email: string;
+  linkedin?: string;
 }
 
 export interface ATSExperienceSection {

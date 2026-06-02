@@ -1,5 +1,17 @@
 import type { ResumeData } from "../prompts/resume.prompts";
 
+function extractSkills(skills: any): string[] {
+  if (Array.isArray(skills)) return skills;
+  if (skills && typeof skills === 'object') {
+    const result: string[] = [];
+    for (const val of Object.values(skills)) {
+      if (Array.isArray(val)) result.push(...val.map(String));
+    }
+    return result;
+  }
+  return [];
+}
+
 export function resumeToPlainText(resume: Partial<ResumeData>): string {
   const lines: string[] = [];
 
@@ -17,9 +29,10 @@ export function resumeToPlainText(resume: Partial<ResumeData>): string {
     lines.push("");
   }
 
-  if (resume.skills && resume.skills.length > 0) {
+  const skills = extractSkills(resume.skills);
+  if (skills.length > 0) {
     lines.push("TECHNICAL SKILLS");
-    lines.push(resume.skills.join(", "));
+    lines.push(skills.join(", "));
     lines.push("");
   }
 
