@@ -21,18 +21,18 @@ export default function TopNav() {
   return (
     <header className="fixed top-0 left-0 right-0 h-16 z-40 flex justify-between items-center px-4 lg:pl-20 glass-dark border-b">
       <div className="flex items-center gap-4">
-        <Link 
+        <Link
           href="/"
-          className="font-bold text-lg text-primary flex items-center gap-2 cursor-pointer hover:text-primary/80 transition-colors"
+          className="font-bold text-lg text-primary flex items-center gap-2 cursor-pointer hover:text-primary/80 transition-colors -ml-4"
         >
-          <img src="/logo.png" alt="LazyMe Logo" className="w-14 h-14 object-contain" />
+          <img src="/LazyMe.png" alt="LazyMe Logo" className="w-32 h-32 object-contain" />
           <span className="hidden sm:inline text-xl font-bold">LazyMe</span>
         </Link>
       </div>
 
       <div className="flex items-center gap-2 lg:gap-4">
         {/* Theme Toggle - Cleaner Design */}
-        <button 
+        <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className="relative w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all"
           title="Toggle Theme"
@@ -61,9 +61,9 @@ export default function TopNav() {
             {/* User Avatar */}
             <div className="h-8 w-8 rounded-lg glass border border-outline-variant overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
               {session?.user?.image ? (
-                <img 
-                  src={session.user.image} 
-                  alt={session?.user?.name || "User"} 
+                <img
+                  src={session.user.image}
+                  alt={session?.user?.name || "User"}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
@@ -86,9 +86,9 @@ export default function TopNav() {
         )}
 
         {/* Mobile Menu Toggle */}
-        <button 
+        <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-           className="lg:hidden w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all"
+          className="lg:hidden w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all"
         >
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -104,7 +104,7 @@ export default function TopNav() {
             className="absolute top-full left-0 right-0 lg:hidden glass-dark border-b p-4 shadow-xl"
           >
             <div className="flex flex-col gap-2">
-               <Link href="/resume" className="px-4 py-3 rounded-lg text-on-background hover:bg-surface-container-high font-medium">
+              <Link href="/resume" className="px-4 py-3 rounded-lg text-on-background hover:bg-surface-container-high font-medium">
                 Resume Builder
               </Link>
             </div>

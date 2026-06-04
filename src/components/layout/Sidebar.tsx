@@ -31,7 +31,7 @@ export default function Sidebar() {
   useEffect(() => {
     if (loggedSession.current) return;
     loggedSession.current = true;
-    fetch("/api/auth/log-session", { method: "POST" }).catch(() => {});
+    fetch("/api/auth/log-session", { method: "POST" }).catch(() => { });
   }, []);
 
   const navItems = [
@@ -47,9 +47,9 @@ export default function Sidebar() {
     href?: string;
     action?: () => void;
   }> = [
-    { id: 'support', label: 'Support', icon: HelpCircle, action: () => { } },
-    { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
-  ];
+      { id: 'support', label: 'Support', icon: HelpCircle, action: () => { } },
+      { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
+    ];
 
   return (
     <>
@@ -82,30 +82,7 @@ export default function Sidebar() {
         onMouseEnter={() => setIsExpanded(true)}
         onMouseLeave={() => setIsExpanded(false)}
       >
-        {/* Logo Section */}
-        <div className="relative h-20 flex items-center px-2 border-b border-outline-variant/30">
-          <motion.div
-            className="flex w-full items-center justify-center gap-3 overflow-hidden"
-            animate={{ opacity: 1 }}
-          >
-            <div className="w-16 h-16 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-              <img src="/logo.png" alt="LazyMe Logo" className="w-full h-full object-contain" />
-            </div>
-            <AnimatePresence mode="wait">
-              {isExpanded && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center gap-2"
-                >
-                  <span className="font-bold text-on-surface text-xl tracking-tight whitespace-nowrap">LazyMe</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </div>
+
 
         {/* Navigation */}
         <nav className="flex-1 py-6 px-3 space-y-1.5">
@@ -271,14 +248,7 @@ export default function Sidebar() {
               "lg:hidden"
             )}
           >
-            <div className="h-16 flex items-center px-5 border-b border-outline-variant/30">
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                  <img src="/logo.png" alt="LazyMe Logo" className="w-full h-full object-contain" />
-                </div>
-                <span className="font-bold text-on-surface text-xl tracking-tight">LazyMe</span>
-              </div>
-            </div>
+
 
             <nav className="flex-1 py-6 px-3 space-y-1.5">
               {navItems.map((item) => {

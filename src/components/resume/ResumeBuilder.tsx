@@ -1878,105 +1878,123 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       <section className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-background">
         {/* Sticky Action Bar */}
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-outline-variant/30 px-3 sm:px-4 py-2 sm:py-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 max-w-3xl mx-auto">
-            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-              <div className="hidden sm:flex items-center gap-1.5 text-on-surface-variant">
-                <Cloud className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-semibold uppercase tracking-wider">Synced</span>
-              </div>
-              <button
-                onClick={() => setShowHistory(true)}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-surface-container-high text-on-surface-variant transition-all"
-              >
-                <History className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-semibold uppercase tracking-wider">{versions.length}</span>
-              </button>
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-0.5 sm:gap-1">
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className={cn(
-                  "p-2 rounded-md transition-colors",
-                  isRefreshing ? "text-on-surface-variant/30 cursor-not-allowed" : "hover:bg-surface-container text-on-surface-variant hover:text-primary"
-                )}
-                title="Refresh Resume"
-              >
-                <RotateCcw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-              </button>
-              <button onClick={() => saveCurrentVersion()} className="p-1.5 sm:p-2 hover:bg-surface-container rounded-md text-on-surface-variant hover:text-primary transition-colors" title="Save">
-                <Save className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-              </button>
-              <button
-                onClick={handleUndo}
-                disabled={historyIndex <= 0}
-                className={cn(
-                  "p-1.5 sm:p-2 rounded-md transition-colors",
-                  historyIndex > 0 ? "hover:bg-surface-container text-on-surface-variant cursor-pointer" : "text-on-surface-variant/30 cursor-not-allowed"
-                )}
-                title="Undo"
-              >
-                <Undo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-              </button>
-              <button
-                onClick={handleRedo}
-                disabled={historyIndex >= history.length - 1}
-                className={cn(
-                  "p-1.5 sm:p-2 rounded-md transition-colors",
-                  historyIndex < history.length - 1 ? "hover:bg-surface-container text-on-surface-variant cursor-pointer" : "text-on-surface-variant/30 cursor-not-allowed"
-                )}
-                title="Redo"
-              >
-                <Redo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-              </button>
-              <div className="w-px h-4 sm:h-5 bg-outline-variant/30 mx-0.5 sm:mx-1" />
-              <Link
-                href={parseError ? "#" : "/apply"}
-                className={cn(
-                  "btn-primary py-1 sm:py-1.5 text-[11px] sm:text-sm font-medium",
-                  parseError && "opacity-50 pointer-events-none cursor-not-allowed"
-                )}
-                onClick={(e) => parseError && e.preventDefault()}
-              >
-                <Briefcase className="w-3 sm:w-4 h-3 sm:h-4" />
-                <span className="hidden sm:inline">Apply Now</span>
-              </Link>
-              <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 sm:p-2 hover:bg-surface-container rounded-md text-on-surface-variant transition-colors">
-                {showPreview ? <PanelRightClose className="w-3.5 sm:w-4 h-3.5 sm:h-4" /> : <PanelLeftClose className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Bar */}
-        <div className="px-4 pt-2 pb-0 bg-background">
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-center gap-1 bg-surface-container-high/50 rounded-xl p-1">
-              {([
-                { id: 'optimize' as const, label: 'Optimize', icon: Sparkles },
-                { id: 'manual-edit' as const, label: 'Manual Edit', icon: Edit3 },
-              ]).map((tab) => (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 max-w-3xl mx-auto w-full">
+            
+            {/* Left side: Status & Tabs */}
+            <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
+              {/* Status */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <div className="hidden sm:flex items-center gap-1.5 text-on-surface-variant bg-surface-container-high/40 px-2 py-1 rounded-md">
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider">Synced</span>
+                </div>
                 <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all relative",
-                    activeTab === tab.id
-                      ? "text-primary"
-                      : "text-on-surface-variant/60 hover:text-on-surface-variant hover:bg-surface-container-higher/50"
-                  )}
+                  onClick={() => setShowHistory(true)}
+                  className="flex items-center gap-1.5 px-2 py-1 bg-surface-container-high/40 rounded-md hover:bg-surface-container-high text-on-surface-variant transition-all"
                 >
-                  <tab.icon className="w-3.5 h-3.5" />
-                  <span>{tab.label}</span>
-                  {activeTab === tab.id && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 bg-primary/10 rounded-lg -z-0"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
+                  <History className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider">{versions.length}</span>
                 </button>
-              ))}
+              </div>
+
+              {/* Separator */}
+              <div className="w-px h-5 bg-outline-variant/30 hidden sm:block shrink-0" />
+
+              {/* Tabs inline with status */}
+              <div className="flex items-center bg-surface-container-high/30 rounded-lg p-0.5 shrink-0 border border-outline-variant/10">
+                {([
+                  { id: 'optimize' as const, label: 'Optimize', icon: Sparkles },
+                  { id: 'manual-edit' as const, label: 'Manual Edit', icon: Edit3 },
+                ]).map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all relative",
+                      activeTab === tab.id
+                        ? "text-primary"
+                        : "text-on-surface-variant/60 hover:text-on-surface-variant hover:bg-surface-container-higher/50"
+                    )}
+                  >
+                    <tab.icon className="w-3 h-3 z-10" />
+                    <span className="z-10">{tab.label}</span>
+                    {activeTab === tab.id && (
+                      <motion.div
+                        layoutId="activeTabHeader"
+                        className="absolute inset-0 bg-primary/10 rounded-md shadow-sm border border-primary/20"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Right side: Action groups */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              
+              {/* Group 1: Edit History */}
+              <div className="flex items-center bg-surface-container-high/30 rounded-lg p-0.5 border border-outline-variant/10">
+                <button
+                  onClick={handleUndo}
+                  disabled={historyIndex <= 0}
+                  className={cn(
+                    "p-1.5 rounded-md transition-colors",
+                    historyIndex > 0 ? "hover:bg-surface-container hover:text-primary text-on-surface-variant cursor-pointer" : "text-on-surface-variant/30 cursor-not-allowed"
+                  )}
+                  title="Undo"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={handleRedo}
+                  disabled={historyIndex >= history.length - 1}
+                  className={cn(
+                    "p-1.5 rounded-md transition-colors",
+                    historyIndex < history.length - 1 ? "hover:bg-surface-container hover:text-primary text-on-surface-variant cursor-pointer" : "text-on-surface-variant/30 cursor-not-allowed"
+                  )}
+                  title="Redo"
+                >
+                  <Redo2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Group 2: File Actions */}
+              <div className="flex items-center bg-surface-container-high/30 rounded-lg p-0.5 border border-outline-variant/10">
+                <button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className={cn(
+                    "p-1.5 rounded-md transition-colors",
+                    isRefreshing ? "text-on-surface-variant/30 cursor-not-allowed" : "hover:bg-surface-container text-on-surface-variant hover:text-primary"
+                  )}
+                  title="Refresh Resume"
+                >
+                  <RotateCcw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+                </button>
+                <button onClick={() => saveCurrentVersion()} className="p-1.5 hover:bg-surface-container rounded-md text-on-surface-variant hover:text-primary transition-colors" title="Save">
+                  <Save className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Group 3: Primary Actions */}
+              <div className="flex items-center gap-1.5">
+                <button onClick={() => setShowPreview(!showPreview)} className="p-1.5 hover:bg-surface-container-high/50 bg-surface-container-high/30 rounded-lg text-on-surface-variant transition-colors shadow-sm border border-outline-variant/20" title="Toggle Preview">
+                  {showPreview ? <PanelRightClose className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+                </button>
+                <Link
+                  href={parseError ? "#" : "/apply"}
+                  className={cn(
+                    "btn-primary px-3 py-1.5 text-[11px] font-bold shadow-md hover:shadow-lg transition-all rounded-lg",
+                    parseError && "opacity-50 pointer-events-none cursor-not-allowed"
+                  )}
+                  onClick={(e) => parseError && e.preventDefault()}
+                >
+                  <Briefcase className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Apply</span>
+                </Link>
+              </div>
+
             </div>
           </div>
         </div>
