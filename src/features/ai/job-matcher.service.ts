@@ -112,12 +112,12 @@ function parseJobMatchResponse(response: string): JobMatchResult | null {
   try {
     let jsonStr = response.trim();
     jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-    
+
     const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
-    
+
     const parsed = JSON.parse(jsonMatch[0]);
-    
+
     return {
       matchScore: Math.max(0, Math.min(100, parsed.matchScore || 0)),
       strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
@@ -126,32 +126,32 @@ function parseJobMatchResponse(response: string): JobMatchResult | null {
       recommendation: parsed.recommendation || '',
       shouldApply: parsed.shouldApply === true || parsed.matchScore >= 60
     };
-   } catch (error: any) {
-     logger.error({ 
-       msg: "Failed to parse job match response:", 
-       error: error.message 
-     });
-     return null;
-   }
+  } catch (error: any) {
+    logger.error({
+      msg: "Failed to parse job match response:",
+      error: error.message
+    });
+    return null;
+  }
 }
 
 function parseKeywordsResponse(response: string): string[] | null {
   try {
     let jsonStr = response.trim();
     jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-    
+
     const jsonMatch = jsonStr.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return null;
-    
+
     const parsed = JSON.parse(jsonMatch[0]);
     return Array.isArray(parsed) ? parsed.filter((k: any) => typeof k === 'string' && k.trim()) : null;
-   } catch (error: any) {
-     logger.error({ 
-       msg: "Failed to parse keywords response:", 
-       error: error.message 
-     });
-     return null;
-   }
+  } catch (error: any) {
+    logger.error({
+      msg: "Failed to parse keywords response:",
+      error: error.message
+    });
+    return null;
+  }
 }
 
 function basicJobMatch(
@@ -167,10 +167,10 @@ function basicJobMatch(
 
   const jobWords = jobDescription.toLowerCase().split(/\s+/);
   const resumeWords = resumeText.split(/\s+/);
-  
+
   const commonWords = resumeWords.filter(w => jobWords.includes(w));
   const score = Math.round((commonWords.length / Math.max(jobWords.length, 1)) * 100);
-  
+
   return {
     matchScore: Math.min(85, score),
     strengths: ['Basic keyword match found'],
@@ -183,23 +183,23 @@ function basicJobMatch(
 
 function basicKeywordExtraction(resumeData: any): string[] {
   const keywords: string[] = [];
-  
+
   if (resumeData.title) keywords.push(resumeData.title);
   if (resumeData.skills) keywords.push(...resumeData.skills.slice(0, 5));
   if (resumeData.experience) {
     keywords.push(...resumeData.experience.map((e: any) => e.role).filter(Boolean).slice(0, 3));
   }
-  
+
   return Array.from(new Set(keywords)).slice(0, 8);
 }
 
 async function callOllama(prompt: string, model: string = 'llama3.2'): Promise<string | null> {
   const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-   
+
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 30000); // 30s timeout for local models
-    
+
     const r = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
       signal: controller.signal,
@@ -214,19 +214,19 @@ async function callOllama(prompt: string, model: string = 'llama3.2'): Promise<s
         }
       })
     });
-    
+
     clearTimeout(timer);
-    
+
     if (!r.ok) return null;
-    
+
     const data = await r.json();
     return data.response || null;
   } catch (error: any) {
     // Ollama not available or model not pulled
-     logger.warn({ 
-       message: `Ollama ${model} error`,
-       messageDetails: error?.message || "request failed" 
-     });
+    logger.warn({
+      message: `Ollama ${model} error`,
+      messageDetails: error?.message || "request failed"
+    });
     return null;
   }
 }
@@ -235,14 +235,14 @@ async function callOpenRouterForKeywordExpand(prompt: string): Promise<string | 
   // Try Ollama first (local, free, no rate limits)
   const preferredModel = process.env.OLLAMA_MODEL || 'llama3.2';
   const ollamaModels = [preferredModel, 'llama3.2', 'llama3.1', 'qwen2.5', 'mistral', 'gemma2'];
-    for (const model of ollamaModels) {
-       const result = await callOllama(prompt, model);
-       if (result) {
-         logger.info({ message: `Ollama ${model} successful` });
-         return result;
-       }
+  for (const model of ollamaModels) {
+    const result = await callOllama(prompt, model);
+    if (result) {
+      logger.info({ message: `Ollama ${model} successful` });
+      return result;
     }
-  
+  }
+
   // Fall back to OpenRouter
   const openAIKey = process.env.OPENROUTER_API_KEY;
   if (!openAIKey) return null;
@@ -259,28 +259,28 @@ async function callOpenRouterForKeywordExpand(prompt: string): Promise<string | 
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 10000);
-      
+
       const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         signal: controller.signal,
         headers: {
           "Authorization": `Bearer ${openAIKey}`,
-          "HTTP-Referer": "https://github.com/devTejasMokarkar/LazyMe",
+          "HTTP-Referer": "https://github.com//LazyMe",
           "X-Title": "LazyMe",
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ 
-          model, 
-          messages: [{ role: "user", content: prompt }], 
-          max_tokens: 1000, 
-          temperature: 0.1 
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 1000,
+          temperature: 0.1
         })
       });
-      
+
       clearTimeout(timer);
-      
+
       if (!r.ok) continue;
-      
+
       const d = await r.json();
       return d.choices[0].message.content;
     } catch (e) {

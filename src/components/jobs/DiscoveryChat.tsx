@@ -151,6 +151,11 @@ export default function DiscoveryChat() {
 
   const handleSendAction = () => {
     if (isCreateMode && prompt.trim()) {
+      // Clear any stale pending resume from a previous session so the
+      // ResumeBuilder's initResume picks up this fresh prompt via ?prompt=…
+      // instead of the old localStorage value.
+      localStorage.removeItem('lazyme_pending_resume');
+      sessionStorage.removeItem('pendingResume');
       router.push(`/resume?prompt=${encodeURIComponent(prompt.trim())}`);
     } else if (uploadedResume) {
       localStorage.setItem('lazyme_pending_resume', JSON.stringify(uploadedResume.data));

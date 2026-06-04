@@ -80,6 +80,12 @@ function ChatPageContent() {
 
       if (res.ok && data.resume) {
         setGeneratedResume(data.resume);
+        // Auto-sync to localStorage so /resume picks it up even if the user
+        // navigates away without clicking "Save & Edit".
+        try {
+          localStorage.setItem('lazyme_pending_resume', JSON.stringify(data.resume));
+          window.dispatchEvent(new Event('pendingResumeReady'));
+        } catch { /* quota / serialization — non-fatal */ }
         const preview = formatResumePreview(data.resume);
         addMessage('assistant', `I've created a resume based on your information. Here's a preview:\n\n${preview}\n\nYou can ask me to refine any section, or click "Save & Edit" below to open it in the Resume Builder.`);
       } else {
@@ -112,6 +118,11 @@ function ChatPageContent() {
 
       if (res.ok && data.resume) {
         setGeneratedResume(data.resume);
+        // Auto-sync to localStorage so /resume stays in sync after each refine.
+        try {
+          localStorage.setItem('lazyme_pending_resume', JSON.stringify(data.resume));
+          window.dispatchEvent(new Event('pendingResumeReady'));
+        } catch { /* non-fatal */ }
         const preview = formatResumePreview(data.resume);
         addMessage('assistant', `I've updated your resume with your changes:\n\n${preview}\n\nAnything else you'd like to adjust?`);
       } else {
@@ -129,6 +140,40 @@ function ChatPageContent() {
     localStorage.setItem('lazyme_pending_resume', JSON.stringify(generatedResume));
     window.dispatchEvent(new Event('pendingResumeReady'));
     router.push('/resume');
+  };
+
+  // Loads a server-generated John Doe demo resume (ATS 60-70 baseline).
+  // The actual prompt lives in /api/generate-dummy-resume — we just trigger it.
+  const handleLoadDemo = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    setError(null);
+    addMessage('user', 'Load demo resume (John Doe, Java Developer)');
+    try {
+      const res = await fetch('/api/generate-dummy-resume', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.resume) {
+        setGeneratedResume(data.resume);
+        // Auto-sync to localStorage so /resume shows the demo even if the user
+        // navigates away without clicking "Save & Edit".
+        try {
+          localStorage.setItem('lazyme_pending_resume', JSON.stringify(data.resume));
+          window.dispatchEvent(new Event('pendingResumeReady'));
+        } catch { /* non-fatal */ }
+        const preview = formatResumePreview(data.resume);
+        addMessage(
+          'assistant',
+          `Here's a demo John Doe resume (ATS baseline ~60-70). ` +
+          `Click "Save & Edit" to open it in the Resume Builder, or paste a JD on the resume page to run the ATS scorer.\n\n${preview}`
+        );
+      } else {
+        addMessage('assistant', `Sorry, I couldn't load the demo resume. ${data.error || 'Please try again.'}`);
+      }
+    } catch {
+      addMessage('assistant', 'Sorry, something went wrong while loading the demo resume.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -252,6 +297,15 @@ function ChatPageContent() {
                     "{msg}"
                   </button>
                 ))}
+                <button
+                  onClick={handleLoadDemo}
+                  disabled={isGenerating}
+                  className="text-left text-[11px] px-3 py-2 bg-primary/10 border border-primary/30 rounded-xl text-primary hover:bg-primary/20 transition-all font-semibold flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Generate a John Doe demo resume (ATS 60-70 baseline)"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Load Demo Resume
+                </button>
               </div>
             </motion.div>
           )}

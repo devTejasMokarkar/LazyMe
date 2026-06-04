@@ -304,7 +304,7 @@ https://lazyme-ai-app.vercel.app
 👉 Backup (auto-generated):
 
 ```
-https://lazyme-ai-mkzw5o6cy-tejasmokarkar-7918s-projects.vercel.app
+https://lazyme-ai-mkzw5o6cy-name-7918s-projects.vercel.app
 ```
 
 ✔️ Always share the **aliased URL**

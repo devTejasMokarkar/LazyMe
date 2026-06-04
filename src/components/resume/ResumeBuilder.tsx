@@ -62,6 +62,41 @@ function normalizeSkills(skills: any): string[] {
   return [];
 }
 
+// sessionStorage sentinel keys for "this prompt was already processed in
+// this session". Survives React Strict Mode's double-mount and short
+// remounts, but resets on a real page reload so the user can re-generate.
+const PROMPT_SESSION_PREFIX = "lazyme_prompt_applied_";
+
+function promptSessionKey(prompt: string): string {
+  // Tiny FNV-1a-ish hash; collisions are fine for a dedup key.
+  let h = 2166136261;
+  for (let i = 0; i < prompt.length; i++) {
+    h ^= prompt.charCodeAt(i);
+    h = (h * 16777619) >>> 0;
+  }
+  return PROMPT_SESSION_PREFIX + h.toString(36);
+}
+
+function markPromptApplied(prompt: string) {
+  try {
+    sessionStorage.setItem(promptSessionKey(prompt), "1");
+  } catch { /* sessionStorage may be unavailable */ }
+}
+
+function isPromptApplied(prompt: string): boolean {
+  try {
+    return sessionStorage.getItem(promptSessionKey(prompt)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function clearPromptApplied(prompt: string) {
+  try {
+    sessionStorage.removeItem(promptSessionKey(prompt));
+  } catch { /* noop */ }
+}
+
 export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: string }) {
   const [loading, setLoading] = useState(true);
   const [isParsing, setIsParsing] = useState(false);
@@ -102,7 +137,6 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const [isUpdating, setIsUpdating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingResumeApplied = useRef(false);
-  const promptProcessedRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'optimize' | 'manual-edit'>('optimize');
 
@@ -368,11 +402,179 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     }
   }, [loading, needsUpload]);
 
+  // Helper to apply API result to component state
+  function applyResumeData(r: any, savedResume?: any) {
+    setUserName(r.name || '');
+    setUserRole(r.title || '');
+    setExperience(r.experience || []);
+    setSkills(normalizeSkills(r.skills));
+    setEmail(r.email || '');
+    setPhone(r.phone || '');
+    setLocation(r.location || '');
+    setSummary(r.summary || '');
+    setEducation(r.education || []);
+
+    if (savedResume) {
+      setResumeId(savedResume.id);
+      setVersions([{
+        id: savedResume.id, name: savedResume.name,
+        timestamp: new Date().toLocaleString(), content: r
+      }]);
+    }
+
+    const baseline = {
+      userName: r.name || '', userRole: r.title || '',
+      experience: r.experience || [], skills: normalizeSkills(r.skills),
+      email: r.email || '', phone: r.phone || '',
+      location: r.location || '', summary: r.summary || '',
+      education: r.education || []
+    };
+    setHistory([baseline]);
+    setHistoryIndex(0);
+    lastSavedContent.current = JSON.stringify(baseline);
+  }
+
   useEffect(() => {
     let cancelled = false;
 
     async function initResume() {
-      // Step 1: Check localStorage/sessionStorage for pending resume data
+      // ============================================================
+      // RACE-FREE INITIALIZATION
+      // ============================================================
+      // The previous version used `promptProcessedRef` (a useRef) to dedup
+      // prompt processing. That broke under React 18 Strict Mode: the first
+      // mount set the ref to true and started the API call, the cleanup
+      // ran, the second mount saw the ref as true and skipped — but the
+      // first mount's `cancelled = true` could also drop the result,
+      // letting the fall-through DB fetch (old Jane Smith) win.
+      //
+      // Fix: use sessionStorage (survives Strict Mode double-mount and
+      // short remounts) as the source of truth, set it BEFORE the await
+      // (atomic dedup), strip the ?prompt=… URL atomically, and guard
+      // Step 4 (DB fetch) so it never overwrites a freshly-applied prompt.
+      // ============================================================
+
+      // ---- PHASE 1: initialPrompt (create from URL ?prompt=…) ----
+      // Also check localStorage fallback set by landing page before OAuth
+      let promptToProcess = initialPrompt;
+      if (!promptToProcess) {
+        const stored = localStorage.getItem('lazyme_pending_prompt');
+        if (stored) {
+          promptToProcess = stored;
+          localStorage.removeItem('lazyme_pending_prompt');
+        }
+      }
+
+      if (promptToProcess) {
+        if (isPromptApplied(promptToProcess)) {
+          // Strict Mode double-mount: first mount owns the API call.
+          // Check if it cached the result in sessionStorage.
+          const cacheKey = `lazyme_prompt_result_${promptSessionKey(promptToProcess)}`;
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            try {
+              const r = JSON.parse(cached);
+              sessionStorage.removeItem(cacheKey);
+              applyResumeData(r);
+              setLoading(false);
+              return;
+            } catch { /* stale cache — fall through */ }
+          }
+          // First mount hasn't finished yet — don't bail, let this mount
+          // process the prompt too (cancelled is per-mount, so this one
+          // won't be cancelled).
+          // Fall through to the processing below.
+        } else {
+          markPromptApplied(promptToProcess);
+        }
+
+        // Stale data from a previous chat Save & Edit must NOT win.
+        localStorage.removeItem('lazyme_pending_resume');
+        sessionStorage.removeItem('pendingResume');
+
+        // Strip the ?prompt=… from the URL atomically so a refresh
+        // or remount doesn't re-trigger generation. Done BEFORE await
+        // so a concurrent mount sees a clean URL.
+        if (typeof window !== 'undefined' && window.location.search.includes('prompt=')) {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+
+        try {
+          const genRes = await fetch('/api/create-resume-from-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: promptToProcess })
+          });
+          if (cancelled) {
+            // Strict Mode double-mount: this mount's response is stale.
+            // The re-mount will process the prompt instead. Don't
+            // fall through to Phase 2/3 — the re-mount owns it now.
+            return;
+          }
+          if (!genRes.ok) {
+            console.error('create-resume-from-chat failed:', genRes.status);
+          } else {
+            const genData = await genRes.json();
+            if (cancelled) return;
+            if (!genData.resume) {
+              console.error('create-resume-from-chat returned no resume');
+            } else {
+              const r = genData.resume;
+
+              // Cache in sessionStorage so a concurrent mount (Strict Mode
+              // re-mount) can pick up the result without re-calling the API.
+              try {
+                sessionStorage.setItem(
+                  `lazyme_prompt_result_${promptSessionKey(promptToProcess)}`,
+                  JSON.stringify(r)
+                );
+              } catch { /* quota — non-fatal */ }
+
+              // Auto-save to DB (server unsets other isDefault rows).
+              let savedResume: any = null;
+              try {
+                const saveRes = await fetch('/api/resumes', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    name: `Resume ${new Date().toLocaleDateString()}`,
+                    content: {
+                      name: r.name || '', title: r.title || '',
+                      experience: r.experience || [], skills: r.skills || [],
+                      email: r.email || '', phone: r.phone || '',
+                      location: r.location || '', summary: r.summary || '',
+                      education: r.education || []
+                    },
+                    isDefault: true
+                  })
+                });
+                if (cancelled) return;
+                if (saveRes.ok) {
+                  savedResume = await saveRes.json();
+                } else {
+                  console.error('Failed to auto-save created resume:', saveRes.status);
+                }
+              } catch (dbErr) {
+                console.error('Failed to auto-save created resume:', dbErr);
+              }
+
+              if (cancelled) return;
+
+              applyResumeData(r, savedResume);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Failed to create resume from prompt:', err);
+        }
+        // If we got here, prompt processing failed — fall through to
+        // localStorage / DB so the user at least sees something rather
+        // than a blank screen.
+      }
+
+      // ---- PHASE 2: localStorage / sessionStorage pending resume ----
+      // (used by the /chat "Save & Edit" flow and the upload flow)
       const pending = localStorage.getItem('lazyme_pending_resume') || sessionStorage.getItem('pendingResume');
 
       if (pending) {
@@ -504,85 +706,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         return;
       }
 
-      // Step 3: If initialPrompt is provided (create mode), generate a fresh resume
-      if (initialPrompt && !promptProcessedRef.current) {
-        promptProcessedRef.current = true;
-        try {
-          const [res, savedResume] = await (async () => {
-            const genRes = await fetch('/api/create-resume-from-chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: initialPrompt })
-            });
-            if (!genRes.ok) return [null, null];
-            const genData = await genRes.json();
-            if (!genData.resume) return [null, null];
-            const r = genData.resume;
-            try {
-              const saveRes = await fetch('/api/resumes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  name: `Resume ${new Date().toLocaleDateString()}`,
-                  content: {
-                    name: r.name || '', title: r.title || '',
-                    experience: r.experience || [], skills: r.skills || [],
-                    email: r.email || '', phone: r.phone || '',
-                    location: r.location || '', summary: r.summary || '',
-                    education: r.education || []
-                  },
-                  isDefault: true
-                })
-              });
-              if (saveRes.ok) {
-                const saved = await saveRes.json();
-                return [r, saved];
-              }
-            } catch (dbErr) {
-              console.error("Failed to auto-save created resume:", dbErr);
-            }
-            return [r, null];
-          })();
-
-          if (res) {
-            setUserName(res.name || '');
-            setUserRole(res.title || '');
-            setExperience(res.experience || []);
-            setSkills(normalizeSkills(res.skills));
-            setEmail(res.email || '');
-            setPhone(res.phone || '');
-            setLocation(res.location || '');
-            setSummary(res.summary || '');
-            setEducation(res.education || []);
-            if (savedResume) {
-              setResumeId(savedResume.id);
-              setVersions([{
-                id: savedResume.id, name: savedResume.name,
-                timestamp: new Date().toLocaleString(), content: res
-              }]);
-            }
-            const baseline = {
-              userName: res.name || '', userRole: res.title || '',
-              experience: res.experience || [], skills: normalizeSkills(res.skills),
-              email: res.email || '', phone: res.phone || '',
-              location: res.location || '', summary: res.summary || '',
-              education: res.education || []
-            };
-            setHistory([baseline]);
-            setHistoryIndex(0);
-            lastSavedContent.current = JSON.stringify(baseline);
-            setLoading(false);
-            if (typeof window !== 'undefined') {
-              window.history.replaceState({}, '', window.location.pathname);
-            }
-            return;
-          }
-        } catch (err) {
-          console.error("Failed to create resume from prompt:", err);
-        }
-      }
-
-      // Step 4: No pending resume at all — fetch from DB
+      // ---- PHASE 3: DB fetch (default behaviour) ----
       try {
         const res = await fetch('/api/resumes?_t=' + Date.now());
         if (cancelled || !res.ok) return;
@@ -620,7 +744,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       window.removeEventListener('pendingResumeReady', handler);
       window.removeEventListener('storage', handler as EventListener);
     };
-  }, []);
+  }, [initialPrompt]);
 
   const loadResume = (resume: any) => {
     setResumeId(resume.id);
