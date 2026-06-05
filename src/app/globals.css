@@ -301,26 +301,28 @@ body {
   animation: pulse-ring 2s ease-in-out infinite;
 }
 
-/* Input focus states */
-input:focus, textarea:focus, select:focus {
-  outline: none;
-  border-color: rgb(var(--primary));
-  box-shadow: 0 0 0 2px rgba(var(--primary), 0.2), 0 0 15px rgba(201, 190, 255, 0.4); /* Primary border + soft lavender glow */
-}
+@layer base {
+  /* Input focus states */
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: rgb(var(--primary));
+    box-shadow: 0 0 0 2px rgba(var(--primary), 0.2), 0 0 15px rgba(201, 190, 255, 0.4); /* Primary border + soft lavender glow */
+  }
 
-input, textarea, select {
-  background-color: rgb(248, 250, 255); /* #F8FAFF */
-  border: 1px solid rgb(var(--tertiary)); /* #C9BEFF */
-  transition: all 0.3s ease;
-  border-radius: 8px;
-}
+  input, textarea, select {
+    background-color: rgb(248, 250, 255); /* #F8FAFF */
+    border: 1px solid rgb(var(--tertiary)); /* #C9BEFF */
+    transition: all 0.3s ease;
+    border-radius: 8px;
+  }
 
-.dark input, .dark textarea, .dark select {
-  background-color: rgb(var(--surface-container-low));
-}
+  .dark input, .dark textarea, .dark select {
+    background-color: rgb(var(--surface-container-low));
+  }
 
-input:hover, textarea:hover, select:hover {
-  border-color: rgb(var(--primary));
+  input:hover, textarea:hover, select:hover {
+    border-color: rgb(var(--primary));
+  }
 }
 
 ::selection {

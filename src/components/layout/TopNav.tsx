@@ -25,8 +25,8 @@ export default function TopNav() {
           href="/"
           className="font-bold text-lg text-primary flex items-center gap-2 cursor-pointer hover:text-primary/80 transition-colors -ml-4"
         >
-          <img src="/LazyMe.png" alt="LazyMe Logo" className="w-32 h-32 object-contain" />
-          <span className="hidden sm:inline text-xl font-bold">LazyMe</span>
+          <img src={mounted && theme === 'dark' ? "/LazyMeMoon.png" : "/LazyMe.png"} alt="LazyMe Logo" className="w-32 h-32 object-contain" />
+          {/* <span className="hidden sm:inline text-xl font-bold">LazyMe</span> */}
         </Link>
       </div>
 

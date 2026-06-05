@@ -983,15 +983,29 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-24 px-6 border-t border-outline-variant">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-16">
-          <div className="flex items-center gap-4">
-            <div className="w-4 h-4 rounded-full bg-primary" />
+      <footer className="py-16 px-6 border-t border-outline-variant bg-surface-container-lowest/20">
+        <div className="max-w-6xl mx-auto flex flex-col items-center gap-8">
+          {/* Brand */}
+          <div className="flex items-center gap-3">
+            <div className="w-4 h-4 rounded-full bg-primary shadow-[0_0_12px_rgba(112,145,230,0.4)]" />
             <span className="font-bold text-2xl tracking-tighter">LazyMe AI</span>
           </div>
-          <div className="text-[10px] font-mono text-outline uppercase tracking-[0.3em] opacity-40">
-            v2.4.0-stable // 2024
-          </div>
+
+          {/* Navigation Links */}
+          <nav className="flex flex-wrap justify-center gap-6 md:gap-8">
+            <a href="/privacy" className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors duration-200 tracking-wide">Privacy Policy</a>
+            <a href="/terms" className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors duration-200 tracking-wide">Terms of Service</a>
+            <a href="/contact" className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors duration-200 tracking-wide">Contact</a>
+            <a href="/api-docs" className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors duration-200 tracking-wide">API Documentation</a>
+          </nav>
+
+          {/* Divider */}
+          <div className="w-24 h-[1px] bg-outline-variant/40" />
+
+          {/* Copyright */}
+          <p className="text-[11px] font-medium text-on-surface-variant/60 tracking-wide text-center">
+            © 2024 LazyMe AI. Automating the future of work.
+          </p>
         </div>
       </footer>
 

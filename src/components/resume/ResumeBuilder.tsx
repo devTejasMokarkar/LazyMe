@@ -7,7 +7,8 @@ import {
   Download, ZoomIn, ZoomOut, Upload, FileType, CheckCircle2, History,
   RotateCcw, Save, Trash2, Eye, Loader2, PanelLeftClose, PanelRightClose,
   Monitor, Smartphone, Briefcase, Palette, Code, Send,
-  FileText, AlertCircle, Target, ChevronDown, Edit3, MessageSquare, Bot, User
+  FileText, AlertCircle, Target, ChevronDown, Edit3, MessageSquare, Bot, User,
+  Sun, Moon
 } from 'lucide-react';
 import { ATSScoreCard } from '@/components/jobs/ATSScoreCard';
 import Link from 'next/link';
@@ -2038,13 +2039,15 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                   className="space-y-6"
                 >
                   {/* ── AI Chat Section ── */}
-                  <div className="bg-surface-container/30 border border-outline-variant/20 rounded-xl p-4">
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                      <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
-                        <Bot className="w-3.5 h-3.5 text-primary" />
+                  <div className="glass rounded-xl p-5 ai-indicator overflow-hidden">
+                    <div className="flex flex-wrap items-center gap-3 mb-5">
+                      <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center shadow-inner border border-primary/10">
+                        <Bot className="w-5 h-5 text-primary" />
                       </div>
-                      <h3 className="text-xs font-bold text-on-surface">AI Chat</h3>
-                      <span className="text-[10px] text-on-surface-variant/60">Ask AI to optimize your resume</span>
+                      <div>
+                        <h3 className="text-sm font-bold text-on-surface">AI Chat</h3>
+                        <p className="text-[10px] font-medium text-on-surface-variant/70 uppercase tracking-widest mt-0.5">Optimize your resume</p>
+                      </div>
                     </div>
 
                     {/* Chat Messages */}
@@ -2104,7 +2107,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                           <button
                             key={suggestion}
                             onClick={() => { setChatInput(suggestion); }}
-                            className="max-w-full text-left text-[10px] px-2.5 py-1.5 bg-surface-container-hover border border-outline-variant/50 rounded-lg text-on-surface-variant hover:text-primary hover:border-primary/30 transition-all"
+                            className="text-[10px] px-3 py-1.5 bg-primary/5 hover:bg-primary/15 text-primary font-medium border border-primary/20 rounded-full transition-all"
                           >
                             {suggestion}
                           </button>
@@ -2113,7 +2116,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                     )}
 
                     {/* Chat Input */}
-                    <div className="flex items-end gap-2 bg-background border border-outline-variant/30 rounded-lg p-2">
+                    <div className="flex items-end gap-2 bg-background border border-outline-variant/30 rounded-xl p-2.5 shadow-sm focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
                       <textarea
                         rows={1}
                         value={chatInput}
@@ -2139,13 +2142,15 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                   </div>
 
                   {/* ── ATS Score Section ── */}
-                  <div className="bg-surface-container/30 border border-outline-variant/20 rounded-xl p-4">
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                      <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
-                        <Target className="w-3.5 h-3.5 text-primary" />
+                  <div className="glass rounded-xl p-5 ai-indicator overflow-hidden">
+                    <div className="flex flex-wrap items-center gap-3 mb-5">
+                      <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center shadow-inner border border-primary/10">
+                        <Target className="w-5 h-5 text-primary" />
                       </div>
-                      <h3 className="text-xs font-bold text-on-surface">ATS Score</h3>
-                      <span className="text-[10px] text-on-surface-variant/60">Analyze resume against job description</span>
+                      <div>
+                        <h3 className="text-sm font-bold text-on-surface">ATS Score</h3>
+                        <p className="text-[10px] font-medium text-on-surface-variant/70 uppercase tracking-widest mt-0.5">Analyze compatibility</p>
+                      </div>
                     </div>
 
                     {/* JD Input */}
@@ -2517,47 +2522,58 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
             className="hidden lg:flex flex-col h-full bg-background border-l border-white/5 overflow-hidden max-w-[600px]"
           >
             {/* Preview Toolbar */}
-            <div className="h-12 px-4 flex items-center justify-between border-b border-outline-variant shrink-0">
-              <div className="flex items-center gap-1">
-                <button onClick={() => setPreviewMode('desktop')} className={cn("p-1.5 rounded-md transition-colors", previewMode === 'desktop' ? "bg-surface-container-high text-on-surface" : "text-on-surface-variant hover:text-on-surface")}><Monitor className="w-4 h-4" /></button>
-                <button onClick={() => setPreviewMode('mobile')} className={cn("p-1.5 rounded-md transition-colors", previewMode === 'mobile' ? "bg-surface-container-high text-on-surface" : "text-on-surface-variant hover:text-on-surface")}><Smartphone className="w-4 h-4" /></button>
+            <div className="h-16 px-4 flex items-center justify-between border-b border-outline-variant/30 bg-surface/50 backdrop-blur-md shrink-0">
+              <div className="flex items-center gap-1.5 glass rounded-lg p-1">
+                <button onClick={() => setPreviewMode('desktop')} className={cn("p-1.5 rounded-md transition-colors", previewMode === 'desktop' ? "bg-surface-container-high text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container/50")}><Monitor className="w-4 h-4" /></button>
+                <button onClick={() => setPreviewMode('mobile')} className={cn("p-1.5 rounded-md transition-colors", previewMode === 'mobile' ? "bg-surface-container-high text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container/50")}><Smartphone className="w-4 h-4" /></button>
               </div>
-              <div className="flex items-center gap-2">
-                {/* Template Selector */}
-                <div className="flex items-center gap-0.5 bg-surface-container-high px-1 py-1 rounded-lg border border-outline-variant">
-                  {(['resumeworded', 'classic', 'modern', 'minimalist'] as const).map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setTemplate(t)}
-                      className={cn(
-                        "px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-md transition-all",
-                        template === t ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
+              
+              <div className="flex items-center gap-3">
+                {/* Template Dropdown */}
+                <div className="hidden sm:flex items-center glass rounded-lg px-2">
+                  <select
+                    value={template}
+                    onChange={(e) => setTemplate(e.target.value as any)}
+                    className="bg-transparent text-[10px] font-bold uppercase tracking-wider text-on-surface py-2 border-none outline-none cursor-pointer appearance-none pr-4"
+                    style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23454555%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.2rem top 50%', backgroundSize: '0.65rem auto' }}
+                  >
+                    <option value="resumeworded">ResumeWorded</option>
+                    <option value="classic">Classic</option>
+                    <option value="modern">Modern</option>
+                    <option value="minimalist">Minimalist</option>
+                  </select>
                 </div>
-                <div className="flex items-center bg-surface-container-high rounded-lg overflow-hidden">
-                  <button onClick={() => setZoom(Math.max(50, zoom - 10))} className="p-1.5 text-on-surface-variant hover:text-on-surface"><ZoomOut className="w-3.5 h-3.5" /></button>
-                  <span className="text-[10px] font-mono text-on-surface-variant w-10 text-center">{zoom}%</span>
-                  <button onClick={() => setZoom(Math.min(120, zoom + 10))} className="p-1.5 text-on-surface-variant hover:text-on-surface"><ZoomIn className="w-3.5 h-3.5" /></button>
+                
+                <div className="flex items-center glass rounded-lg p-0.5">
+                  <button onClick={() => setZoom(Math.max(50, zoom - 10))} className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container/50 rounded-md transition-colors"><ZoomOut className="w-4 h-4" /></button>
+                  <span className="text-[11px] font-mono font-bold text-on-surface w-12 text-center">{zoom}%</span>
+                  <button onClick={() => setZoom(Math.min(120, zoom + 10))} className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container/50 rounded-md transition-colors"><ZoomIn className="w-4 h-4" /></button>
                 </div>
-                <div className="flex items-center gap-1 bg-surface-container-high px-1.5 py-1 rounded-lg border border-outline-variant">
-                  {['#000000', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444'].map((color) => (
+                
+                <div className="hidden lg:flex items-center gap-1.5 glass rounded-lg p-1.5">
+                  {['#000000', '#6367FF', '#10b981', '#8b5cf6', '#ef4444'].map((color) => (
                     <button
                       key={color}
                       onClick={() => setResumeColor(color)}
                       className={cn(
-                        "w-3.5 h-3.5 rounded-full border transition-all hover:scale-110",
-                        resumeColor === color ? "border-outline scale-110 shadow-sm" : "border-transparent"
+                        "w-4 h-4 rounded-full border-2 transition-all hover:scale-110",
+                        resumeColor === color ? "border-primary scale-110 shadow-md" : "border-transparent shadow-sm"
                       )}
                       style={{ backgroundColor: color === '#000000' && resumeTheme === 'dark' ? '#ffffff' : color }}
                       title={`Accent Color ${color}`}
                     />
                   ))}
+                  
+                  {/* Theme Toggle */}
+                  <div className="w-px h-4 bg-outline-variant/30 mx-1" />
+                  <button 
+                    onClick={() => setResumeTheme(resumeTheme === 'light' ? 'dark' : 'light')} 
+                    className="p-1 text-on-surface-variant hover:text-primary transition-colors rounded-md"
+                    title={`Switch to ${resumeTheme === 'light' ? 'dark' : 'light'} mode`}
+                  >
+                    {resumeTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </button>
                 </div>
-                <button onClick={() => setResumeTheme(resumeTheme === 'light' ? 'dark' : 'light')} className="text-[10px] font-semibold text-on-surface-variant uppercase hover:text-on-surface">{resumeTheme}</button>
               </div>
             </div>
 
