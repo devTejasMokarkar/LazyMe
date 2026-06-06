@@ -30,9 +30,11 @@ function toDisplayString(val: any): string {
   if (typeof val === 'string') return val;
   if (Array.isArray(val)) return val.join(', ');
   if (val && typeof val === 'object') {
+    if (val.diffText) return String(val.diffText);
     if (val.bullets) return Array.isArray(val.bullets) ? val.bullets.join('\n') : String(val.bullets);
     if (val.degree) return `${val.degree} — ${val.institution || val.school || ''}`;
     if (val.role) return `${val.role} at ${val.company || ''}`;
+    // fallback for unknown objects
     return JSON.stringify(val, null, 2);
   }
   return String(val ?? '');

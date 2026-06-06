@@ -18,40 +18,40 @@ export interface AtsScoreResult {
   weak_sections: string[];
 }
 
-export function buildATSScorerPrompt(resumeText: string, jdText: string): string {
-  return `You are an ATS scoring engine. Score this resume against the job description.
+export function buildATSScorerPrompt(resumeData: any, jdText: string): string {
+  return `You are an expert ATS (Applicant Tracking System) scoring engine.
+  
+Your task is to analyze the provided JOB DESCRIPTION and RESUME JSON to provide a highly accurate ATS match score.
 
-Resume Worded Style - Clean single-column ATS-optimized format with:
-- Header: Name, title, contact (Location | Phone | Email | LinkedIn)
-- Sections ordered: WORK EXPERIENCE, EDUCATION, SKILLS
-- Categorized skills (Technical Skills, Frameworks, Databases, Cloud & DevOps, Industry Knowledge)
-- Achievement bullets with action verbs and measurable results
+Step 1: Parse the Job Description into key structured requirements (Job Title, Required Experience, Required Skills, Nice-to-Have, Responsibilities).
+Step 2: Compare these structured requirements against the provided Resume JSON data.
+Step 3: Provide a comprehensive scoring analysis.
 
-RESUME:
-${resumeText}
+RESUME JSON:
+${JSON.stringify(resumeData, null, 2)}
 
-JOB DESCRIPTION:
+JOB DESCRIPTION TEXT:
 ${jdText}
 
-Return ONLY this JSON, no explanation, no markdown:
+Return ONLY this JSON, no explanation, no markdown format blocks:
 {
   "overall_score": 0,
   "breakdown": {
-    "title_match": { "score": 0, "max": 30 },
-    "experience_keywords": { "score": 0, "max": 25 },
-    "skills_keywords": { "score": 0, "max": 15 },
-    "summary_keywords": { "score": 0, "max": 10 },
-    "format_structure": { "score": 0, "max": 8 },
-    "section_headers": { "score": 0, "max": 5 },
-    "dates_consistency": { "score": 0, "max": 4 },
-    "education_match": { "score": 0, "max": 2 },
-    "quantified_achievements": { "score": 0, "max": 1 }
+    "title_match": { "score": 0, "max": 100 },
+    "experience_keywords": { "score": 0, "max": 100 },
+    "skills_keywords": { "score": 0, "max": 100 },
+    "summary_keywords": { "score": 0, "max": 100 },
+    "format_structure": { "score": 8, "max": 8 },
+    "section_headers": { "score": 5, "max": 5 },
+    "dates_consistency": { "score": 4, "max": 4 },
+    "education_match": { "score": 2, "max": 2 },
+    "quantified_achievements": { "score": 1, "max": 1 }
   },
-  "missing_keywords": ["keyword1", "keyword2"],
+  "missing_keywords": ["keyword1", "keyword2", "keyword3"],
   "found_keywords": ["keyword1", "keyword2"],
-  "title_in_resume": "exact title found",
+  "title_in_resume": "exact title found in resume",
   "title_in_jd": "exact title from JD",
-  "weak_sections": ["experience_keywords", "title_match"]
+  "weak_sections": ["experience", "skills", "summary"] // Return the exact string names of weak sections that need optimization.
 }`;
 }
 

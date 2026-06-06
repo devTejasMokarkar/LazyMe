@@ -3,8 +3,6 @@ import { logger } from "@/lib/logger";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const openAIKey = process.env.OPENROUTER_API_KEY;
-const preferredOllamaModel = process.env.OLLAMA_MODEL;
-const ollamaTimeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS || 90000);
 
 // Using Gemini 2.5 Flash for speed and multimodal support
 const MODEL_NAME = "gemini-2.5-flash";
@@ -75,102 +73,9 @@ function isGeminiNetworkError(error: any) {
   return message.includes("fetch failed") || message.includes("generativelanguage.googleapis.com");
 }
 
-async function callOllama(prompt: string, model: string = 'llama3.2', timeoutMs: number = ollamaTimeoutMs): Promise<string | null> {
-  const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
 
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-    const r = await fetch(`${ollamaUrl}/api/generate`, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        prompt,
-        stream: false,
-        keep_alive: "10m",
-        options: {
-          temperature: 0.1,
-          num_predict: 4096
-        }
-      })
-    });
-
-    clearTimeout(timer);
-
-    if (!r.ok) {
-      const error = await r.json().catch(() => null);
-      logger.warn({
-        message: `Ollama ${model} unavailable`,
-        error: error?.error,
-        status: r.status
-      });
-      return null;
-    }
-
-    const data = await r.json();
-    return data.response || null;
-  } catch (error: any) {
-    logger.warn({
-      message: `Ollama ${model} error`,
-      messageDetails: error?.message || "request failed"
-    });
-    return null;
-  }
-}
-
-async function getInstalledOllamaModels(): Promise<string[] | null> {
-  const ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
-
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3000);
-    const response = await fetch(`${ollamaUrl}/api/tags`, { signal: controller.signal });
-    clearTimeout(timer);
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    return Array.isArray(data.models)
-      ? data.models.flatMap((item: any) => [item.name, item.model].filter(Boolean))
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-async function callOllamaFallback(prompt: string): Promise<string | null> {
-  const ollamaModels = [
-    preferredOllamaModel,
-    ...(preferredOllamaModel !== 'llama3.2' ? ['llama3.2'] : []),
-  ].filter(Boolean) as string[];
-  const installedModels = await getInstalledOllamaModels();
-
-  const triedModels: string[] = [];
-  for (const modelName of ollamaModels) {
-    if (triedModels.includes(modelName)) continue;
-    if (installedModels && !installedModels.includes(modelName) && !installedModels.includes(`${modelName}:latest`)) continue;
-    triedModels.push(modelName);
-
-    const isFirst = triedModels.length === 1;
-    const timeout = isFirst ? ollamaTimeoutMs : Math.min(ollamaTimeoutMs, 30000);
-    const result = await callOllama(prompt, modelName, timeout);
-    if (result) {
-      logger.info({
-        message: `Ollama ${modelName} successful`
-      });
-      return result;
-    }
-  }
-
-  return null;
-}
 
 export async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?: string): Promise<string> {
-  const localResult = await callOllamaFallback(prompt);
-  if (localResult) return localResult;
 
   if (!openAIKey) throw new Error("OPENROUTER_API_KEY not configured");
 
@@ -274,8 +179,10 @@ export async function callOpenRouter(prompt: string, buffer?: Buffer, mimeType?:
 }
 
 export async function generateText(prompt: string): Promise<string> {
-  const localResult = await callOllamaFallback(prompt);
-  if (localResult) return localResult;
+  if (process.env.COHERE_API_KEY) {
+    const cohereResult = await callCohere(prompt);
+    if (cohereResult) return cohereResult;
+  }
 
   const maxRetries = 2;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -449,6 +356,68 @@ async function callOpenRouterWithUserKey(prompt: string, userApiKey: string): Pr
   return data.choices[0].message.content;
 }
 
+export async function callCohere(prompt: string): Promise<string | null> {
+  const currentCohereKey = process.env.COHERE_API_KEY;
+  if (!currentCohereKey) return null;
+  logger.info({ message: "Attempting Cohere API..." });
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    const r = await fetch("https://api.cohere.com/v1/chat", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Authorization": `Bearer ${currentCohereKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "command-r-plus-08-2024",
+        message: prompt,
+        temperature: 0.1
+      })
+    });
+    clearTimeout(timer);
+    if (!r.ok) {
+      const err = await r.json();
+      logger.warn({ message: "Cohere failed", error: err?.message, status: r.status });
+      return null;
+    }
+    const d = await r.json();
+    return d.text;
+  } catch (e: any) {
+    logger.warn({ message: "Cohere error", messageDetails: e.message });
+    return null;
+  }
+}
+
+async function callCohereWithUserKey(prompt: string, userApiKey: string): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+
+  const r = await fetch("https://api.cohere.com/v1/chat", {
+    method: "POST",
+    signal: controller.signal,
+    headers: {
+      "Authorization": `Bearer ${userApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "command-r-plus-08-2024",
+      message: prompt,
+      temperature: 0.1,
+    }),
+  });
+  clearTimeout(timer);
+
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(`Cohere error: ${err?.message || r.statusText}`);
+  }
+
+  const data = await r.json();
+  return data.text;
+}
+
 /**
  * Generate text using a user's own API key.
  * Tries the specified provider. Returns null if the key is invalid or fails.
@@ -466,6 +435,8 @@ export async function generateWithUserKey(
         return await callOpenAIWithUserKey(prompt, apiKey);
       case "openrouter":
         return await callOpenRouterWithUserKey(prompt, apiKey);
+      case "cohere":
+        return await callCohereWithUserKey(prompt, apiKey);
       default:
         logger.warn({ provider }, "Unknown provider for user key");
         return null;

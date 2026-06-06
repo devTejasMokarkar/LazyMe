@@ -155,6 +155,9 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const [loadingImprovementCount, setLoadingImprovementCount] = useState(0);
   const [isAutoFixing, setIsAutoFixing] = useState(false);
   const [estimatedScore, setEstimatedScore] = useState<number | null>(null);
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const [appliedChangesLog, setAppliedChangesLog] = useState<string[]>([]);
+  const [scoreIsDirty, setScoreIsDirty] = useState(false);
 
   // Calculate estimated score based on missing keywords
   const calculateEstimatedScore = () => {
@@ -1364,9 +1367,9 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       });
 
       // STEP 2 — Check if improvement needed
-      if (score >= 75) {
+      if (score >= 95) {
         setAtsCurrentStep(null);
-        showToast(`ATS Score: ${score}% — Resume is already well-optimized!`, 'success');
+        showToast(`ATS Score: ${score}% — Resume is highly optimized!`, 'success');
         return;
       }
 
@@ -1378,7 +1381,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       setLoadingImprovementCount(weakSections.length);
       setAtsChanges(scoreData.missing_keywords || []);
 
-      for (const section of weakSections) {
+      await Promise.all(weakSections.map(async (section) => {
         try {
           const optRes = await fetch('/api/optimize-resume', {
             method: 'POST',
@@ -1412,12 +1415,26 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               after: c.after,
               impact: undefined,
             }));
-            setAtsImprovements(prev => [...prev, ...improvements]);
+            setAtsImprovements(prev => {
+              const next = [...prev];
+              for (const imp of improvements) {
+                const isDuplicate = next.some(
+                  (existing) => 
+                    existing.section === imp.section && 
+                    JSON.stringify(existing.before) === JSON.stringify(imp.before) && 
+                    JSON.stringify(existing.after) === JSON.stringify(imp.after)
+                );
+                if (!isDuplicate) next.push(imp);
+              }
+              return next;
+            });
           }
+        } catch (e) {
+          console.error("Section optimization failed:", section, e);
         } finally {
           setLoadingImprovementCount(prev => Math.max(0, prev - 1));
         }
-      }
+      }));
 
       setAtsCurrentStep(null);
       showToast('Suggestions ready. Apply one or apply all to rescore.', 'success');
@@ -1593,8 +1610,9 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       const nextResume = applyImprovementToResume(resumeData, improvement);
       commitResumeData(nextResume);
       setAppliedImprovementIndices(prev => new Set(prev).add(index));
-      const scoreData = await scoreResumeAfterApply(nextResume, atsResult?.atsScore);
-      showToast(`Applied and recalculated ATS: ${scoreData?.overall_score ?? 'updated'}%`, 'success');
+      setAppliedChangesLog(prev => [...prev, `Improved ${improvement.section} section`]);
+      setScoreIsDirty(true);
+      showToast(`Applied ${improvement.section} improvement. Click "Recalculate" when ready.`, 'success');
     } catch (e: any) {
       showToast(e.message || 'Failed to apply improvement', 'error');
     } finally {
@@ -1609,6 +1627,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     try {
       let nextResume = resumeData;
       const nextApplied = new Set(appliedImprovementIndices);
+      const newLogs: string[] = [];
       for (let i = 0; i < atsImprovements.length; i++) {
         if (nextApplied.has(i)) continue;
         setApplyingImprovementIndex(i);
@@ -1616,11 +1635,13 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         commitResumeData(nextResume);
         nextApplied.add(i);
         setAppliedImprovementIndices(new Set(nextApplied));
+        newLogs.push(`Improved ${atsImprovements[i].section} section`);
         await new Promise(resolve => setTimeout(resolve, 120));
       }
       setApplyingImprovementIndex(null);
-      const scoreData = await scoreResumeAfterApply(nextResume, atsResult?.atsScore);
-      showToast(`Applied all and recalculated ATS: ${scoreData?.overall_score ?? 'updated'}%`, 'success');
+      setAppliedChangesLog(prev => [...prev, ...newLogs]);
+      setScoreIsDirty(true);
+      showToast(`Applied all improvements. Click "Recalculate" to see new score.`, 'success');
     } catch (e: any) {
       showToast(e.message || 'Failed to apply all improvements', 'error');
     } finally {
@@ -1653,13 +1674,72 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         experience: experienceWithKeyword,
       };
       commitResumeData(nextResume);
-      const scoreData = await scoreResumeAfterApply(nextResume, atsResult?.atsScore);
       setAtsChanges(prev => prev.filter(item => item.toLowerCase() !== cleanKeyword.toLowerCase()));
-      showToast(`Added keyword and recalculated ATS: ${scoreData?.overall_score ?? 'updated'}%`, 'success');
+      setAppliedChangesLog(prev => [...prev, `Added missing keyword: ${cleanKeyword}`]);
+      setScoreIsDirty(true);
+      showToast(`Added "${cleanKeyword}" to resume. Click "Recalculate" when ready.`, 'success');
     } catch (e: any) {
       showToast(e.message || 'Failed to apply keyword', 'error');
     } finally {
       setApplyingKeyword(null);
+    }
+  };
+
+  const handleRecalculateScore = async () => {
+    if (isRecalculating || !jobDescription.trim()) return;
+    setIsRecalculating(true);
+    const oldScore = atsResult?.atsScore ?? atsScoreResult?.overall_score ?? 0;
+    try {
+      const currentResume = {
+        name: userName, title: userRole, summary, skills, experience, education, email, phone, location
+      };
+      const scoreRes = await fetch('/api/ats-rescore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume: currentResume, jobDescription: jobDescription.trim() })
+      });
+      if (!scoreRes.ok) throw new Error('ATS rescore failed');
+      const scoreData = await scoreRes.json();
+      const newScore = scoreData.overall_score;
+
+      // Score guard: prevent regression
+      if (newScore < oldScore) {
+        showToast(`Score maintained at ${oldScore}%. Changes preserved.`, 'info');
+        setScoreIsDirty(false);
+        return;
+      }
+
+      setPreviousATSScore(oldScore);
+      setAtsScoreResult(scoreData);
+      setAtsResult((prev: any) => ({
+        ...(prev || {}),
+        atsScore: newScore,
+        analysis: {
+          ...(prev?.analysis || {}),
+          atsScore: newScore,
+          keywordAnalysis: {
+            missingSkills: scoreData.missing_keywords || [],
+            strongSkills: scoreData.found_keywords || [],
+          },
+        }
+      }));
+      setAtsChanges(scoreData.missing_keywords || []);
+      setScoreIsDirty(false);
+      const improvement = newScore - oldScore;
+      const reasons = appliedChangesLog.length > 0 
+        ? appliedChangesLog.join(', ') 
+        : 'Applied changes';
+      showToast(
+        improvement > 0 
+          ? `Score: ${oldScore}% → ${newScore}% (+${improvement}%) — ${reasons}` 
+          : `Score recalculated: ${newScore}%`, 
+        improvement > 0 ? 'success' : 'info'
+      );
+      setAppliedChangesLog([]);
+    } catch (e: any) {
+      showToast(e.message || 'Failed to recalculate', 'error');
+    } finally {
+      setIsRecalculating(false);
     }
   };
 
@@ -2238,6 +2318,10 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                           estimatedScore={estimatedScore}
                           onAutoFix={handleAutoFix}
                           autoFixing={isAutoFixing}
+                          onRecalculate={handleRecalculateScore}
+                          isRecalculating={isRecalculating}
+                          scoreIsDirty={scoreIsDirty}
+                          appliedChangesLog={appliedChangesLog}
                         />
 
                         {atsImprovements.length > 0 && (

@@ -1172,7 +1172,7 @@ export default function ApplyPage() {
               </>
             )}
 
-            {!liIsSearching && !liBlocked && !liErrorMsg && liJobs.length === 0 && (
+            {!liIsSearching && !liBlocked && !liErrorMsg && (liJobs?.length ?? 0) === 0 && (
               <div className="text-center py-16 text-on-surface-variant">
                 <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-30" />
                 <p className="text-sm">No jobs found. Try a broader keyword or different location.</p>
