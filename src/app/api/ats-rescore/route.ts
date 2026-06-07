@@ -4,6 +4,8 @@ import { logger } from "@/lib/logger";
 // ── Deterministic local scoring for recalculation ──
 // This is instant, free, and guaranteed to reflect keyword additions.
 
+
+export const dynamic = "force-dynamic";
 const GENERIC_WORDS = new Set([
   "the","and","for","with","that","this","from","have","will","are","you","your","our","can",
   "has","was","been","were","but","not","all","any","its","get","let","may","use","new","one",

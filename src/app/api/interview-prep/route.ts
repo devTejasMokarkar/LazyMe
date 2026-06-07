@@ -8,6 +8,8 @@ import { buildInterviewPrepPrompt } from "@/features/ai/prompts/interview.prompt
 import { logger } from "@/lib/logger";
 
 /**
+
+export const dynamic = "force-dynamic";
  * POST /api/interview-prep — Generate personalized interview Q&A
  * Body: { resumeId?: string, resumeData?: object, targetRole?: string, jobDescription?: string, difficulty?: string, count?: number }
  */

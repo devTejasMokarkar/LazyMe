@@ -8,6 +8,8 @@ import { resumeToPlainText } from "@/features/ai/utils/resume-text";
 import { calculateWeightedATS } from "@/features/ai/ats.service";
 import { logger } from "@/lib/logger";
 
+
+export const dynamic = "force-dynamic";
 interface ApplyTarget {
   id: string;
   title: string;

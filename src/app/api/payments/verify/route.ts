@@ -6,6 +6,8 @@ import { logger } from "@/lib/logger";
 import { createHmac } from "crypto";
 
 /**
+
+export const dynamic = "force-dynamic";
  * POST /api/payments/verify — Client-side payment verification (Razorpay)
  * Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature, paymentId }
  */

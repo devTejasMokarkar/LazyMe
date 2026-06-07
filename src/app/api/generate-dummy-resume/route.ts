@@ -3,6 +3,8 @@ import { generateText, GeminiServiceError } from "@/features/ai/ai.service";
 import { buildDummyResumePrompt } from "@/features/ai/prompts/dummy-resume.prompts";
 
 /**
+
+export const dynamic = "force-dynamic";
  * POST /api/generate-dummy-resume
  *
  * Returns a fresh John Doe resume in the Resume Worded format, scored 60-70 on ATS

@@ -1321,30 +1321,36 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
       await new Promise(r => setTimeout(r, 300));
       setStep('matching');
 
-      const scoreRes = await fetch('/api/ats-score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resume: {
-            name: userName,
-            title: userRole,
-            summary,
-            skills,
-            experience,
-            education,
-            email,
-            phone,
-            location
-          },
-          jobDescription: jobDescription.trim()
-        })
-      });
+      let scoreRes: Response | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        scoreRes = await fetch('/api/ats-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resume: {
+              name: userName,
+              title: userRole,
+              summary,
+              skills,
+              experience,
+              education,
+              email,
+              phone,
+              location
+            },
+            jobDescription: jobDescription.trim()
+          })
+        });
+        if (scoreRes.status !== 429) break;
+        const wait = parseInt(scoreRes.headers.get('retry-after') || '0', 10) * 1000 || 4000;
+        await new Promise(r => setTimeout(r, wait));
+      }
 
       setStep('scoring');
       await new Promise(r => setTimeout(r, 200));
 
-      if (!scoreRes.ok) {
-        const errData = await scoreRes.json().catch(() => null);
+      if (!scoreRes || !scoreRes.ok) {
+        const errData = scoreRes ? await scoreRes.json().catch(() => null) : null;
         throw new Error(errData?.error || 'ATS scoring failed');
       }
 
@@ -1375,39 +1381,46 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
 
       // STEP 3 — Generate suggestions one weak section at a time.
       setStep('optimizing');
-      const weakSections = Array.isArray(scoreData.weak_sections) && scoreData.weak_sections.length
+      const weakSections: string[] = Array.isArray(scoreData.weak_sections) && scoreData.weak_sections.length
         ? scoreData.weak_sections.slice(0, 4)
         : ['summary', 'skills', 'experience'];
       setLoadingImprovementCount(weakSections.length);
       setAtsChanges(scoreData.missing_keywords || []);
 
-      await Promise.all(weakSections.map(async (section) => {
+      // Sequential with retry to avoid hammering the AI rate limit.
+      for (const section of weakSections) {
         try {
-          const optRes = await fetch('/api/optimize-resume', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              resume: {
-                name: userName,
-                title: userRole,
-                summary,
-                skills,
-                experience,
-                education,
-                email,
-                phone,
-                location
-              },
-              jobDescription: jobDescription.trim(),
-              currentScore: score,
-              missingKeywords: scoreData.missing_keywords,
-              weakSections: [section],
-              titleInJd: scoreData.title_in_jd || "",
-              skipRescore: true,
-            })
-          });
+          let optRes: Response | null = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            optRes = await fetch('/api/optimize-resume', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                resume: {
+                  name: userName,
+                  title: userRole,
+                  summary,
+                  skills,
+                  experience,
+                  education,
+                  email,
+                  phone,
+                  location
+                },
+                jobDescription: jobDescription.trim(),
+                currentScore: score,
+                missingKeywords: scoreData.missing_keywords,
+                weakSections: [section],
+                titleInJd: scoreData.title_in_jd || "",
+                skipRescore: true,
+              })
+            });
+            if (optRes.status !== 429) break;
+            const wait = parseInt(optRes.headers.get('retry-after') || '0', 10) * 1000 || 4000;
+            await new Promise(r => setTimeout(r, wait));
+          }
 
-          if (optRes.ok) {
+          if (optRes && optRes.ok) {
             const optData = await optRes.json();
             const improvements = (optData.changes || []).map((c: any) => ({
               section: c.section,
@@ -1419,9 +1432,9 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
               const next = [...prev];
               for (const imp of improvements) {
                 const isDuplicate = next.some(
-                  (existing) => 
-                    existing.section === imp.section && 
-                    JSON.stringify(existing.before) === JSON.stringify(imp.before) && 
+                  (existing) =>
+                    existing.section === imp.section &&
+                    JSON.stringify(existing.before) === JSON.stringify(imp.before) &&
                     JSON.stringify(existing.after) === JSON.stringify(imp.after)
                 );
                 if (!isDuplicate) next.push(imp);
@@ -1434,7 +1447,9 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         } finally {
           setLoadingImprovementCount(prev => Math.max(0, prev - 1));
         }
-      }));
+        // Stagger requests to stay under RPM limits.
+        await new Promise(r => setTimeout(r, 1500));
+      }
 
       setAtsCurrentStep(null);
       showToast('Suggestions ready. Apply one or apply all to rescore.', 'success');

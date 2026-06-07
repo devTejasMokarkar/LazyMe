@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "@/features/ai/ai.service";
 import { buildCoverLetterPrompt } from "@/features/ai/prompts/resume.prompts";
 
+
+export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

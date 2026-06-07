@@ -6,6 +6,8 @@ import Stripe from "stripe";
 import Razorpay from "razorpay";
 
 /**
+
+export const dynamic = "force-dynamic";
  * POST /api/payments/create — Create a payment session
  * Body: { packId: string, gateway: "stripe" | "paypal" | "razorpay" }
  */

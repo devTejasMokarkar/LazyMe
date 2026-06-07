@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { runAutoPilot } from "@/features/ai/auto-pilot.service";
 import { logger } from "@/lib/logger";
 
+
+export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();

@@ -4,6 +4,8 @@ import { buildResumePrompt, buildCoverLetterPrompt } from "@/features/ai/prompts
 import { calculateATS } from "@/features/ai/ats.service";
 import { logger } from "@/lib/logger";
 
+
+export const dynamic = "force-dynamic";
 export interface Job {
   id: string;
   company: string;

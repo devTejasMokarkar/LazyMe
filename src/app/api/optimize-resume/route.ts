@@ -5,6 +5,8 @@ import { resumeToPlainText, parsePlainTextToResume } from "@/features/ai/utils/r
 import { extractWeakSections, extractSectionBodyBefore, mergeImprovedSections } from "@/features/ai/utils/section-utils";
 import { logger } from "@/lib/logger";
 
+
+export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -101,9 +103,13 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     logger.error({ error: error?.message || error }, "Optimize resume error:");
     if (error.name === "GeminiServiceError") {
+      const headers: Record<string, string> = {};
+      if (error.quota?.retryAfterSeconds) {
+        headers["Retry-After"] = String(error.quota.retryAfterSeconds);
+      }
       return NextResponse.json(
         { error: error.message, quota: error.quota },
-        { status: error.status || 429 }
+        { status: error.status || 429, headers }
       );
     }
     return NextResponse.json({ error: "Failed to optimize resume" }, { status: 500 });

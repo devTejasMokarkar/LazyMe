@@ -5,6 +5,8 @@ import { logger } from "@/lib/logger";
 import Stripe from "stripe";
 
 /**
+
+export const dynamic = "force-dynamic";
  * POST /api/payments/webhooks/stripe — Stripe webhook handler
  * Verifies signature, credits user account on successful payment.
  */

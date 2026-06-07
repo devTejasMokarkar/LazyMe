@@ -4,6 +4,8 @@ import { buildResumePrompt, buildCoverLetterPrompt } from "@/features/ai/prompts
 import { calculateWeightedATS } from "@/features/ai/ats.service";
 import { logger } from "@/lib/logger";
 
+
+export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

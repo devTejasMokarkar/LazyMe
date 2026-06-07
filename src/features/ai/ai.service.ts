@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { logger } from "@/lib/logger";
+import { withRateLimit } from "@/lib/rate-limit";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const openAIKey = process.env.OPENROUTER_API_KEY;
@@ -192,7 +193,7 @@ export async function generateText(prompt: string): Promise<string> {
         promptLength: prompt.length,
         attempt
       });
-      const result = await getModel().generateContent(prompt);
+      const result = await withRateLimit(() => getModel().generateContent(prompt));
       logger.info({ message: "Gemini result received, checking response" });
       const response = await result.response;
       logger.info({

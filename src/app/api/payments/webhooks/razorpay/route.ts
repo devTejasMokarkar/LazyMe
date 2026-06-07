@@ -5,6 +5,8 @@ import { logger } from "@/lib/logger";
 import { createHmac } from "crypto";
 
 /**
+
+export const dynamic = "force-dynamic";
  * POST /api/payments/webhooks/razorpay — Razorpay webhook handler
  * Verifies HMAC signature and credits user account on payment captured.
  */

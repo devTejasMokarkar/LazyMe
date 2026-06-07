@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { calculateWeightedATS, extractTechnicalSkills } from "@/features/ai/ats.service";
 
+
+export const dynamic = "force-dynamic";
 export interface Job {
   id: string;
   company: string;

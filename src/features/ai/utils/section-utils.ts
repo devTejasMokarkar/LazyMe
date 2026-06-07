@@ -1,10 +1,11 @@
+const SECTION_BOUNDARY = "\n\\s*\n";
 const EXTRACT_PATTERNS: Record<string, RegExp> = {
   title_match: /PROFESSIONAL SUMMARY[\s\S]{0,400}/i,
-  summary: /PROFESSIONAL SUMMARY[\s\S]*?(?=\n[A-Z ]{4,}\n|\n[A-Z]{3,}|$)/i,
-  experience_keywords: /PROFESSIONAL EXPERIENCE[\s\S]*?(?=\nEDUCATION|\nPROJECTS|\n[A-Z]{3,}|$)/i,
-  experience: /PROFESSIONAL EXPERIENCE[\s\S]*?(?=\nEDUCATION|\nPROJECTS|\n[A-Z]{3,}|$)/i,
-  skills_keywords: /TECHNICAL SKILLS[\s\S]*?(?=\nPROFESSIONAL EXPERIENCE|\nPROFESSIONAL|\nEXPERIENCE|\n[A-Z]{3,}|$)/i,
-  skills: /TECHNICAL SKILLS[\s\S]*?(?=\nPROFESSIONAL EXPERIENCE|\nPROFESSIONAL|\nEXPERIENCE|\n[A-Z]{3,}|$)/i,
+  summary: new RegExp(`PROFESSIONAL SUMMARY[\\s\\S]*?(?=${SECTION_BOUNDARY}|\\nEDUCATION|\\nPROJECTS|$)`, "i"),
+  experience_keywords: new RegExp(`PROFESSIONAL EXPERIENCE[\\s\\S]*?(?=${SECTION_BOUNDARY}|\\nEDUCATION|\\nPROJECTS|$)`, "i"),
+  experience: new RegExp(`PROFESSIONAL EXPERIENCE[\\s\\S]*?(?=${SECTION_BOUNDARY}|\\nEDUCATION|\\nPROJECTS|$)`, "i"),
+  skills_keywords: new RegExp(`TECHNICAL SKILLS[\\s\\S]*?(?=${SECTION_BOUNDARY}|\\nPROFESSIONAL EXPERIENCE|\\nEDUCATION|\\nPROJECTS|$)`, "i"),
+  skills: new RegExp(`TECHNICAL SKILLS[\\s\\S]*?(?=${SECTION_BOUNDARY}|\\nPROFESSIONAL EXPERIENCE|\\nEDUCATION|\\nPROJECTS|$)`, "i"),
 };
 
 export function extractWeakSections(resumeText: string, weakSections: string[]): string {
@@ -37,11 +38,11 @@ export function extractSectionBodyBefore(
 }
 
 const MERGE_PATTERNS: Record<string, RegExp> = {
-  summary: /(PROFESSIONAL SUMMARY\s*\n)([\s\S]*?)(\n\s*\n[A-Z]|$)/i,
-  experience_keywords: /(PROFESSIONAL EXPERIENCE\s*\n)([\s\S]*?)(\n\s*\n[A-Z]|$)/i,
-  experience: /(PROFESSIONAL EXPERIENCE\s*\n)([\s\S]*?)(\n\s*\n[A-Z]|$)/i,
-  skills_keywords: /(TECHNICAL SKILLS\s*\n)([\s\S]*?)(\n\s*\n[A-Z]|$)/i,
-  skills: /(TECHNICAL SKILLS\s*\n)([\s\S]*?)(\n\s*\n[A-Z]|$)/i,
+  summary: /(PROFESSIONAL SUMMARY\s*\n)([\s\S]*?)(\n\s*\n(?:PROFESSIONAL EXPERIENCE|TECHNICAL SKILLS|EDUCATION|PROJECTS)|$)/i,
+  experience_keywords: /(PROFESSIONAL EXPERIENCE\s*\n)([\s\S]*?)(\n\s*\n(?:EDUCATION|PROJECTS|TECHNICAL SKILLS|PROFESSIONAL SUMMARY)|$)/i,
+  experience: /(PROFESSIONAL EXPERIENCE\s*\n)([\s\S]*?)(\n\s*\n(?:EDUCATION|PROJECTS|TECHNICAL SKILLS|PROFESSIONAL SUMMARY)|$)/i,
+  skills_keywords: /(TECHNICAL SKILLS\s*\n)([\s\S]*?)(\n\s*\n(?:PROFESSIONAL EXPERIENCE|EDUCATION|PROJECTS|PROFESSIONAL SUMMARY)|$)/i,
+  skills: /(TECHNICAL SKILLS\s*\n)([\s\S]*?)(\n\s*\n(?:PROFESSIONAL EXPERIENCE|EDUCATION|PROJECTS|PROFESSIONAL SUMMARY)|$)/i,
 };
 
 export function mergeImprovedSections(

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { scrapeLinkedInPublic } from "@/scrapers/linkedinPublicScraper";
 
+
+export const dynamic = "force-dynamic";
 export interface LinkedInJob {
   title: string;
   company: string;

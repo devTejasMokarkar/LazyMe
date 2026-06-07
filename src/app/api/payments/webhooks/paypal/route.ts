@@ -4,6 +4,8 @@ import { addCredits } from "@/features/credits/credits.service";
 import { logger } from "@/lib/logger";
 
 /**
+
+export const dynamic = "force-dynamic";
  * POST /api/payments/webhooks/paypal — PayPal webhook handler
  * Verifies event and credits user account on capture completed.
  */

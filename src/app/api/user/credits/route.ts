@@ -3,6 +3,8 @@ import { auth } from "@/config/auth";
 import { getBalance, getTransactions } from "@/features/credits/credits.service";
 
 /**
+
+export const dynamic = "force-dynamic";
  * GET /api/user/credits — Get current balance + recent transactions
  */
 export async function GET(req: NextRequest) {

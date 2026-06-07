@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText, GeminiServiceError } from "@/features/ai/ai.service";
 
+
+export const dynamic = "force-dynamic";
 type ResumeAppend = {
   company: string;
   role: string;

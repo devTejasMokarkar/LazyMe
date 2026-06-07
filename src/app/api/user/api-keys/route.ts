@@ -5,6 +5,8 @@ import { encryptApiKey, decryptApiKey, maskApiKey } from "@/lib/encryption";
 import { generateWithUserKey } from "@/features/ai/ai.service";
 
 /**
+
+export const dynamic = "force-dynamic";
  * GET /api/user/api-keys — List user's API keys (masked)
  */
 export async function GET(req: NextRequest) {

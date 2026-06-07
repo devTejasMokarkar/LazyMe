@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/config/auth";
 import { prisma } from "@/lib/db";
-import { 
-  validateFileBuffer, 
-  parseDocument, 
+import {
+  validateFileBuffer,
+  parseDocument,
   DocumentType,
   parseResumeLocally,
   chunkText,
@@ -11,6 +11,8 @@ import {
 } from "@/lib/parser";
 import { parserLogger, createLogEntry } from "@/lib/parser/logger";
 import { generateTextFromMultiModal } from "@/features/ai/ai.service";
+
+export const dynamic = "force-dynamic";
 import { logger } from "@/lib/logger";
 
 const SUPPORTED_TYPES = [

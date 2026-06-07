@@ -5,6 +5,8 @@ import { runAutoPilot, extractSearchKeywords } from "@/features/ai/auto-pilot.se
 import { calculateWeightedATS } from "@/features/ai/ats.service";
 import { logger } from "@/lib/logger";
 
+
+export const dynamic = "force-dynamic";
 export interface AutoPilotScrapedJob {
   id: string;
   title: string;

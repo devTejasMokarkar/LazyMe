@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "@/features/ai/ai.service";
 
+
+export const dynamic = "force-dynamic";
 interface ResumeChanges {
   summary?: string;
   experience?: Array<{ company: string; role: string; duration: string; bullets: string[] }>;

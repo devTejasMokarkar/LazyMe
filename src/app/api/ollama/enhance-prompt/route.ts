@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "@/features/ai/ai.service";
 
+
+export const dynamic = "force-dynamic";
 const ENHANCE_SYSTEM_PROMPT = `You are a resume improvement assistant. Enhance the following short user request into a detailed, well-structured prompt for updating a resume section. Return only the enhanced prompt text, no extra explanation, no greetings.`;
 
 export async function POST(request: NextRequest) {
