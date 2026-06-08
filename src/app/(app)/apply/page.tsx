@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Search, Briefcase, MapPin, ExternalLink, Loader2,
   AlertCircle, DollarSign, Clock, ChevronDown, Inbox, RefreshCw, Linkedin,
-  Sparkles, Check, Zap, Target, BarChart3, Brain, Users, Globe
+  Sparkles, Check, Zap, Target, BarChart3, Brain, Globe, Mail
 } from 'lucide-react';
 import DirectMailToHR from '@/components/apply/DirectMailToHR';
-import BulkMailToHR from '@/components/apply/BulkMailToHR';
+import MultipleMail from '@/components/apply/MultipleMail';
 
 interface IndeedJob {
   id: string;
@@ -82,7 +82,7 @@ const EXPERIENCE_OPTIONS = [
 ];
 
 const SOURCE_OPTIONS = ["Indeed", "Remotive", "Both"] as const;
-type TabMode = 'linkedin' | 'indeed' | 'autopilot' | 'surf';
+type TabMode = 'linkedin' | 'indeed' | 'autopilot' | 'surf' | 'mail';
 
 const JOB_TITLES = [
   "Software Developer",
@@ -249,7 +249,6 @@ function getMatchScoreColor(score: number): string {
 
 export default function ApplyPage() {
   const [tab, setTab] = useState<TabMode>('indeed');
-  const [isBulkMailOpen, setIsBulkMailOpen] = useState(false);
 
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("Nagpur, India");
@@ -745,6 +744,7 @@ export default function ApplyPage() {
     { key: 'indeed', label: 'Indeed/Remotive', icon: Search },
     { key: 'autopilot', label: 'Auto-Pilot', icon: Sparkles },
     { key: 'surf', label: 'Surf Jobs', icon: Globe },
+    { key: 'mail', label: 'Mail HR', icon: Mail },
   ];
 
   // ── Auto-Pilot render ───────────────────────────────────────
@@ -1096,6 +1096,16 @@ export default function ApplyPage() {
     );
   };
 
+  // ── MAIL TAB RENDER ─────────────────────────────────────────
+  const renderMailTab = () => {
+    return (
+      <div className="space-y-4">
+        <DirectMailToHR jobTitle={keyword} />
+        <MultipleMail />
+      </div>
+    );
+  };
+
   return (
     <div className="scrollable-page bg-background px-4 py-4 sm:px-6">
       <div className="mx-auto max-w-7xl">
@@ -1111,6 +1121,7 @@ export default function ApplyPage() {
           )}
         </div>
 
+        {tab !== 'mail' && (
         <div className="mb-4 rounded-lg border border-outline-variant/50 bg-surface-container p-3 shadow-sm">
           <form onSubmit={handleSearch}>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
@@ -1224,27 +1235,7 @@ export default function ApplyPage() {
           </div>
           </form>
         </div>
-
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-stretch">
-          <div className="flex-1">
-            <DirectMailToHR jobTitle={keyword} />
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsBulkMailOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
-            title="Send personalized emails to multiple HR contacts at once"
-          >
-            <Users className="w-4 h-4" />
-            Bulk Mail HR
-          </button>
-        </div>
-
-        <BulkMailToHR
-          isOpen={isBulkMailOpen}
-          onClose={() => setIsBulkMailOpen(false)}
-          jobTitle={keyword}
-        />
+        )}
 
         {tab === 'linkedin' && (
           <>
@@ -1464,6 +1455,7 @@ export default function ApplyPage() {
 
         {tab === 'autopilot' && renderAutoPilotTab()}
         {tab === 'surf' && renderSurfTab()}
+        {tab === 'mail' && renderMailTab()}
       </div>
     </div>
   );

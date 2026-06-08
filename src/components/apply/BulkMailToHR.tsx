@@ -144,6 +144,7 @@ export default function BulkMailToHR({ isOpen, onClose, jobTitle = "" }: BulkMai
 
   const [fromName, setFromName] = useState("");
   const [fromEmail, setFromEmail] = useState("");
+  const [gmailPass, setGmailPass] = useState("");
   const [subjectTpl, setSubjectTpl] = useState(
     jobTitle ? `Application for ${jobTitle} - {company}` : `Application for {company}`
   );
@@ -290,6 +291,7 @@ export default function BulkMailToHR({ isOpen, onClose, jobTitle = "" }: BulkMai
           resumeId: resumeId || undefined,
           throttleMs,
           attachment: attachmentPayload,
+          smtpPass: gmailPass.trim() || undefined,
         }),
       });
 
@@ -518,6 +520,24 @@ export default function BulkMailToHR({ isOpen, onClose, jobTitle = "" }: BulkMai
                     placeholder="jane@gmail.com"
                     className="h-9 w-full rounded-md border border-outline-variant bg-background px-3 text-sm text-on-background"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1">
+                    Gmail App Password
+                  </label>
+                  <input
+                    type="password"
+                    value={gmailPass}
+                    onChange={(e) => setGmailPass(e.target.value)}
+                    placeholder="xxxx xxxx xxxx xxxx"
+                    className="h-9 w-full rounded-md border border-outline-variant bg-background px-3 text-sm text-on-background"
+                  />
+                  <p className="text-[10px] text-on-surface-variant/60 mt-0.5">
+                    Required for Gmail. Get from{" "}
+                    <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="underline text-primary">
+                      Google App Passwords
+                    </a>
+                  </p>
                 </div>
               </div>
 

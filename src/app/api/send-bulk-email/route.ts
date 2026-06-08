@@ -22,6 +22,7 @@ export interface BulkSendRequest {
   resumeId?: string;
   throttleMs?: number;
   attachment?: { filename: string; content: string; contentType?: string };
+  smtpPass?: string;
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
     resumeId,
     throttleMs = DEFAULT_THROTTLE_MS,
     attachment,
+    smtpPass,
   } = body;
 
   if (!Array.isArray(recipients) || recipients.length === 0) {
@@ -152,19 +154,29 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const smtpConfigured = Boolean(smtpHost && smtpPort && smtpUser && smtpPass);
+  const envSmtpHost = process.env.SMTP_HOST;
+  const envSmtpPort = process.env.SMTP_PORT;
+  const envSmtpUser = process.env.SMTP_USER;
+  const envSmtpPass = process.env.SMTP_PASS;
+  const hasSmtpEnv = Boolean(envSmtpHost && envSmtpPort && envSmtpUser && envSmtpPass);
+  const usePerUserGmail = Boolean(fromEmail && smtpPass);
+
+  const smtpConfigured = hasSmtpEnv || usePerUserGmail;
 
   let transporter: nodemailer.Transporter | null = null;
-  if (smtpConfigured) {
+  if (usePerUserGmail) {
     transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: parseInt(smtpPort!),
-      secure: parseInt(smtpPort!) === 465,
-      auth: { user: smtpUser!, pass: smtpPass! },
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: { user: fromEmail, pass: smtpPass },
+    });
+  } else if (hasSmtpEnv) {
+    transporter = nodemailer.createTransport({
+      host: envSmtpHost,
+      port: parseInt(envSmtpPort!),
+      secure: parseInt(envSmtpPort!) === 465,
+      auth: { user: envSmtpUser!, pass: envSmtpPass! },
     });
   }
 
