@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Search, Briefcase, MapPin, ExternalLink, Loader2,
   AlertCircle, DollarSign, Clock, ChevronDown, Inbox, RefreshCw, Linkedin,
-  Sparkles, Check, Zap, Target, BarChart3, Brain
+  Sparkles, Check, Zap, Target, BarChart3, Brain, Users, Globe
 } from 'lucide-react';
 import DirectMailToHR from '@/components/apply/DirectMailToHR';
+import BulkMailToHR from '@/components/apply/BulkMailToHR';
 
 interface IndeedJob {
   id: string;
@@ -81,7 +82,7 @@ const EXPERIENCE_OPTIONS = [
 ];
 
 const SOURCE_OPTIONS = ["Indeed", "Remotive", "Both"] as const;
-type TabMode = 'linkedin' | 'indeed' | 'autopilot';
+type TabMode = 'linkedin' | 'indeed' | 'autopilot' | 'surf';
 
 const JOB_TITLES = [
   "Software Developer",
@@ -248,6 +249,7 @@ function getMatchScoreColor(score: number): string {
 
 export default function ApplyPage() {
   const [tab, setTab] = useState<TabMode>('indeed');
+  const [isBulkMailOpen, setIsBulkMailOpen] = useState(false);
 
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("Nagpur, India");
@@ -484,14 +486,24 @@ export default function ApplyPage() {
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
     if (tab === 'linkedin') {
       handleLiSubmit(e);
+    } else if (tab === 'surf') {
+      handleSurfSubmit();
     } else {
       handleIndeedSubmit(e);
     }
   };
 
-  const isSearching = tab === 'linkedin' ? liIsSearching : isIndeedSearching;
+  // ── SURF STATE ───────────────────────────────────────────────
+  const [surfJobs, setSurfJobs] = useState<any[]>([]);
+  const [surfCount, setSurfCount] = useState(0);
+  const [surfIsSearching, setIsSurfSearching] = useState(false);
+  const [surfError, setSurfError] = useState("");
+  const [surfSkills, setSurfSkills] = useState<string[]>([]);
+
+  const isSearching = tab === 'linkedin' ? liIsSearching : tab === 'surf' ? surfIsSearching : isIndeedSearching;
 
   // ── AUTO-PILOT STATE ─────────────────────────────────────────
   const [apKeywords, setApKeywords] = useState<string[]>([]);
@@ -603,6 +615,35 @@ export default function ApplyPage() {
     }
   };
 
+  const handleSurfSubmit = useCallback(async () => {
+    if (!keyword.trim()) return;
+    setIsSurfSearching(true);
+    setSurfError("");
+    setSurfJobs([]);
+    setSurfCount(0);
+
+    try {
+      const params = new URLSearchParams();
+      params.set("keyword", keyword.trim());
+      params.set("location", location.trim());
+      params.set("workMode", jobType === "remote" ? "remote" : "any");
+
+      const res = await fetch(`/api/surf-jobs?${params.toString()}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Surf search failed");
+      }
+      const data = await res.json();
+      setSurfJobs(data.jobs || []);
+      setSurfCount(data.count || 0);
+      setSurfSkills(data.skills || []);
+    } catch (e: any) {
+      setSurfError(e.message || "Surf search failed");
+    } finally {
+      setIsSurfSearching(false);
+    }
+  }, [keyword, location, jobType]);
+
   const renderIndeedJobCard = (job: IndeedJob, idx: number) => (
     <div
       key={`${job.id}-${job.url}-${idx}`}
@@ -703,6 +744,7 @@ export default function ApplyPage() {
     { key: 'linkedin', label: 'LinkedIn', icon: Linkedin },
     { key: 'indeed', label: 'Indeed/Remotive', icon: Search },
     { key: 'autopilot', label: 'Auto-Pilot', icon: Sparkles },
+    { key: 'surf', label: 'Surf Jobs', icon: Globe },
   ];
 
   // ── Auto-Pilot render ───────────────────────────────────────
@@ -942,6 +984,118 @@ export default function ApplyPage() {
     );
   };
 
+  // ── SURF TAB RENDER ──────────────────────────────────────────
+  const renderSurfTab = () => {
+    return (
+      <>
+        {/* Resume skills indicator */}
+        {surfSkills.length > 0 && (
+          <div className="bg-surface-container border border-outline-variant/50 rounded-xl p-4 mb-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Globe className="w-4 h-4 text-primary" />
+              <h3 className="text-xs font-semibold text-on-background">Matched from your resume</h3>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {surfSkills.slice(0, 12).map((s) => (
+                <span
+                  key={s}
+                  className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-medium rounded-full border border-primary/20"
+                >
+                  {s}
+                </span>
+              ))}
+              {surfSkills.length > 12 && (
+                <span className="px-2 py-0.5 text-[10px] text-on-surface-variant">
+                  +{surfSkills.length - 12} more
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {surfError && (
+          <div className="mb-6 flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg px-4 py-3">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-red-800 dark:text-red-300">{surfError}</p>
+          </div>
+        )}
+
+        {/* Loading */}
+        {surfIsSearching && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
+            <p className="text-sm text-on-surface-variant">Searching across the web...</p>
+          </div>
+        )}
+
+        {/* Results count */}
+        {!surfIsSearching && surfCount > 0 && (
+          <p className="text-xs text-on-surface-variant mb-3">
+            Found <span className="font-medium">{surfCount}</span> surf jobs for{' '}
+            <span className="font-medium">&apos;{keyword}&apos;</span>
+          </p>
+        )}
+
+        {/* Results grid */}
+        {!surfIsSearching && surfJobs.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {surfJobs.map((job, idx) => (
+              <div
+                key={`${job.url}-${idx}`}
+                className="bg-surface-container border border-outline-variant/50 rounded-xl p-4 hover:border-outline-variant hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] transition-all duration-300 animate-fade-in group"
+                style={{ animationDelay: `${(idx % 10) * 50}ms`, animationFillMode: "both" }}
+              >
+                {/* Source badge */}
+                <div className="flex justify-between items-start mb-2">
+                  <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wider bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-700">
+                    Surf
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">
+                    <Target className="w-3 h-3" />
+                    {job.relevanceScore} pts
+                  </span>
+                </div>
+
+                <h3 className="text-base font-semibold text-on-background mb-1 leading-snug">
+                  <a href={job.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                    {(job as any).title || job.title}
+                  </a>
+                </h3>
+                <p className="text-sm text-on-surface-variant mb-3 line-clamp-2">
+                  {(job as any).description?.slice(0, 200) || ""}
+                </p>
+
+                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/40">
+                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-600">
+                    <Clock className="w-3 h-3" />
+                    {(job as any).publishedDate || "Recent"}
+                  </span>
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors"
+                  >
+                    View Job <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!surfIsSearching && !surfError && surfJobs.length === 0 && (
+          <div className="text-center py-16">
+            <Globe className="w-12 h-12 mx-auto mb-4 text-on-surface-variant/30" />
+            <p className="text-sm text-on-surface-variant">Enter a keyword and press Search to surf for jobs</p>
+          </div>
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="scrollable-page bg-background px-4 py-4 sm:px-6">
       <div className="mx-auto max-w-7xl">
@@ -1071,9 +1225,26 @@ export default function ApplyPage() {
           </form>
         </div>
 
-        <div className="mb-4">
-          <DirectMailToHR jobTitle={keyword} />
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+          <div className="flex-1">
+            <DirectMailToHR jobTitle={keyword} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsBulkMailOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+            title="Send personalized emails to multiple HR contacts at once"
+          >
+            <Users className="w-4 h-4" />
+            Bulk Mail HR
+          </button>
         </div>
+
+        <BulkMailToHR
+          isOpen={isBulkMailOpen}
+          onClose={() => setIsBulkMailOpen(false)}
+          jobTitle={keyword}
+        />
 
         {tab === 'linkedin' && (
           <>
@@ -1292,6 +1463,7 @@ export default function ApplyPage() {
         )}
 
         {tab === 'autopilot' && renderAutoPilotTab()}
+        {tab === 'surf' && renderSurfTab()}
       </div>
     </div>
   );
