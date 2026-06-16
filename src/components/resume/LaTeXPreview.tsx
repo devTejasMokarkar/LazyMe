@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ResumeData } from "@/features/ai/prompts/resume.prompts";
+import { ResumeData } from "@/components/resume/templates/index";
 import { resumeToLatex } from "@/features/ai/latex.service";
 import { Copy, Check, Terminal } from "lucide-react";
 

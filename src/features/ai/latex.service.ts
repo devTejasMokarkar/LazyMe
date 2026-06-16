@@ -1,7 +1,7 @@
 import { ResumeData } from "@/components/resume/templates/index";
 
 export function resumeToLatex(data: ResumeData, template: 'classic' | 'modern' | 'minimalist' | 'resumeworded' = 'modern'): string {
-  const escapeLatex = (str: string | null | undefined = "") =>
+  const esc = (str: string | null | undefined = "") =>
     (str || "")
       .replace(/\\/g, "\\\\")
       .replace(/&/g, "\\&")
@@ -14,29 +14,33 @@ export function resumeToLatex(data: ResumeData, template: 'classic' | 'modern' |
       .replace(/~/g, "\\textasciitilde{}")
       .replace(/\^/g, "\\textasciicircum{}");
 
+  const headers = {
+    summary: data.sectionHeaders?.summary || "Professional Summary",
+    skills: data.sectionHeaders?.skills || "Core Competencies",
+    experience: data.sectionHeaders?.experience || "Professional Experience",
+    education: data.sectionHeaders?.education || "Education",
+  };
+
   const expLatex = data.experience
     .map(
-      (exp) => `\\textbf{${escapeLatex(exp.role)}} \\hfill ${escapeLatex(exp.duration)}\\\\
-\\textit{${escapeLatex(exp.company)}}
-\\begin{itemize}[leftmargin=0.15in, labelsep=0.05in]
-${(exp.bullets || []).map((b) => `  \\item ${escapeLatex(b)}`).join("\n")}
-\\end{itemize}`
+      (exp) =>
+        `\\textbf{${esc(exp.role)}} \\hfill ${esc(exp.duration)}\\\\\n\\textit{${esc(exp.company)}}\n\\begin{itemize}[leftmargin=0.15in, labelsep=0.05in]\n${(exp.bullets || []).map((b) => `  \\item ${esc(b)}`).join("\n")}\n\\end{itemize}`
     )
     .join("\n\n");
 
   const eduLatex = data.education
     .map(
-      (edu) => `\\textbf{${escapeLatex(edu.degree)}} \\hfill ${escapeLatex(edu.year)}\\\\
-\\textit{${escapeLatex(edu.school)}}`
+      (edu) =>
+        `\\textbf{${esc(edu.degree)}} \\hfill ${esc(edu.year)}\\\\\n\\textit{${esc(edu.school)}}`
     )
     .join("\n\n");
 
-  const skillsLatex = data.skills.length > 0
-    ? `\\section*{Core Competencies}
-\\begin{itemize}[leftmargin=0.15in, labelsep=0.05in]
-  \\item ${data.skills.map(escapeLatex).join(" \\textbullet{} ")}
-\\end{itemize}`
-    : "";
+  const skillsLatex =
+    data.skills.length > 0
+      ? `\\section*{${esc(headers.skills)}}\n${data.skills.map((s) => `\\textbullet{} ${esc(s)}`).join("  ")}`
+      : "";
+
+  const contactLine = [data.email, data.phone, data.location].filter(Boolean).join(" $\\mid$ ");
 
   if (template === 'classic') {
     return `\\documentclass[11pt,a4paper]{article}
@@ -54,16 +58,16 @@ ${(exp.bullets || []).map((b) => `  \\item ${escapeLatex(b)}`).join("\n")}
 \\setlength{\\parskip}{6pt}
 \\begin{document}
 \\begin{center}
-    {\\Huge \\textbf{${escapeLatex(data.name).toUpperCase()}}} \\\\[4pt]
-    {\\large \\textit{${escapeLatex(data.title)}}} \\\\[4pt]
-    \\small ${escapeLatex(data.email)} \\quad | \\quad ${escapeLatex(data.phone)} \\quad | \\quad ${escapeLatex(data.location)}
+    {\\Huge \\textbf{${esc(data.name).toUpperCase()}}} \\\\[4pt]
+    {\\large \\textit{${esc(data.title)}}} \\\\[4pt]
+    \\small ${contactLine}
 \\end{center}
-\\section*{Professional Summary}
-${escapeLatex(data.summary)}
+\\section*{${esc(headers.summary)}}
+${esc(data.summary)}
 ${skillsLatex}
-\\section*{Professional Experience}
+\\section*{${esc(headers.experience)}}
 ${expLatex}
-\\section*{Education}
+\\section*{${esc(headers.education)}}
 ${eduLatex}
 \\end{document}`;
   }
@@ -86,17 +90,17 @@ ${eduLatex}
 \\renewcommand{\\familydefault}{\\sfdefault}
 \\begin{document}
 \\begin{flushright}
-    {\\huge \\textbf{${escapeLatex(data.name)}}} \\\\[2pt]
-    ${escapeLatex(data.title)} \\\\[2pt]
-    \\small ${[escapeLatex(data.email), escapeLatex(data.phone), escapeLatex(data.location)].filter(Boolean).join(" / ")}
+    {\\huge \\textbf{${esc(data.name)}}} \\\\[2pt]
+    ${esc(data.title)} \\\\[2pt]
+    \\small ${contactLine}
 \\end{flushright}
 \\vspace{8pt}
-\\section*{Summary}
-${escapeLatex(data.summary)}
+\\section*{${esc(headers.summary)}}
+${esc(data.summary)}
 ${skillsLatex}
-\\section*{Experience}
+\\section*{${esc(headers.experience)}}
 ${expLatex}
-\\section*{Education}
+\\section*{${esc(headers.education)}}
 ${eduLatex}
 \\end{document}`;
   }
@@ -117,58 +121,110 @@ ${eduLatex}
 \\setlength{\\parskip}{6pt}
 \\begin{document}
 \\begin{center}
-    {\\Huge \\textbf{${escapeLatex(data.name).toUpperCase()}}} \\\\[4pt]
-    ${escapeLatex(data.title)} \\\\[2pt]
-    \\small ${escapeLatex(data.email)} \\quad | \\quad ${escapeLatex(data.phone)}
+    {\\Huge \\textbf{${esc(data.name).toUpperCase()}}} \\\\[4pt]
+    ${esc(data.title)} \\\\[2pt]
+    \\small ${contactLine}
 \\end{center}
-\\section*{Professional Summary}
-${escapeLatex(data.summary)}
+\\section*{${esc(headers.summary)}}
+${esc(data.summary)}
 ${skillsLatex}
-\\section*{Professional Experience}
+\\section*{${esc(headers.experience)}}
 ${expLatex}
-\\section*{Education}
+\\section*{${esc(headers.education)}}
 ${eduLatex}
 \\end{document}`;
 }
 
 export function latexToHtml(latex: string): string {
+  // Strip document wrapper
   let html = latex
     .replace(/\\documentclass[\s\S]*?\\begin\{document\}/, "")
-    .replace(/\\end\{document\}/, "")
-    .replace(/\\begin\{center\}([\s\S]*?)\\end\{center\}/g, '<div class="text-center">$1</div>')
-    .replace(/\\begin\{flushright\}([\s\S]*?)\\end\{flushright\}/g, '<div class="text-right">$1</div>')
-    .replace(/\\textbf\{(.*?)\}/g, "<strong>$1</strong>")
-    .replace(/\\textit\{(.*?)\}/g, "<em>$1</em>")
-    .replace(/\\section\*\{(.*?)\}/g, '<h2 class="text-xl font-bold mt-6 mb-2 border-b border-gray-300 pb-1">$1</h2>')
-    .replace(/\\begin\{itemize\}(\[.*?\])?([\s\S]*?)\\end\{itemize\}/g, '<ul class="list-disc pl-5 space-y-1">$2</ul>')
-    .replace(/\\item\s+(.*)/g, "<li>$1</li>")
-    .replace(/\\\\/g, "<br/>")
-    .replace(/\\\[.*?\]/g, "")
-    .replace(/\\hfill/g, '<span class="float-right">')
-    .replace(/\\quad/g, " ")
-    .replace(/\\\|/g, " | ")
-    .replace(/\\Huge/g, "")
-    .replace(/\\Large/g, "")
-    .replace(/\\small/g, "")
-    .replace(/\\color\{.*?\}/g, "")
-    .replace(/\\href\{.*?\}\{(.*?)\}/g, '<a href="#" class="text-blue-600 underline">$1</a>')
-    .replace(/\\begin\{.*\}/g, "")
-    .replace(/\\end\{.*\}/g, "")
-    .replace(/\[\d+pt\]/g, "")
-    .replace(/\\&/g, "&")
-    .replace(/\\%/g, "%")
-    .replace(/\\\$/g, "$")
-    .replace(/\\#/g, "#")
-    .replace(/\\_/g, "_")
-    .replace(/\\\{/g, "{")
-    .replace(/\\\}/g, "}")
-    .replace(/\\[a-zA-Z]+\*?(\{.*?\})?/g, "")
-    .replace(/\{|\}/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/\\end\{document\}/, "");
 
-  html = html.replace(/<div class="text-center"> (.*?) <br\/>/g, '<div class="text-center"><h1>$1</h1>');
-  html = html.replace(/<div class="text-right"> (.*?) <br\/>/g, '<div class="text-right"><h1>$1</h1>');
+  // Center / flush-right blocks
+  html = html.replace(
+    /\\begin\{center\}([\s\S]*?)\\end\{center\}/g,
+    '<div class="text-center">$1</div>'
+  );
+  html = html.replace(
+    /\\begin\{flushright\}([\s\S]*?)\\end\{flushright\}/g,
+    '<div class="text-right">$1</div>'
+  );
+
+  // Section headings — page-break-aware
+  html = html.replace(
+    /\\section\*\{(.*?)\}/g,
+    '<div class="page-break-avoid"><h2 class="section-header">$1</h2></div>'
+  );
+
+  // Bold / italic
+  html = html.replace(/\\textbf\{(.*?)\}/g, "<strong>$1</strong>");
+  html = html.replace(/\\textit\{(.*?)\}/g, "<em>$1</em>");
+
+  // Itemize lists
+  html = html.replace(
+    /\\begin\{itemize\}(\[.*?\])?([\s\S]*?)\\end\{itemize\}/g,
+    '<ul class="resume-list">$2</ul>'
+  );
+  html = html.replace(/\\item\s+([\s\S]*?)(?=\\item|<\/ul>|$)/g, "<li>$1</li>");
+
+  // Inline bullets (for skills section without itemize)
+  html = html.replace(/\\textbullet\{\}\s*/g, '<span class="skill-bullet"> • </span>');
+
+  // Line breaks: \\[6pt] → spacer, \\ → <br/>
+  html = html.replace(/\\\\\[(\d+)pt\]/g, '<div class="entry-gap" style="height:$1pt"></div>');
+  html = html.replace(/\\\\/g, "<br/>");
+
+  // Horizontal fill — wrap in a span
+  html = html.replace(/\\hfill\s*/g, '</span><span class="hfill">');
+
+  // Spacing commands
+  html = html.replace(/\\quad/g, " ");
+  html = html.replace(/\\qquad/g, "  ");
+  html = html.replace(/\\vspace\{.*?\}/g, "");
+  html = html.replace(/\\small/g, "");
+  html = html.replace(/\\Huge/g, "");
+  html = html.replace(/\\Large/g, "");
+  html = html.replace(/\\huge/g, "");
+  html = html.replace(/\\normalsize/g, "");
+  html = html.replace(/\\centering/g, "");
+  html = html.replace(/\\color\{.*?\}/g, "");
+  html = html.replace(/\\titlerule/g, "");
+  html = html.replace(/\\href\{.*?\}\{(.*?)\}/g, "$1");
+
+  // Escape sequences → HTML entities
+  html = html.replace(/\\\$/g, "&#36;");
+  html = html.replace(/\\&/g, "&amp;");
+  html = html.replace(/\\%/g, "%");
+  html = html.replace(/\\#/g, "#");
+  html = html.replace(/\\_/g, "_");
+  html = html.replace(/\\\{/g, "{");
+  html = html.replace(/\\\}/g, "}");
+
+  // Remove any remaining \commands (but not escaped chars)
+  html = html.replace(/\\[a-zA-Z@]+\*?(\{[^}]*\})?/g, "");
+
+  // Remove stray braces
+  html = html.replace(/\{|\}/g, "");
+
+  // Remove empty spans from hfill
+  html = html.replace(/<span class="hfill"><\/span>/g, "");
+  // Close any unclosed hfill spans
+  html = html.replace(/<span class="hfill">([\s\S]*?)(?=<br|<strong|<em|<ul|<li|<div|$)/g,
+    '<span class="hfill">$1</span>');
+
+  // Clean up whitespace
+  html = html.replace(/\s+/g, " ").trim();
+
+  // Re-format centered text blocks
+  html = html.replace(
+    /<div class="text-center"> (.*?) <br\/>/g,
+    '<div class="text-center">$1</div>'
+  );
+  html = html.replace(
+    /<div class="text-right"> (.*?) <br\/>/g,
+    '<div class="text-right">$1</div>'
+  );
 
   return html;
 }

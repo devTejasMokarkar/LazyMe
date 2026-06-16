@@ -64,6 +64,24 @@ function normalizeSkills(skills: any): string[] {
   return [];
 }
 
+// Helper to normalize projects from API format { name, description, techStack[] }
+// into template format { name, date?, bullets[] }
+function normalizeProjects(projects: any): Array<{ name: string; date?: string; bullets: string[] }> {
+  if (!Array.isArray(projects)) return [];
+  return projects.map((p: any) => {
+    const bullets: string[] = [];
+    if (p.description) bullets.push(p.description);
+    if (Array.isArray(p.techStack) && p.techStack.length) {
+      bullets.push(`Technologies: ${p.techStack.join(', ')}`);
+    }
+    // If bullets already provided (from worded-data edits), use them directly
+    if (Array.isArray(p.bullets) && p.bullets.length) {
+      return { name: p.name || '', date: p.date, bullets: p.bullets };
+    }
+    return { name: p.name || '', date: p.date, bullets };
+  });
+}
+
 // sessionStorage sentinel keys for "this prompt was already processed in
 // this session". Survives React Strict Mode's double-mount and short
 // remounts, but resets on a real page reload so the user can re-generate.
@@ -128,6 +146,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const [location, setLocation] = useState('');
   const [summary, setSummary] = useState('');
   const [education, setEducation] = useState<any[]>([]);
+  const [resumeProjects, setResumeProjects] = useState<Array<{ name: string; date?: string; bullets: string[] }>>([]);
 
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
   const [parsingFeedback, setParsingFeedback] = useState<ParsedSection[]>([]);
@@ -236,19 +255,19 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
 
     // Categorise skills: use API-returned categories when available,
     // otherwise fall back to regex bucketing of the flat list.
-    const technical = Array.from(new Set((cats.technical && cats.technical.length > 0)
+    const technical: string[] = Array.from(new Set((cats.technical && cats.technical.length > 0)
       ? cats.technical
       : allSkills.filter((s: string) => /^(python|javascript|typescript|java|rust|go|c\+\+|c#|php|ruby|swift|kotlin|scala|html|css)$/i.test(s))));
-    const frameworks = Array.from(new Set((cats.frameworks && cats.frameworks.length > 0)
+    const frameworks: string[] = Array.from(new Set((cats.frameworks && cats.frameworks.length > 0)
       ? cats.frameworks
       : allSkills.filter((s: string) => /^(react|vue|angular|svelte|next|nuxt|express|django|flask|spring|rails|node|tensorflow|pytorch|langchain)$/i.test(s))));
-    const databases = Array.from(new Set((cats.databases && cats.databases.length > 0)
+    const databases: string[] = Array.from(new Set((cats.databases && cats.databases.length > 0)
       ? cats.databases
       : allSkills.filter((s: string) => /^(sql|nosql|mongodb|postgresql|mysql|sqlite|redis|elasticsearch|dynamodb|cosmos)/i.test(s))));
-    const cloudDevOps = Array.from(new Set((cats.cloudDevOps && cats.cloudDevOps.length > 0)
+    const cloudDevOps: string[] = Array.from(new Set((cats.cloudDevOps && cats.cloudDevOps.length > 0)
       ? cats.cloudDevOps
       : allSkills.filter((s: string) => /^(aws|azure|gcp|docker|kubernetes|terraform|ansible|jenkins|ci\/cd)/i.test(s))));
-    const industryKnowledge = Array.from(new Set((cats.industryKnowledge && cats.industryKnowledge.length > 0)
+    const industryKnowledge: string[] = Array.from(new Set((cats.industryKnowledge && cats.industryKnowledge.length > 0)
       ? cats.industryKnowledge
       : allSkills.filter((s: string) => !technical.includes(s) && !frameworks.includes(s) && !databases.includes(s) && !cloudDevOps.includes(s))));
 
@@ -466,6 +485,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     setLocation(r.location || '');
     setSummary(r.summary || '');
     setEducation(r.education || []);
+    setResumeProjects(normalizeProjects(r.projects || []));
     applyWordedData(r); // keep worded template in sync
 
     if (savedResume) {
@@ -822,6 +842,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     setLocation(c.location || '');
     setSummary(c.summary || '');
     setEducation(c.education || []);
+    setResumeProjects(normalizeProjects(c.projects || []));
     applyWordedData(c); // keep worded template in sync
 
     lastSavedContent.current = JSON.stringify({
@@ -853,7 +874,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   };
 
   const saveCurrentVersion = async (name?: string) => {
-    const content = { name: userName, title: userRole, experience, skills, email, phone, location, summary, education };
+    const content = { name: userName, title: userRole, experience, skills, email, phone, location, summary, education, projects: resumeProjects };
     const currentSerialized = JSON.stringify(content);
 
     if (currentSerialized === lastSavedContent.current) {
@@ -1023,6 +1044,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         setLocation(data.location || '');
         setSummary(data.summary || '');
         setEducation(data.education || []);
+        setResumeProjects(normalizeProjects(data.projects || []));
         applyWordedData(data); // keep worded template in sync
         setUploadSuccess(true);
         setNeedsUpload(false);
@@ -1061,6 +1083,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 email: data.email, phone: data.phone,
                 location: data.location, summary: data.summary,
                 education: data.education,
+                projects: data.projects || [],
                 skillsCategories: data.skillsCategories || {},
               },
             }),
@@ -1078,6 +1101,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                 email: data.email, phone: data.phone,
                 location: data.location, summary: data.summary,
                 education: data.education,
+                projects: data.projects || [],
                 skillsCategories: data.skillsCategories || {},
               },
               isDefault: true,
@@ -1191,7 +1215,8 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         phone,
         location,
         summary,
-        education
+        education,
+        projects: resumeProjects
       };
 
       const currentSerialized = JSON.stringify(content);
@@ -1237,7 +1262,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [userName, userRole, experience, skills, email, phone, location, summary, education, resumeId, loading]);
+  }, [userName, userRole, experience, skills, email, phone, location, summary, education, resumeProjects, resumeId, loading]);
 
   const handleUndo = () => {
     if (historyIndex > 0) {
@@ -1330,7 +1355,8 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     phone,
     location,
     summary,
-    education
+    education,
+    projects: resumeProjects,
   };
   const latex = resumeToLatex(resumeData, template);
 

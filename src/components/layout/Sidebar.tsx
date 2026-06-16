@@ -15,6 +15,7 @@ import {
   Brain,
   Settings,
   Coins,
+  Code,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOutAction } from '@/app/actions';
@@ -38,6 +39,7 @@ export default function Sidebar() {
     { id: 'resume', label: 'Resume Builder', icon: FileText, href: '/resume' },
     { id: 'jobs', label: 'Job Search', icon: Search, href: '/apply' },
     { id: 'interview-prep', label: 'Interview Prep', icon: Brain, href: '/interview-prep' },
+    { id: 'latex-ai', label: 'LaTeX AI', icon: Code, href: '/latexAi' },
   ];
 
   const bottomItems: Array<{

@@ -1,7 +1,6 @@
 "use client";
 
-import { ResumeData } from "@/features/ai/prompts/resume.prompts";
-import type { ResumeWordedData, TemplateType } from "@/components/resume/templates/index";
+import type { ResumeData, ResumeWordedData, TemplateType } from "@/components/resume/templates/index";
 import { resumeToLatex, latexToHtml } from "@/features/ai/latex.service";
 import { FileText } from "lucide-react";
 import { ResumeWordedTemplate } from "./templates/ResumeWordedTemplate";

@@ -86,6 +86,28 @@ export function MinimalistTemplate({ data, color, theme }: TemplateProps) {
           ))}
         </div>
       )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <div style={{ paddingTop: 10, borderTop: `1px solid ${divider}` }}>
+          <p style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 3, color: muted, margin: '0 0 10px' }}>Projects</p>
+          {data.projects.map((proj, i) => (
+            <div key={i} style={{ marginBottom: i < data.projects!.length - 1 ? 8 : 0, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontSize: 13, fontWeight: 500 }}>{proj.name}</span>
+                {proj.date && <span style={{ fontSize: 10, color: muted, fontFamily: 'monospace' }}>{proj.date}</span>}
+              </div>
+              {proj.bullets && proj.bullets.length > 0 && (
+                <ul style={{ margin: '3px 0 0', paddingLeft: 14, fontSize: 11, lineHeight: '1.35', color: muted, listStyle: 'disc' }}>
+                  {proj.bullets.map((b, j) => (
+                    <li key={j} style={{ marginBottom: 1 }}>{b}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -89,6 +89,30 @@ export function ClassicTemplate({ data, color, theme }: TemplateProps) {
           ))}
         </div>
       )}
+
+      {/* Projects */}
+      {data.projects && data.projects.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, margin: '0 0 12px', color: color === '#000000' ? c : color, borderBottom: `1px solid ${border}`, paddingBottom: 4 }}>
+            Projects
+          </h2>
+          {data.projects.map((proj, i) => (
+            <div key={i} style={{ marginBottom: 10, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>{proj.name}</span>
+                {proj.date && <span style={{ fontSize: 11, color: muted, fontFamily: 'monospace' }}>{proj.date}</span>}
+              </div>
+              {proj.bullets && proj.bullets.length > 0 && (
+                <ul style={{ margin: '4px 0 0', paddingLeft: 16, fontSize: 11, lineHeight: '1.35', color: subtle, listStyle: 'disc' }}>
+                  {proj.bullets.map((b, j) => (
+                    <li key={j} style={{ marginBottom: 1 }}>{b}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

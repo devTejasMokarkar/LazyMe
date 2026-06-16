@@ -20,6 +20,12 @@ export interface ResumeData {
     degree: string;
     year: string;
   }>;
+  projects?: Array<{
+    name: string;
+    date?: string;
+    bullets: string[];
+  }>;
+  sectionHeaders?: Record<string, string>;
 }
 
 export interface ResumeWordedData {
