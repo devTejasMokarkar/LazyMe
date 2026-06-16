@@ -22,6 +22,7 @@ import { MinimalistTemplate } from '@/components/resume/templates/MinimalistTemp
 import type { TemplateType, ResumeData as TemplateResumeData, ResumeWordedData } from '@/components/resume/templates/index';
 import { ResumeWordedTemplate } from '@/components/resume/templates/ResumeWordedTemplate';
 import { resumeToLatex } from '@/features/ai/latex.service';
+import { downloadPDF } from '@/features/ai/pdf.service';
 
 interface ResumeVersion {
   id: string;
@@ -140,6 +141,18 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const pendingResumeApplied = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'optimize' | 'manual-edit'>('optimize');
+
+  // Handle Ctrl+P for perfect resume printing
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        downloadPDF('resume-preview', `resume_${userName.replace(/\s+/g, '_').toLowerCase() || 'download'}.pdf`);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [userName]);
 
   // ATS Analysis state
   const [showATS, setShowATS] = useState(false);

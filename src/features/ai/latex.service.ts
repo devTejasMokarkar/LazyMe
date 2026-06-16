@@ -19,7 +19,7 @@ export function resumeToLatex(data: ResumeData, template: 'classic' | 'modern' |
       (exp) => `\\textbf{${escapeLatex(exp.role)}} \\hfill ${escapeLatex(exp.duration)}\\\\
 \\textit{${escapeLatex(exp.company)}}
 \\begin{itemize}[leftmargin=0.15in, labelsep=0.05in]
-${exp.bullets.map((b) => `  \\item ${escapeLatex(b)}`).join("\n")}
+${(exp.bullets || []).map((b) => `  \\item ${escapeLatex(b)}`).join("\n")}
 \\end{itemize}`
     )
     .join("\n\n");
