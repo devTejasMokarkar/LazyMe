@@ -90,7 +90,7 @@ ${eduLatex}
 \\renewcommand{\\familydefault}{\\sfdefault}
 \\begin{document}
 \\begin{flushright}
-    {\\huge \\textbf{${esc(data.name)}}} \\\\[2pt]
+    {\\Huge \\textbf{${esc(data.name)}}} \\\\[2pt]
     ${esc(data.title)} \\\\[2pt]
     \\small ${contactLine}
 \\end{flushright}
@@ -141,6 +141,13 @@ export function latexToHtml(latex: string): string {
     .replace(/\\documentclass[\s\S]*?\\begin\{document\}/, "")
     .replace(/\\end\{document\}/, "");
 
+  // Horizontal fill — process on raw LaTeX lines before any conversion
+  // Each \hfill is on a single line ending with \\ (LaTeX line break)
+  html = html.replace(
+    /([^\n]*?)\\hfill\s*([^\n]*?)(\\\\\n?)/g,
+    '<div class="hfill-line"><span class="hfill-left">$1</span><span class="hfill-right">$2</span></div>$3'
+  );
+
   // Center / flush-right blocks
   html = html.replace(
     /\\begin\{center\}([\s\S]*?)\\end\{center\}/g,
@@ -175,11 +182,9 @@ export function latexToHtml(latex: string): string {
   html = html.replace(/\\\\\[(\d+)pt\]/g, '<div class="entry-gap" style="height:$1pt"></div>');
   html = html.replace(/\\\\/g, "<br/>");
 
-  // Horizontal fill — wrap in a span
-  html = html.replace(/\\hfill\s*/g, '</span><span class="hfill">');
-
   // Spacing commands
   html = html.replace(/\$\\mid\$/g, " | ");
+  html = html.replace(/\\fontsize\{(\d+)\}\{(\d+)\}\\selectfont/g, '<span style="font-size:$1pt;line-height:$2pt">');
   html = html.replace(/\\quad/g, " ");
   html = html.replace(/\\qquad/g, "  ");
   html = html.replace(/\\vspace\{.*?\}/g, "");
@@ -207,12 +212,6 @@ export function latexToHtml(latex: string): string {
 
   // Remove stray braces
   html = html.replace(/\{|\}/g, "");
-
-  // Remove empty spans from hfill
-  html = html.replace(/<span class="hfill"><\/span>/g, "");
-  // Close any unclosed hfill spans
-  html = html.replace(/<span class="hfill">([\s\S]*?)(?=<br|<strong|<em|<ul|<li|<div|$)/g,
-    '<span class="hfill">$1</span>');
 
   // Clean up whitespace
   html = html.replace(/\s+/g, " ").trim();
