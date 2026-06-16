@@ -179,6 +179,7 @@ export function latexToHtml(latex: string): string {
   html = html.replace(/\\hfill\s*/g, '</span><span class="hfill">');
 
   // Spacing commands
+  html = html.replace(/\$\\mid\$/g, " | ");
   html = html.replace(/\\quad/g, " ");
   html = html.replace(/\\qquad/g, "  ");
   html = html.replace(/\\vspace\{.*?\}/g, "");
