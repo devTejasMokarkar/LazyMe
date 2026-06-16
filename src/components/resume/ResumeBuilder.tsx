@@ -212,23 +212,59 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
   const [wordedName, setWordedName] = useState('');
   const [wordedTitle, setWordedTitle] = useState('');
 
-  // Convert flat skills to worded skills on initial load when wordedSkills is empty
-  useEffect(() => {
-    if (!loading && skills.length > 0 &&
-        wordedSkills.technicalSkills.length === 0 &&
-        wordedSkills.frameworks.length === 0 &&
-        wordedSkills.databases.length === 0 &&
-        wordedSkills.cloudDevOps.length === 0 &&
-        wordedSkills.industryKnowledge.length === 0) {
-      setWordedSkills({
-        technicalSkills: skills.filter(s => /^(python|javascript|typescript|java|rust|go|c\+\+|c#|php|ruby|swift|kotlin|scala|html|css)$/i.test(s)),
-        frameworks: skills.filter(s => /^(react|vue|angular|svelte|next|nuxt|express|django|flask|spring|rails|node|tensorflow|pytorch|langchain)$/i.test(s)),
-        databases: skills.filter(s => /^(sql|nosql|mongodb|postgresql|mysql|sqlite|redis|elasticsearch|dynamodb|cosmos)/i.test(s)),
-        cloudDevOps: skills.filter(s => /^(aws|azure|gcp|docker|kubernetes|terraform|ansible|jenkins|ci\/cd)/i.test(s)),
-        industryKnowledge: skills.filter(s => !/^(python|javascript|typescript|java|react|vue|angular|aws|docker|kubernetes|sql|mongodb|postgresql|mysql)/i.test(s)),
-      });
-    }
-  }, [loading, skills]);
+  // ---------------------------------------------------------------
+  // WORDED STATE SYNC HELPER
+  // Called every time a resume is uploaded, loaded from DB, or created
+  // from a prompt so the ResumeWordedTemplate always shows fresh data.
+  // ---------------------------------------------------------------
+  function applyWordedData(r: any) {
+    const cats = r.skillsCategories || {};
+    const allSkills: string[] = normalizeSkills(r.skills);
+
+    // Categorise skills: use API-returned categories when available,
+    // otherwise fall back to regex bucketing of the flat list.
+    const technical = Array.from(new Set((cats.technical && cats.technical.length > 0)
+      ? cats.technical
+      : allSkills.filter((s: string) => /^(python|javascript|typescript|java|rust|go|c\+\+|c#|php|ruby|swift|kotlin|scala|html|css)$/i.test(s))));
+    const frameworks = Array.from(new Set((cats.frameworks && cats.frameworks.length > 0)
+      ? cats.frameworks
+      : allSkills.filter((s: string) => /^(react|vue|angular|svelte|next|nuxt|express|django|flask|spring|rails|node|tensorflow|pytorch|langchain)$/i.test(s))));
+    const databases = Array.from(new Set((cats.databases && cats.databases.length > 0)
+      ? cats.databases
+      : allSkills.filter((s: string) => /^(sql|nosql|mongodb|postgresql|mysql|sqlite|redis|elasticsearch|dynamodb|cosmos)/i.test(s))));
+    const cloudDevOps = Array.from(new Set((cats.cloudDevOps && cats.cloudDevOps.length > 0)
+      ? cats.cloudDevOps
+      : allSkills.filter((s: string) => /^(aws|azure|gcp|docker|kubernetes|terraform|ansible|jenkins|ci\/cd)/i.test(s))));
+    const industryKnowledge = Array.from(new Set((cats.industryKnowledge && cats.industryKnowledge.length > 0)
+      ? cats.industryKnowledge
+      : allSkills.filter((s: string) => !technical.includes(s) && !frameworks.includes(s) && !databases.includes(s) && !cloudDevOps.includes(s))));
+
+    setWordedName(r.name || '');
+    setWordedTitle(r.title || '');
+    setWordedContact({
+      location: r.location || '',
+      phone: r.phone || '',
+      email: r.email || '',
+      linkedin: (r.links || []).find((l: string) => l.includes('linkedin')) || '',
+    });
+    setWordedSkills({ technicalSkills: technical, frameworks, databases, cloudDevOps, industryKnowledge });
+    setWordedExperience(
+      (r.experience || []).map((e: any) => ({
+        company: e.company || '',
+        dates: e.duration || e.dates || '',
+        title: e.role || e.title || '',
+        companyDescription: e.companyDescription || '',
+        bullets: Array.isArray(e.bullets) ? e.bullets : [],
+      }))
+    );
+    setWordedEducation(
+      (r.education || []).map((e: any) => ({
+        institution: e.institution || e.school || '',
+        degree: e.degree || '',
+        graduationDate: e.graduationDate || e.year || '',
+      }))
+    );
+  }
 
   // Sync worded data back to flat state for ATS compatibility
   useEffect(() => {
@@ -417,6 +453,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     setLocation(r.location || '');
     setSummary(r.summary || '');
     setEducation(r.education || []);
+    applyWordedData(r); // keep worded template in sync
 
     if (savedResume) {
       setResumeId(savedResume.id);
@@ -579,11 +616,16 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
 
       // ---- PHASE 2: localStorage / sessionStorage pending resume ----
       // (used by the /chat "Save & Edit" flow and the upload flow)
-      const pending = localStorage.getItem('lazyme_pending_resume') || sessionStorage.getItem('pendingResume');
+      // Check all known pending-resume keys (different flows use different keys)
+      const pending =
+        localStorage.getItem('lazyme_pending_resume') ||
+        sessionStorage.getItem('lazyme_pending_resume') ||
+        sessionStorage.getItem('pendingResume');
 
       if (pending) {
         // IMMEDIATELY clear storage so no other mount/call can re-read stale data
         sessionStorage.removeItem('pendingResume');
+        sessionStorage.removeItem('lazyme_pending_resume');
         localStorage.removeItem('lazyme_pending_resume');
 
         // Mark that this component instance consumed pending data
@@ -602,7 +644,11 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           setLocation(parsed.location || '');
           setSummary(parsed.summary || '');
           setEducation(parsed.education || []);
+          applyWordedData(parsed); // keep worded template in sync
           setUploadSuccess(true);
+
+          // Restore resume ID if the API already persisted it
+          if (parsed.id) setResumeId(parsed.id);
 
           // Read pending JD and auto-analyze
           const pendingJd = localStorage.getItem('lazyme_pending_jd');
@@ -677,7 +723,8 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
                     phone: parsed.phone,
                     location: parsed.location,
                     summary: parsed.summary,
-                    education: parsed.education
+                    education: parsed.education,
+                    skillsCategories: parsed.skillsCategories || {},
                   },
                   isDefault: true
                 })
@@ -762,6 +809,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
     setLocation(c.location || '');
     setSummary(c.summary || '');
     setEducation(c.education || []);
+    applyWordedData(c); // keep worded template in sync
 
     lastSavedContent.current = JSON.stringify({
       name: c.name || 'Your Name',
@@ -962,6 +1010,7 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
         setLocation(data.location || '');
         setSummary(data.summary || '');
         setEducation(data.education || []);
+        applyWordedData(data); // keep worded template in sync
         setUploadSuccess(true);
         setNeedsUpload(false);
         setParsingFeedback([
@@ -971,20 +1020,60 @@ export default function ResumeBuilder({ initialPrompt }: { initialPrompt?: strin
           { name: 'Education', status: 'success', confidence: 88 }
         ]);
 
-        // Auto-save the uploaded resume to database
-        const saveRes = await fetch('/api/resumes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: `Resume ${new Date().toLocaleDateString()}`,
-            content: { name: data.name, title: data.title, experience: data.experience, skills: data.skills, email: data.email, phone: data.phone, location: data.location, summary: data.summary, education: data.education },
-            isDefault: true
-          })
-        });
+        // Persist parsed data to sessionStorage so it survives an OAuth
+        // redirect / page reload. initResume Phase 2 will pick this up.
+        try {
+          sessionStorage.setItem('lazyme_pending_resume', JSON.stringify({
+            ...data,
+            skillsCategories: data.skillsCategories || {},
+            id: data.id || null,
+          }));
+        } catch { /* quota — non-fatal */ }
 
-        if (saveRes.ok) {
-          const newResume = await saveRes.json();
-          setResumeId(newResume.id);
+        // The parse-resume API already auto-saved to DB and returned data.id.
+        // Reuse that ID instead of creating a duplicate row. If data.id is
+        // missing (unauthenticated parse), save now.
+        if (data.id) {
+          setResumeId(data.id);
+          // Update the existing row to mark as default and include skillsCategories
+          await fetch('/api/resumes', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: data.id,
+              isDefault: true,
+              content: {
+                name: data.name, title: data.title,
+                experience: data.experience, skills: data.skills,
+                email: data.email, phone: data.phone,
+                location: data.location, summary: data.summary,
+                education: data.education,
+                skillsCategories: data.skillsCategories || {},
+              },
+            }),
+          }).catch(() => {}); // non-fatal
+        } else {
+          // Not authenticated during parse — save now that we have a session
+          const saveRes = await fetch('/api/resumes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: `Resume ${new Date().toLocaleDateString()}`,
+              content: {
+                name: data.name, title: data.title,
+                experience: data.experience, skills: data.skills,
+                email: data.email, phone: data.phone,
+                location: data.location, summary: data.summary,
+                education: data.education,
+                skillsCategories: data.skillsCategories || {},
+              },
+              isDefault: true,
+            }),
+          });
+          if (saveRes.ok) {
+            const newResume = await saveRes.json();
+            setResumeId(newResume.id);
+          }
         }
 
         lastSavedContent.current = JSON.stringify({

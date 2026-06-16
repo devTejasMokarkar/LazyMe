@@ -27,7 +27,7 @@ const SUPPORTED_TYPES = [
   "image/gif",
 ] as const;
 
-const COMPLETENESS_THRESHOLD = 50;
+const COMPLETENESS_THRESHOLD = 75;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const RESUME_PARSE_PROMPT = `Parse this resume and extract all information into a JSON object with this exact structure. Return ONLY valid JSON, no markdown, no explanations:
